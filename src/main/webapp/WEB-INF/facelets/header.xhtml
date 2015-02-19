@@ -1,0 +1,30 @@
+<?xml version='1.0' encoding='UTF-8'?>
+<!DOCTYPE html>
+<ui:composition xmlns="http://www.w3.org/1999/xhtml"
+                xmlns:ui="http://java.sun.com/jsf/facelets"
+                xmlns:h="http://java.sun.com/jsf/html"
+                xmlns:p="http://primefaces.org/ui"
+                xmlns:f="http://java.sun.com/jsf/core">
+    <h:form>
+        <div style="position:absolute; left: 10px;">
+            <p:graphicImage value="/resources/img/university_logo.png" alt="#{bundle.University_logo}" height="85px"/>
+            <p:graphicImage value="/resources/img/etsii_logo.png" alt="#{bundle.ETSII_logo}" height="85px"/>
+            <p:outputLabel value="#{bundle.Title}" class="header"/>
+        </div>
+        <div style="position:absolute; right: 10px; padding: 10px;">  
+            <!-- Estilo visual -->
+            <p:themeSwitcher id="defaultSwitcher" style="bottom: 22px">
+                <f:selectItem itemLabel="#{bundle['Theme.ChooseStyle']}" itemValue=""/>
+                <f:selectItems value="#{themeBean.themes}"/>
+                <p:ajax global="false" listener="#{themeBean.saveTheme}"/>
+            </p:themeSwitcher>
+            <!-- Idiomas -->
+            <h:commandLink title="ES" action="#{localeBean.changeLocale('es')}" immediate="true">
+                <p:graphicImage value="/resources/img/es.png" title="#{bundle['Locale.Spanish']}" alt="#{bundle['Locale.Spanish']}"/>
+            </h:commandLink>
+            <h:commandLink title="EN" action="#{localeBean.changeLocale('en')}" immediate="true">
+                <p:graphicImage value="/resources/img/en.png" title="#{bundle['Locale.English']}" alt="#{bundle['Locale.English']}"/>
+            </h:commandLink>
+        </div>
+    </h:form>
+</ui:composition>

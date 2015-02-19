@@ -1,0 +1,47 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml"
+      xmlns:ui="http://xmlns.jcp.org/jsf/facelets"
+      xmlns:h="http://xmlns.jcp.org/jsf/html"
+      xmlns:f="http://xmlns.jcp.org/jsf/core"
+      xmlns:p="http://primefaces.org/ui">
+
+    <ui:composition>
+
+        <p:dialog id="AsistenciaEditDlg" widgetVar="AsistenciaEditDialog" modal="true" resizable="false" appendTo="@(body)" header="#{bundle.EditAsistenciaTitle}" closeOnEscape="true">
+            <h:form id="AsistenciaEditForm">
+                <h:panelGroup id="display">
+                    <p:panelGrid columns="2" rendered="#{asistenciaController.selected != null}">
+                        <p:outputLabel value="#{bundle.EditAsistenciaLabel_idAsistente}" for="idAsistente" />
+                        <p:selectOneMenu id="idAsistente" value="#{asistenciaController.selected.asistente}" required="true" requiredMessage="#{bundle.EditAsistenciaRequiredMessage_idAsistente}">
+                            <f:selectItem itemLabel="#{bundle.SelectOneMessage}"/>
+                            <f:selectItems value="#{personController.itemsAlumno}"
+                                           var="idAsistenteItem"
+                                           itemValue="#{idAsistenteItem}"/>
+                        </p:selectOneMenu>
+                        <p:outputLabel value="#{bundle.EditAsistenciaLabel_idEvento}" for="idEvento" />
+                        <p:selectOneMenu id="idEvento" value="#{asistenciaController.selected.evento}" required="true" requiredMessage="#{bundle.EditAsistenciaRequiredMessage_idEvento}">
+                            <f:selectItems value="#{eventoController.itemsAvailableSelectOne}"
+                                           var="idEventoItem"
+                                           itemValue="#{idEventoItem}"/>
+                        </p:selectOneMenu>
+                        <p:outputLabel value="#{bundle.EditAsistenciaLabel_horaEntrada}" for="horaEntrada" />
+                        <p:calendar id="horaEntrada" pattern="dd/MM/yyyy HH:mm:ss" value="#{asistenciaController.selected.horaEntrada}" title="#{bundle.EditAsistenciaTitle_horaEntrada}" required="true" requiredMessage="#{bundle.EditAsistenciaRequiredMessage_horaEntrada}" showOn="button"/>
+                        <p:outputLabel value="#{bundle.EditAsistenciaLabel_nota}" for="nota" />
+                        <p:rating id="nota" value="#{asistenciaController.selected.nota}" stars="10"/>  
+                        <p:outputLabel value="#{bundle.EditAsistenciaLabel_observaciones}" for="observaciones" />
+                        <h:panelGroup>
+                            <p:inputTextarea  id="observaciones" value="#{asistenciaController.selected.observaciones}" title="#{bundle.CreateAsistenciaTitle_observaciones}"  rows="5" cols="30" counter="counterDisplay" maxlength="255" counterTemplate="#{bundle.caracteres_restantes}" autoResize="false" />
+                            <br/>
+                            <h:outputText id="counterDisplay" />
+                        </h:panelGroup>
+                    </p:panelGrid>
+                    <p:commandButton actionListener="#{asistenciaController.update}" value="#{bundle.Save}" update="display,:AsistenciaListForm:datalist,:messages" oncomplete="handleSubmit(args, 'AsistenciaEditDialog');"/>
+                    <!-- JYFR: Indicamos el atributo 'immediate="true"' para evitar que se hagan las validaciones AJAX al cancelar -->
+                    <p:commandButton value="#{bundle.Cancel}" onclick="AsistenciaEditDialog.hide()" immediate="true" />
+                </h:panelGroup>
+            </h:form>
+        </p:dialog>
+
+    </ui:composition>
+</html>

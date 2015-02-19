@@ -1,0 +1,87 @@
+.ui-widget {
+    font-size: 12px !important;
+}
+.ui-layout-north {
+    z-index: 20 !important;
+    overflow: visible !important;
+}
+.ui-layout-north .ui-layout-unit-content {
+    overflow: visible !important;
+}
+.ui-widget-header {
+    text-align: center;
+    text-transform: uppercase;
+}
+.ui-datatable-footer .ui-button {
+    float: left; 
+    margin-top: 25px !important; 
+}
+
+.ui-button {
+    margin-top: 10px !important;
+}
+
+.person-icon {
+    background: url(img/person.png) no-repeat !important;
+    height: 32px !important;
+    width: 32px !important;
+}
+
+.step-icon {
+    background: url(img/step.png) no-repeat !important;
+    height: 32px !important;
+    width: 32px !important;
+}
+
+.report-icon {
+    background: url(img/report.png) no-repeat !important;
+    height: 32px !important;
+    width: 32px !important;
+}
+
+.role-icon {
+    background: url(img/role.png) no-repeat !important;
+    height: 32px !important;
+    width: 32px !important;
+}
+
+.inicio-icon {
+    background: url(img/home.png) no-repeat !important;
+    height: 32px !important;
+    width: 32px !important;
+}
+
+.header {
+    font-size: 36px !important;
+    text-transform: uppercase;
+    position: relative;
+    bottom: 30px;
+    margin-left: 10px;
+}
+
+.alignTop {
+    vertical-align: top;
+}
+
+.ui-menuitem-text {
+    margin-top: 7px;
+    margin-left: 5px;
+}
+
+.ui-datatable .ui-column-filter {
+    margin: 0 !important;
+}
+
+.ui-datatable .ui-sortable-column {
+    text-align: left !important;
+}
+
+.jqplot-meterGauge-tick {
+    font-size: 0.75em;
+    color: #000000;
+}
+
+.jqplot-meterGauge-label {
+    font-size: 1em;
+    color: #000000;
+}

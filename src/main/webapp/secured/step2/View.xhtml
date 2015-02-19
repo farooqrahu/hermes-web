@@ -1,0 +1,36 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml"
+      xmlns:ui="http://xmlns.jcp.org/jsf/facelets"
+      xmlns:h="http://xmlns.jcp.org/jsf/html"
+      xmlns:f="http://xmlns.jcp.org/jsf/core"
+      xmlns:p="http://primefaces.org/ui">
+
+    <ui:composition>
+
+        <p:dialog id="AsistenciaViewDlg" widgetVar="AsistenciaViewDialog" modal="true" resizable="false" appendTo="@(body)" header="#{bundle.ViewAsistenciaTitle}" closeOnEscape="true">
+            <h:form id="AsistenciaViewForm">
+                <h:panelGroup id="display">
+                    <p:panelGrid columns="2" rendered="#{asistenciaController.selected != null}">
+                        <h:outputText value="#{bundle.ViewAsistenciaLabel_idAsistencia}"/>
+                        <h:outputText value="#{asistenciaController.selected.idAsistencia}" title="#{bundle.ViewAsistenciaTitle_idAsistencia}"/>
+                        <h:outputText value="#{bundle.ViewAsistenciaLabel_idAsistente}"/>
+                        <h:outputText value="#{asistenciaController.selected.asistente.nombreCompleto}" title="#{bundle.ViewAsistenciaTitle_idAsistente}"/>
+                        <h:outputText value="#{bundle.ViewAsistenciaLabel_idEvento}"/>
+                        <h:outputText value="#{asistenciaController.selected.evento.descripcion}" title="#{bundle.ViewAsistenciaTitle_idEvento}"/>
+                        <h:outputText value="#{bundle.ViewAsistenciaLabel_horaEntrada}"/>
+                        <h:outputText value="#{asistenciaController.selected.horaEntrada}" title="#{bundle.ViewAsistenciaTitle_horaEntrada}">
+                            <f:convertDateTime pattern="dd/MM/yyyy HH:mm:ss" />
+                        </h:outputText>
+                        <h:outputText value="#{bundle.ViewAsistenciaLabel_nota}"/>
+                        <h:outputText value="#{asistenciaController.selected.nota}" title="#{bundle.ViewAsistenciaTitle_nota}"/>
+                        <h:outputText value="#{bundle.ViewAsistenciaLabel_observaciones}"/>
+                        <h:outputText value="#{asistenciaController.selected.observaciones}" title="#{bundle.ViewAsistenciaTitle_observaciones}"/>
+                    </p:panelGrid>
+                    <p:commandButton value="#{bundle.Close}" onclick="AsistenciaViewDialog.hide()"/>
+                </h:panelGroup>
+            </h:form>
+        </p:dialog>
+
+    </ui:composition>
+</html>

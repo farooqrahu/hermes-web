@@ -1,0 +1,70 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<web-app version="3.1" xmlns="http://xmlns.jcp.org/xml/ns/javaee" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://xmlns.jcp.org/xml/ns/javaee http://xmlns.jcp.org/xml/ns/javaee/web-app_3_1.xsd">
+    <!-- CONTEXT PARAM -->
+    <!-- JYFR: Para que no se muestren los comentarios en el HTML que se genera al usuario -->
+    <context-param>
+        <param-name>javax.faces.FACELETS_SKIP_COMMENTS</param-name>
+        <param-value>true</param-value>
+    </context-param>
+    <!-- JYFR: Para permitir cambio de apariencia -->
+    <context-param>
+        <param-name>primefaces.THEME</param-name>
+        <param-value>#{themeBean.theme}</param-value>
+    </context-param>
+    <!-- JYFR: Para indicar las extensiones que debe considerar que usan Facelets -->
+    <context-param>
+        <param-name>javax.faces.FACELETS_VIEW_MAPPINGS</param-name>
+        <param-value>*.xhtml</param-value>
+    </context-param>
+    <!-- JYFR: Para evitar problemas con las horas al usar 'p:calendar' y 'p:schedule' -->
+    <context-param>
+        <param-name>javax.faces.DATETIMECONVERTER_DEFAULT_TIMEZONE_IS_SYSTEM_TIMEZONE</param-name>
+        <param-value>true</param-value>
+    </context-param>
+    <!-- FILTER -->
+    <!-- JYFR: Filtro necesario para poder subir archivos y usar la etiqueta 'p:fileUpload' -->
+    <filter>
+        <filter-name>PrimeFaces FileUpload Filter</filter-name>
+        <filter-class>org.primefaces.webapp.filter.FileUploadFilter</filter-class>
+    </filter>
+    <!-- FILTER MAPPING -->
+    <!-- JYFR: Hace que se llame al filtro en todas las llamadas que se hagan al servlet. Es necesario para poder subir archivos con la etiqueta 'p:fileUpload' -->
+    <filter-mapping>
+        <filter-name>PrimeFaces FileUpload Filter</filter-name>
+        <servlet-name>Faces Servlet</servlet-name>
+    </filter-mapping>
+    <!-- SERVLET -->
+    <servlet>
+        <servlet-name>Faces Servlet</servlet-name>
+        <servlet-class>javax.faces.webapp.FacesServlet</servlet-class>
+        <load-on-startup>1</load-on-startup>
+    </servlet>
+    <!-- SERVLET MAPPING -->
+    <servlet-mapping>
+        <servlet-name>Faces Servlet</servlet-name>
+        <url-pattern>/faces/*</url-pattern>
+    </servlet-mapping>
+    <!-- SESSION CONFIG -->
+    <session-config>
+        <session-timeout>
+            30
+        </session-timeout>
+    </session-config>
+    <!-- WELCOME FILE LIST -->
+    <welcome-file-list>
+        <welcome-file>faces/index.xhtml</welcome-file>
+    </welcome-file-list>
+    <error-page>
+        <error-code>403</error-code>
+        <!-- access denied -->
+        <location>/index.xhtml</location>
+    </error-page>
+    <filter>
+        <filter-name>LoginFilter</filter-name>
+        <filter-class>es.jyago.hermes.login.LoginFilter</filter-class>
+    </filter>
+    <filter-mapping>
+        <filter-name>LoginFilter</filter-name>
+        <url-pattern>/secured/*</url-pattern>
+    </filter-mapping>
+</web-app>

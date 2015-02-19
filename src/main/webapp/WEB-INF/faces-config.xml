@@ -1,0 +1,34 @@
+<?xml version='1.0' encoding='UTF-8'?>
+<faces-config version="2.2"
+              xmlns="http://xmlns.jcp.org/xml/ns/javaee"
+              xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+              xsi:schemaLocation="http://xmlns.jcp.org/xml/ns/javaee http://xmlns.jcp.org/xml/ns/javaee/web-facesconfig_2_2.xsd">
+    <application>
+        <!-- JYFR: Idiomas -->
+        <locale-config>
+            <default-locale>es</default-locale>
+            <supported-locale>en</supported-locale>
+        </locale-config>
+        
+        <!-- JYFR: Textos internacionalizados de la aplicación -->
+        <resource-bundle>
+            <base-name>/Bundle</base-name>
+            <var>bundle</var>
+        </resource-bundle>
+        
+        <!-- JYFR: Archivo de configuración de Fitbit -->
+        <resource-bundle>
+            <base-name>/AMPFitbit</base-name>
+            <var>ampFitbit</var>
+        </resource-bundle>
+    </application>
+    
+    <!-- TODO: JYFR: Se usa una implementación propia del FileUploadRenderer para poder subir archivos, ya que la propia no funciona correctamente -->
+    <render-kit>
+        <renderer>
+            <component-family>org.primefaces.component</component-family>
+            <renderer-type>org.primefaces.component.FileUploadRenderer</renderer-type>
+            <renderer-class>es.jyago.hermes.fileupload.FileUploadRenderer</renderer-class>
+        </renderer>
+    </render-kit>
+</faces-config>

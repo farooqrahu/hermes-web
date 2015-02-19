@@ -1,0 +1,53 @@
+<?xml version='1.0' encoding='UTF-8'?>
+<!DOCTYPE html>
+<f:view xmlns:f="http://java.sun.com/jsf/core"
+        xmlns:h="http://java.sun.com/jsf/html"
+        xmlns:p="http://primefaces.org/ui"
+        xmlns:ui="http://java.sun.com/jsf/facelets">
+    <html xmlns="http://www.w3.org/1999/xhtml">
+        <h:head>
+        </h:head>
+        <h:body>
+            <ui:composition template="WEB-INF/facelets/template.xhtml">
+                <ui:define name="content">
+                    <p:panel rendered="#{userLogin.loggedIn}">
+                        <h2>#{bundle['Body.Welcome']}</h2>
+                    </p:panel>
+                    <!--                    
+                    <h:panelGrid columns="2" columnClasses="alignTop,alignTop">
+                        <h:panelGrid columns="1">
+                            <p:panel>
+                                <p:galleria value="#{galleryBean.images}" var="image" panelWidth="400" panelHeight="220" showCaption="true">
+                                    <p:graphicImage name="img/gallery/#{image}" title="#{galleryBean.title(image)}"/>
+                                </p:galleria>
+                            </p:panel>
+                            <p:schedule value="#{scheduleBean.eventModel}" locale="#{localeBean.language}">
+                                <p:ajax event="dateSelect" listener="#{scheduleBean.onDateSelect}" update="eventDetails" oncomplete="PF('eventDialog').show();" />
+                                <p:ajax event="eventSelect" listener="#{scheduleBean.onEventSelect}" update="eventDetails" oncomplete="PF('eventDialog').show();" />
+                            </p:schedule>
+                        </h:panelGrid>
+                    </h:panelGrid>
+                    -->
+                    <!--
+                    <p:dialog widgetVar="eventDialog" header="#{bundle.ViewEventoTitle}" showEffect="clip" hideEffect="clip" closeOnEscape="true">
+                        <h:panelGrid id="eventDetails" columns="2">
+                            <h:outputText value="#{bundle.ViewEventoLabel_descripcion}"/>
+                            <h:outputText value="#{scheduleBean.event.title}"/>
+
+                            <h:outputText value="#{bundle.ViewEventoLabel_fechaInicio}"/>
+                            <h:outputText value="#{scheduleBean.event.startDate}" title="#{bundle.ViewEventoTitle_fechaInicio}">
+                                <f:convertDateTime pattern="dd/MM/yyyy HH:mm:ss" />
+                            </h:outputText>
+
+                            <h:outputText value="#{bundle.ViewEventoLabel_fechaFin}"/>
+                            <h:outputText value="#{scheduleBean.event.endDate}" title="#{bundle.ViewEventoTitle_fechaFin}">
+                                <f:convertDateTime pattern="dd/MM/yyyy HH:mm:ss" />
+                            </h:outputText>
+                        </h:panelGrid>
+                    </p:dialog>    
+                    -->
+                </ui:define>
+            </ui:composition>            
+        </h:body>
+    </html>
+</f:view>

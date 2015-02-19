@@ -1,0 +1,22 @@
+<?xml version='1.0' encoding='UTF-8'?>
+<!DOCTYPE html>
+<ui:composition xmlns:ui="http://java.sun.com/jsf/facelets"
+                xmlns:h="http://java.sun.com/jsf/html"
+                xmlns:p="http://primefaces.org/ui"
+                xmlns:f="http://java.sun.com/jsf/core">
+    <p:outputPanel id="menuPanel" layout="block">
+        <p:menu rendered="#{userLogin.loggedIn}">
+            <p:menuitem value="#{bundle.Menu_home}" outcome="/main.xhtml" icon="inicio-icon" style="vertical-align: middle; font-weight: bold"/>
+            <p:submenu label="#{bundle.Menu_people}">
+                <p:menuitem value="#{bundle.Menu_person}" outcome="/secured/person/List.xhtml" icon="person-icon"/>
+            </p:submenu>
+            <p:submenu label="#{bundle.Menu_activities}">
+                <p:menuitem value="#{bundle.Menu_step}" outcome="/secured/activityLog/List.xhtml" icon="step-icon"/>
+            </p:submenu>
+            <p:submenu label="#{bundle.Menu_control}">
+                <p:menuitem value="#{bundle.Menu_report}" outcome="/secured/report/List.xhtml" icon="report-icon"/>
+                <p:menuitem value="#{bundle.Menu_role}" outcome="/secured/role/List.xhtml" icon="role-icon"/>
+            </p:submenu>
+        </p:menu>
+    </p:outputPanel>
+</ui:composition>

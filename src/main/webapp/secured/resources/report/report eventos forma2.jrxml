@@ -1,0 +1,162 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<jasperReport xmlns="http://jasperreports.sourceforge.net/jasperreports" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://jasperreports.sourceforge.net/jasperreports http://jasperreports.sourceforge.net/xsd/jasperreport.xsd" name="report alumnos" pageWidth="595" pageHeight="842" columnWidth="555" leftMargin="20" rightMargin="20" topMargin="20" bottomMargin="20" uuid="85602d31-bdc8-4a4e-89bd-9825519902c9">
+	<property name="ireport.zoom" value="2.0"/>
+	<property name="ireport.x" value="0"/>
+	<property name="ireport.y" value="0"/>
+	<queryString>
+		<![CDATA[SELECT
+     evento.`descripcion` AS evento_descripcion,
+     evento.`fecha_inicio` AS evento_fecha_inicio,
+     evento.`fecha_fin` AS evento_fecha_fin,
+     evento.`observaciones` AS evento_observaciones,
+CONCAT(asignatura.`nombre`, ' ',  asignatura.`curso`)AS asignatura_curso,
+     tipo_evento.`descripcion` AS tipo_evento_descripcion,
+CONCAT(person.`nombre`, ' ', person.`apellido1`) AS person_1
+FROM
+     `asignatura` asignatura INNER JOIN `evento` evento ON asignatura.`id_asignatura` = evento.`id_asignatura`
+     INNER JOIN `tipo_evento` tipo_evento ON evento.`id_tipo_evento` = tipo_evento.`id_tipo_evento`
+     INNER JOIN `person` person ON evento.`id_organizador` = person.`id_person`]]>
+	</queryString>
+	<field name="evento_descripcion" class="java.lang.String"/>
+	<field name="evento_fecha_inicio" class="java.sql.Timestamp"/>
+	<field name="evento_fecha_fin" class="java.sql.Timestamp"/>
+	<field name="evento_observaciones" class="java.lang.String"/>
+	<field name="asignatura_curso" class="java.lang.String"/>
+	<field name="tipo_evento_descripcion" class="java.lang.String"/>
+	<field name="person_1" class="java.lang.String"/>
+	<background>
+		<band splitType="Stretch"/>
+	</background>
+	<title>
+		<band height="105" splitType="Stretch">
+			<staticText>
+				<reportElement x="200" y="0" width="352" height="59" uuid="e1fe64cd-3285-44d5-89aa-0709564e1420"/>
+				<textElement textAlignment="Center" verticalAlignment="Middle">
+					<font size="22" isBold="true" isItalic="false" isUnderline="false" isStrikeThrough="false"/>
+				</textElement>
+				<text><![CDATA[LISTA DE EVENTOS]]></text>
+			</staticText>
+			<image>
+				<reportElement x="0" y="0" width="100" height="100" uuid="00a91603-55cf-47f8-b24c-798a4a028611"/>
+				<imageExpression><![CDATA["C:\\Users\\Yago\\Desktop\\logo_sevilla.png"]]></imageExpression>
+			</image>
+			<image>
+				<reportElement x="100" y="0" width="100" height="100" uuid="c19f8fcd-1eb6-43a9-a0e5-ed09336b00db"/>
+				<imageExpression><![CDATA["C:\\Users\\Yago\\Desktop\\logo_etsii.png"]]></imageExpression>
+			</image>
+		</band>
+	</title>
+	<pageHeader>
+		<band splitType="Stretch"/>
+	</pageHeader>
+	<columnHeader>
+		<band height="20" splitType="Stretch">
+			<staticText>
+				<reportElement mode="Opaque" x="0" y="0" width="345" height="20" backcolor="#CCCCCC" uuid="c3193ee3-47ed-4673-b117-26020bfc0238"/>
+				<textElement>
+					<font size="12" isBold="true"/>
+					<paragraph leftIndent="2"/>
+				</textElement>
+				<text><![CDATA[EVENTO]]></text>
+			</staticText>
+			<staticText>
+				<reportElement mode="Opaque" x="345" y="0" width="110" height="20" backcolor="#CCCCCC" uuid="e923981f-9eb1-4c97-9654-c875e02340c0"/>
+				<textElement>
+					<font size="12" isBold="true"/>
+					<paragraph leftIndent="2"/>
+				</textElement>
+				<text><![CDATA[TIPO]]></text>
+			</staticText>
+			<staticText>
+				<reportElement mode="Opaque" x="455" y="0" width="100" height="20" backcolor="#CCCCCC" uuid="a9801c57-1521-47ef-a84f-6ae104814d28"/>
+				<textElement>
+					<font size="12" isBold="true"/>
+					<paragraph leftIndent="2"/>
+				</textElement>
+				<text><![CDATA[ASIGNATURA]]></text>
+			</staticText>
+		</band>
+	</columnHeader>
+	<detail>
+		<band height="42" splitType="Stretch">
+			<rectangle>
+				<reportElement x="200" y="21" width="66" height="21" forecolor="#CCCCCC" uuid="1b0e702f-c007-4c5a-bea3-b3dd5adba29a"/>
+			</rectangle>
+			<rectangle>
+				<reportElement x="10" y="21" width="90" height="21" forecolor="#CCCCCC" uuid="08931fae-d7f5-4ec4-b5b1-d2c6be008426"/>
+			</rectangle>
+			<rectangle>
+				<reportElement x="455" y="0" width="100" height="21" forecolor="#CCCCCC" uuid="5b606ac9-aed8-49cb-a39a-cdff4c51feda"/>
+			</rectangle>
+			<rectangle>
+				<reportElement x="266" y="21" width="289" height="21" forecolor="#CCCCCC" uuid="dec0aa5d-bcf1-413b-a1b9-9ad4508ad7b1"/>
+			</rectangle>
+			<rectangle>
+				<reportElement x="0" y="0" width="345" height="21" forecolor="#CCCCCC" uuid="37891f80-3280-47b9-a01f-573b9104250e"/>
+			</rectangle>
+			<textField>
+				<reportElement x="0" y="0" width="345" height="21" uuid="9a4a8056-f8c6-4ce9-bd93-d9bb5ec4a77a"/>
+				<textElement verticalAlignment="Middle">
+					<paragraph leftIndent="2"/>
+				</textElement>
+				<textFieldExpression><![CDATA[$F{evento_descripcion}]]></textFieldExpression>
+			</textField>
+			<textField>
+				<reportElement x="266" y="21" width="289" height="21" uuid="c0d2bc54-0e0d-4af8-888c-1720eaf23748"/>
+				<textElement verticalAlignment="Middle">
+					<paragraph leftIndent="2"/>
+				</textElement>
+				<textFieldExpression><![CDATA[$F{person_1}]]></textFieldExpression>
+			</textField>
+			<textField>
+				<reportElement x="455" y="0" width="100" height="21" uuid="55c0223f-0495-42bb-862a-c2bd8df7ff5c"/>
+				<textElement verticalAlignment="Middle">
+					<paragraph leftIndent="2"/>
+				</textElement>
+				<textFieldExpression><![CDATA[$F{asignatura_curso}]]></textFieldExpression>
+			</textField>
+			<rectangle>
+				<reportElement x="345" y="0" width="110" height="21" forecolor="#CCCCCC" uuid="fa8d5734-9cd9-4a47-8e77-786c260b4827"/>
+			</rectangle>
+			<textField>
+				<reportElement x="345" y="0" width="110" height="21" uuid="d9ce9868-14f7-43dd-b1c1-7598e4534db6"/>
+				<textElement verticalAlignment="Middle">
+					<paragraph leftIndent="2"/>
+				</textElement>
+				<textFieldExpression><![CDATA[$F{tipo_evento_descripcion}]]></textFieldExpression>
+			</textField>
+			<textField>
+				<reportElement x="10" y="21" width="90" height="21" uuid="8c8c2e61-dfeb-4b15-9dbf-b79befcb3b54"/>
+				<textElement verticalAlignment="Middle">
+					<paragraph leftIndent="2"/>
+				</textElement>
+				<textFieldExpression><![CDATA[$F{evento_fecha_inicio}]]></textFieldExpression>
+			</textField>
+			<rectangle>
+				<reportElement x="100" y="21" width="100" height="21" forecolor="#CCCCCC" uuid="8b5336f7-b1f4-438a-b8a5-055c06566c39"/>
+			</rectangle>
+			<textField>
+				<reportElement x="100" y="21" width="100" height="21" uuid="c513326f-a2af-443a-8a9a-f37aca4b4fed"/>
+				<textElement verticalAlignment="Middle"/>
+				<textFieldExpression><![CDATA[$F{evento_fecha_fin}]]></textFieldExpression>
+			</textField>
+			<staticText>
+				<reportElement x="200" y="21" width="66" height="21" uuid="5bcc04f5-a487-4fd0-a849-e899b338d4f8"/>
+				<textElement verticalAlignment="Middle">
+					<font isBold="true"/>
+					<paragraph leftIndent="2"/>
+				</textElement>
+				<text><![CDATA[Organizador:]]></text>
+			</staticText>
+		</band>
+	</detail>
+	<columnFooter>
+		<band splitType="Stretch"/>
+	</columnFooter>
+	<pageFooter>
+		<band height="54" splitType="Stretch"/>
+	</pageFooter>
+	<summary>
+		<band splitType="Stretch"/>
+	</summary>
+</jasperReport>

@@ -1,0 +1,59 @@
+<?xml version='1.0' encoding='UTF-8'?>
+<!DOCTYPE html>
+<f:view xmlns:f="http://java.sun.com/jsf/core"
+        xmlns:h="http://java.sun.com/jsf/html"
+        xmlns:p="http://primefaces.org/ui"
+        xmlns:ui="http://java.sun.com/jsf/facelets">
+    <html xmlns="http://www.w3.org/1999/xhtml">
+        <h:head>
+            <script type="text/javascript">
+                function handleLoginRequest(xhr, status, args) {
+                    if (args.validationFailed) {
+                        PF('dlg').jq.effect("shake", {times: 5}, 100);
+                    }
+                    else {
+                        PF('dlg').hide();
+                        $('#loginLink').fadeOut();
+                    }
+                }
+            </script>
+        </h:head>
+        <h:body onload="PF('dlg').show();">
+            <ui:composition template="WEB-INF/facelets/template.xhtml">
+                <ui:define name="content">
+                    <p:outputPanel id="welcomePanel">
+                        <p:panel rendered="#{userLogin.loggedIn}">
+                            <h2>#{bundle['Body.Welcome']}</h2>
+                        </p:panel>
+                    </p:outputPanel>
+                    <h:form>            
+                        <p:dialog widgetVar="dlg" resizable="false" closable="false" header="#{bundle.LoginTitle}">
+                            <h:panelGrid columns="2" cellpadding="5">
+                                <h:outputLabel for="username" value="#{bundle.Username}" />
+                                <p:inputText id="username" value="#{userLogin.username}" required="true" label="username" />
+
+                                <h:outputLabel for="password" value="#{bundle.Password}" />
+                                <p:password id="password" value="#{userLogin.password}" required="true" label="password" />
+
+                                <f:facet name="footer" >
+                                    <p:outputPanel style="float: left">
+                                        <p:commandButton value="#{bundle.Register}" update="openWindow" actionListener="#{personController.register()}" />
+                                        <h:panelGroup id="openWindow">
+                                            <h:outputScript rendered="#{not empty personController.authorizeUrl}">
+                                                window.open('#{personController.authorizeUrlAndReset}', '_self')
+                                            </h:outputScript>
+                                        </h:panelGroup>
+                                    </p:outputPanel>
+                                    <p:outputPanel style="float: right"> 
+                                        <p:commandButton value="#{bundle.Login}" update=":messages,:menuPanel,:welcomePanel" actionListener="#{userLogin.login}"
+                                                         oncomplete="handleLoginRequest(xhr, status, args)"/>
+                                    </p:outputPanel>
+                                </f:facet>  
+                            </h:panelGrid>
+                        </p:dialog>
+                    </h:form>
+                </ui:define>
+            </ui:composition>
+        </h:body>
+    </html>
+</f:view>

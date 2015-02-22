@@ -38,7 +38,7 @@ import org.primefaces.model.StreamedContent;
 @Named("personController")
 @SessionScoped
 public class PersonController implements Serializable, CSVControllerInterface<Person> {
-
+    
     @EJB
     private es.jyago.hermes.person.PersonFacade ejbFacade;
     private List<Person> items;
@@ -49,7 +49,7 @@ public class PersonController implements Serializable, CSVControllerInterface<Pe
     private Date endDate;
     
     private TabView tabView;
-
+    
     public PersonController() {
         authorizeUrl = null;
         selected = null;
@@ -58,42 +58,42 @@ public class PersonController implements Serializable, CSVControllerInterface<Pe
         startDate = Calendar.getInstance().getTime();
         endDate = Calendar.getInstance().getTime();
     }
-
+    
     public Person getSelected() {
         return selected;
     }
-
+    
     public void setSelected(Person selected) {
         this.selected = selected;
     }
-
+    
     protected void setEmbeddableKeys() {
     }
-
+    
     protected void initializeEmbeddableKey() {
     }
-
+    
     private PersonFacade getFacade() {
         return ejbFacade;
     }
-
+    
     public Person prepareCreate() {
         selected = new Person();
         initializeEmbeddableKey();
         return selected;
     }
-
+    
     public void create() {
         persist(PersistAction.CREATE, ResourceBundle.getBundle("/Bundle").getString("PersonCreated"));
         if (!JsfUtil.isValidationFailed()) {
             items = null;    // Invalidate list of items to trigger re-query.
         }
     }
-
+    
     public void update() {
         persist(PersistAction.UPDATE, ResourceBundle.getBundle("/Bundle").getString("PersonUpdated"));
     }
-
+    
     public void destroy() {
         persist(PersistAction.DELETE, ResourceBundle.getBundle("/Bundle").getString("PersonDeleted"));
         if (!JsfUtil.isValidationFailed()) {
@@ -101,33 +101,37 @@ public class PersonController implements Serializable, CSVControllerInterface<Pe
             items = null;    // Invalidate list of items to trigger re-query.
         }
     }
-
+    
     @Override
     public List<Person> getItems() {
         // TODO: Reubicar.
         FacesContext ctx = FacesContext.getCurrentInstance();
         HttpServletRequest request = (HttpServletRequest) ctx.getExternalContext().getRequest();
-
+        
         String tempTokenReceived = request.getParameter(HermesFitbitController.OAUTH_TOKEN);
         String tempTokenVerifier = request.getParameter(HermesFitbitController.OAUTH_VERIFIER);
-
+        
         if (tempTokenReceived != null && tempTokenVerifier != null) {
             hermesFitbitController.completeAuthorization(tempTokenReceived, tempTokenVerifier);
             if (hermesFitbitController.isResourceCredentialsSet() && selected != null) {
                 hermesFitbitController.transferUserInfoToPerson(selected);
-                update();
+                // FIXME
+                // Comprobamos si está rellena la información necesaria y si no, la rellenamos con valores por defecto.
+                fillDefaultPerson();
+                create();
+                //update();
                 // Invocamos el formulario de edición de usuario, para que el usuario pueda corregir sus datos.
                 RequestContext.getCurrentInstance().execute("PF('PersonEditDialog').show()");
             }
         }
-
+        
         if (items == null) {
             items = getFacade().findAll();
         }
-
+        
         return items;
     }
-
+    
     private void persist(PersistAction persistAction, String successMessage) {
         if (selected != null) {
             setEmbeddableKeys();
@@ -159,82 +163,81 @@ public class PersonController implements Serializable, CSVControllerInterface<Pe
             }
         }
     }
-
+    
     public Person getPerson(java.lang.Integer id) {
         return getFacade().find(id);
     }
-
+    
     public List<Person> getItemsAvailableSelectMany() {
         return getFacade().findAll();
     }
-
+    
     public List<Person> getItemsAvailableSelectOne() {
         return getFacade().findAll();
     }
-
+    
     public Date getStartDate() {
         return startDate;
     }
-
+    
     public void setStartDate(Date startDate) {
         this.startDate = startDate;
     }
-
+    
     public Date getEndDate() {
         return endDate;
     }
-
+    
     public void setEndDate(Date endDate) {
         this.endDate = endDate;
     }
-
+    
     private void initFitbitController() {
         if (selected != null) {
             hermesFitbitController = new HermesFitbitController(selected);
         }
     }
-
+    
     public void authorize(String nextPage) {
         initFitbitController();
         authorizeUrl = hermesFitbitController.getAuthorizeURL((HttpServletRequest) FacesContext.getCurrentInstance().getExternalContext().getRequest(), nextPage);
     }
-
+    
     public void register() {
-        selected = new Person();
-        hermesFitbitController = new HermesFitbitController(selected);
+        hermesFitbitController = new HermesFitbitController(prepareCreate());
         authorize("/faces/secured/person/List.xhtml");
     }
-
+    
     public String getAuthorizeUrl() {
         return authorizeUrl;
     }
-
+    
     public String getAuthorizeUrlAndReset() {
         // La URL de autorización sólo puede ser usada una vez.
         String temp = authorizeUrl;
         authorizeUrl = null;
         return temp;
     }
-
+    
     public void setAuthorizeUrl(String authorizeUrl) {
         this.authorizeUrl = authorizeUrl;
     }
-
+    
     public void synchronize() {
         initFitbitController();
         hermesFitbitController.populate();
         FacesMessage message;
-
+        
         try {
             List<IntradaySummary> listIntradaySummary = hermesFitbitController.getIntradayData(startDate, endDate);
-
+            
             for (IntradaySummary intradaySummary : listIntradaySummary) {
                 ActivityLog activityLog = new ActivityLog();
                 try {
                     activityLog.setDate(Constants.dfFitbit.parse(intradaySummary.getSummary().getDateTime()));
                     activityLog.setStepLogCollection(new ArrayList());
                     activityLog.setPerson(selected);
-
+                    
                     for (IntradayData intradayData : intradaySummary.getIntradayDataset().getDataset()) {
                         StepLog stepLog = new StepLog();
                         stepLog.setActivityLog(activityLog);
@@ -253,21 +256,49 @@ public class PersonController implements Serializable, CSVControllerInterface<Pe
             message = new FacesMessage(FacesMessage.SEVERITY_ERROR, ResourceBundle.getBundle("/Bundle").getString("Error"), ResourceBundle.getBundle("/Bundle").getString("SynchronizedError"));
             Logger.getLogger(PersonController.class.getName()).log(Level.SEVERE, null, ex);
         }
-
+        
         FacesContext.getCurrentInstance().addMessage(null, message);
     }
-
+    
     public TabView getTabView() {
         return tabView;
     }
-
+    
     public void setTabView(TabView tabView) {
         this.tabView = tabView;
     }
-
+    
+    public void validate() {
+        FacesContext fc = FacesContext.getCurrentInstance();
+        if (fc.isValidationFailed()) {
+            // FIXME: Poner de una forma más elegante.
+            // FIXME: El componente de TabView no enfoca la pestaña en la que ha fallado la validación
+            //       ¿Combinación con p:focus? 
+            //    this.tabView.setActiveIndex(0);
+        }
+    }
+    
+    private void fillDefaultPerson() {
+        if (this.selected == null) {
+            this.selected = new Person();
+        }
+        // Rellenamos los campos obligatorios con valores por defecto, en caso de que no vengan rellenos.
+        if (this.selected.getFirstName() == null) {
+            this.selected.setFirstName(ResourceBundle.getBundle("/Bundle").getString("Default"));
+        }
+        
+        if (this.selected.getSurname1()== null) {
+            this.selected.setSurname1(ResourceBundle.getBundle("/Bundle").getString("Default"));
+        }
+        
+        if (this.selected.getSurname2()== null) {
+            this.selected.setSurname2(ResourceBundle.getBundle("/Bundle").getString("Default"));
+        }
+    }
+    
     @FacesConverter(forClass = Person.class)
     public static class PersonControllerConverter implements Converter {
-
+        
         @Override
         public Object getAsObject(FacesContext facesContext, UIComponent component, String value) {
             if (value == null || value.length() == 0) {
@@ -277,19 +308,19 @@ public class PersonController implements Serializable, CSVControllerInterface<Pe
                     getValue(facesContext.getELContext(), null, "personController");
             return controller.getPerson(getKey(value));
         }
-
+        
         java.lang.Integer getKey(String value) {
             java.lang.Integer key;
             key = Integer.valueOf(value);
             return key;
         }
-
+        
         String getStringKey(java.lang.Integer value) {
             StringBuilder sb = new StringBuilder();
             sb.append(value);
             return sb.toString();
         }
-
+        
         @Override
         public String getAsString(FacesContext facesContext, UIComponent component, Object object) {
             if (object == null) {
@@ -303,20 +334,20 @@ public class PersonController implements Serializable, CSVControllerInterface<Pe
                 return null;
             }
         }
-
+        
     }
-
+    
     public StreamedContent getFile() {
         return new CSVUtil<Person>().getData(new Person(), this);
     }
-
+    
     public void handleFileUpload(FileUploadEvent event) {
         // TODO: INTERNACIONALIZAR!!!
         FacesMessage msg = new FacesMessage("Succesful", event.getFile().getFileName() + " is uploaded.");
         FacesContext.getCurrentInstance().addMessage(null, msg);
-
+        
         new CSVUtil<Person>().setData(new Person(), this, event.getFile());
-
+        
         selected = null;
         items = null;
     }
@@ -324,9 +355,9 @@ public class PersonController implements Serializable, CSVControllerInterface<Pe
     // TODO: PRUEBA!!!!
     @Override
     public void processReadElement(Person person) {
-
+        
         selected = getPerson(person.getPersonId());
-
+        
         if (selected != null) {
             person.setPhoto(selected.getPhoto());
 //            person.setRole(selected.getRole());
@@ -337,5 +368,5 @@ public class PersonController implements Serializable, CSVControllerInterface<Pe
             create();
         }
     }
-
+    
 }

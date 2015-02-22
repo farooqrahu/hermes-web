@@ -10,7 +10,10 @@
         <p:dialog id="PersonEditDlg" widgetVar="PersonEditDialog" modal="true" resizable="false" appendTo="@(body)" header="#{bundle.EditPersonTitle}" closeOnEscape="#{(personController.selected != null) and (personController.selected.personId != null)}" closable="#{(personController.selected != null) and (personController.selected.personId != null)}">
             <!-- JYFR: Es necesario especificar 'enctype="multipart/form-data"' para poder subir archivos con la etiqueta 'p:fileUpload' -->
             <h:form id="PersonEditForm" enctype="multipart/form-data">
-                <p:tabView dynamic="true" cache="true" rendered="#{personController.selected != null}" activeIndex="0" binding="#{personController.tabView}" dynamic="true" cache="false">
+                <!-- JYFR: Post validación -->
+                <f:event listener="#{personController.validate()}" type="postValidate" />
+
+                <p:tabView dynamic="true" cache="true" rendered="#{personController.selected != null}" activeIndex="0" binding="#{personController.tabView}">
                     <p:tab title="#{bundle.PersonalInfo}">
                         <p:panelGrid columns="2">
                             <p:outputLabel value="#{bundle.EditPersonLabel_photo}" for="photo" />

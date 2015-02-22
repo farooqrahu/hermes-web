@@ -164,4 +164,16 @@ public class RoleController implements Serializable {
 
     }
 
+    public boolean isDeletable() {
+        boolean deletable = false;
+
+        if (selected != null) {
+            if (selected.getRoleId() > 2) {
+                deletable = true;
+            }
+        }
+
+        return deletable;
+    }
+
 }

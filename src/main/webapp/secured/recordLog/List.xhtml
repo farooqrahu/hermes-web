@@ -1,0 +1,70 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml"
+      xmlns:ui="http://xmlns.jcp.org/jsf/facelets"
+      xmlns:h="http://xmlns.jcp.org/jsf/html"
+      xmlns:f="http://xmlns.jcp.org/jsf/core">
+
+    <ui:composition template="/WEB-INF/facelets/template.xhtml">
+        <ui:define name="title">
+            <h:outputText value="#{bundle.ListRecordLogTitle}"></h:outputText>
+        </ui:define>
+        <ui:define name="content">
+            <h:form styleClass="jsfcrud_list_form">
+                <h:panelGroup id="messagePanel" layout="block">
+                    <h:messages errorStyle="color: red" infoStyle="color: green" layout="table"/>
+                </h:panelGroup>
+                <h:outputText escape="false" value="#{bundle.ListRecordLogEmpty}" rendered="#{recordLogController.items.rowCount == 0}"/>
+                <h:panelGroup rendered="#{recordLogController.items.rowCount > 0}">
+                    <h:outputText value="#{recordLogController.pagination.pageFirstItem + 1}..#{recordLogController.pagination.pageLastItem + 1}/#{recordLogController.pagination.itemsCount}"/>&nbsp;
+                    <h:commandLink action="#{recordLogController.previous}" value="#{bundle.Previous} #{recordLogController.pagination.pageSize}" rendered="#{recordLogController.pagination.hasPreviousPage}"/>&nbsp;
+                    <h:commandLink action="#{recordLogController.next}" value="#{bundle.Next} #{recordLogController.pagination.pageSize}" rendered="#{recordLogController.pagination.hasNextPage}"/>&nbsp;
+                    <h:dataTable value="#{recordLogController.items}" var="item" border="0" cellpadding="2" cellspacing="0" rowClasses="jsfcrud_odd_row,jsfcrud_even_row" rules="all" style="border:solid 1px">
+                        <h:column>
+                            <f:facet name="header">
+                                <h:outputText value="#{bundle.ListRecordLogTitle_recordLogId}"/>
+                            </f:facet>
+                            <h:outputText value="#{item.recordLogId}"/>
+                        </h:column>
+                        <h:column>
+                            <f:facet name="header">
+                                <h:outputText value="#{bundle.ListRecordLogTitle_timeLog}"/>
+                            </f:facet>
+                            <h:outputText value="#{item.timeLog}">
+                                <f:convertDateTime pattern="HH:mm:ss" />
+                            </h:outputText>
+                        </h:column>
+                        <h:column>
+                            <f:facet name="header">
+                                <h:outputText value="#{bundle.ListRecordLogTitle_steps}"/>
+                            </f:facet>
+                            <h:outputText value="#{item.steps}"/>
+                        </h:column>
+                        <h:column>
+                            <f:facet name="header">
+                                <h:outputText value="#{bundle.ListRecordLogTitle_categoryLogId}"/>
+                            </f:facet>
+                            <h:outputText value="#{item.categoryLogId}"/>
+                        </h:column>
+                        <h:column>
+                            <f:facet name="header">
+                                <h:outputText value="&nbsp;"/>
+                            </f:facet>
+                            <h:commandLink action="#{recordLogController.prepareView}" value="#{bundle.ListRecordLogViewLink}"/>
+                            <h:outputText value=" "/>
+                            <h:commandLink action="#{recordLogController.prepareEdit}" value="#{bundle.ListRecordLogEditLink}"/>
+                            <h:outputText value=" "/>
+                            <h:commandLink action="#{recordLogController.destroy}" value="#{bundle.ListRecordLogDestroyLink}"/>
+                        </h:column>
+                    </h:dataTable>
+                </h:panelGroup>
+                <br />
+                <h:commandLink action="#{recordLogController.prepareCreate}" value="#{bundle.ListRecordLogCreateLink}"/>
+                <br />
+                <br />
+                <h:link outcome="/index" value="#{bundle.ListRecordLogIndexLink}"/>
+            </h:form>
+        </ui:define>
+    </ui:composition>
+
+</html>

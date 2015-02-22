@@ -5,7 +5,7 @@
  */
 package es.jyago.hermes.person;
 
-import es.jyago.hermes.activityLog.ActivityLog;
+import es.jyago.hermes.categoryLog.CategoryLog;
 import es.jyago.hermes.csv.CSVBeanInterface;
 import es.jyago.hermes.role.Role;
 import es.jyago.hermes.util.Constants;
@@ -105,7 +105,7 @@ public class Person implements Serializable, CSVBeanInterface {
     @ManyToOne(optional = false)
     private Role role;
     @OneToMany(cascade = CascadeType.ALL, mappedBy = "person")
-    private Collection<ActivityLog> activityLogCollection;
+    private Collection<CategoryLog> categoryLogCollection;
     @Basic(optional = true)
     @Size(min = 1, max = 20)
     @Column(name = "username")
@@ -234,12 +234,12 @@ public class Person implements Serializable, CSVBeanInterface {
         this.role = role;
     }
 
-    public Collection<ActivityLog> getActivityLogCollection() {
-        return activityLogCollection;
+    public Collection<CategoryLog> getCategoryLogCollection() {
+        return categoryLogCollection;
     }
 
-    public void setActivityLogCollection(Collection<ActivityLog> activityLogCollection) {
-        this.activityLogCollection = activityLogCollection;
+    public void setCategoryLogCollection(Collection<CategoryLog> categoryLogCollection) {
+        this.categoryLogCollection = categoryLogCollection;
     }
 
     public String getUsername() {

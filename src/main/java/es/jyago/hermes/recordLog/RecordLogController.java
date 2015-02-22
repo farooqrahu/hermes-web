@@ -1,4 +1,4 @@
-package es.jyago.hermes.stepLog;
+package es.jyago.hermes.recordLog;
 
 import es.jyago.hermes.util.JsfUtil;
 
@@ -16,23 +16,23 @@ import javax.faces.context.FacesContext;
 import javax.faces.convert.Converter;
 import javax.faces.convert.FacesConverter;
 
-@Named("stepLogController")
+@Named("recordLogController")
 @SessionScoped
-public class StepLogController implements Serializable {
+public class RecordLogController implements Serializable {
 
     @EJB
-    private es.jyago.hermes.stepLog.StepLogFacade ejbFacade;
-    private List<StepLog> items = null;
-    private StepLog selected;
+    private es.jyago.hermes.recordLog.RecordLogFacade ejbFacade;
+    private List<RecordLog> items = null;
+    private RecordLog selected;
 
-    public StepLogController() {
+    public RecordLogController() {
     }
 
-    public StepLog getSelected() {
+    public RecordLog getSelected() {
         return selected;
     }
     
-    public void setSelected(StepLog selected) {
+    public void setSelected(RecordLog selected) {
         this.selected = selected;
     }
     
@@ -42,36 +42,36 @@ public class StepLogController implements Serializable {
     protected void initializeEmbeddableKey() {
     }
 
-    private StepLogFacade getFacade() {
+    private RecordLogFacade getFacade() {
         return ejbFacade;
     }
     
-    public StepLog prepareCreate() {
-        selected = new StepLog();
+    public RecordLog prepareCreate() {
+        selected = new RecordLog();
         initializeEmbeddableKey();
         return selected;
     }
 
     public void create() {
-        persist(JsfUtil.PersistAction.CREATE, ResourceBundle.getBundle("/Bundle").getString("StepLogCreated"));
+        persist(JsfUtil.PersistAction.CREATE, ResourceBundle.getBundle("/Bundle").getString("RecordLogCreated"));
         if (!JsfUtil.isValidationFailed()) {
             items = null;    // Invalidate list of items to trigger re-query.
         }
     }
 
     public void update() {
-        persist(JsfUtil.PersistAction.UPDATE, ResourceBundle.getBundle("/Bundle").getString("StepLogUpdated"));
+        persist(JsfUtil.PersistAction.UPDATE, ResourceBundle.getBundle("/Bundle").getString("RecordLogUpdated"));
     }
 
     public void destroy() {
-        persist(JsfUtil.PersistAction.DELETE, ResourceBundle.getBundle("/Bundle").getString("StepLogDeleted"));
+        persist(JsfUtil.PersistAction.DELETE, ResourceBundle.getBundle("/Bundle").getString("RecordLogDeleted"));
         if (!JsfUtil.isValidationFailed()) {
             selected = null; // Remove selection
             items = null;    // Invalidate list of items to trigger re-query.
         }
     }
 
-    public List<StepLog> getItems() {
+    public List<RecordLog> getItems() {
         if (items == null) {
             items = getFacade().findAll();
         }
@@ -110,29 +110,29 @@ public class StepLogController implements Serializable {
         }
     }
 
-    public StepLog getStepLog(java.lang.Integer id) {
+    public RecordLog getRecordLog(java.lang.Integer id) {
         return getFacade().find(id);
     }
 
-    public List<StepLog> getItemsAvailableSelectMany() {
+    public List<RecordLog> getItemsAvailableSelectMany() {
         return getFacade().findAll();
     }
 
-    public List<StepLog> getItemsAvailableSelectOne() {
+    public List<RecordLog> getItemsAvailableSelectOne() {
         return getFacade().findAll();
     }
 
-    @FacesConverter(forClass = StepLog.class)
-    public static class StepLogControllerConverter implements Converter {
+    @FacesConverter(forClass = RecordLog.class)
+    public static class RecordLogControllerConverter implements Converter {
 
         @Override
         public Object getAsObject(FacesContext facesContext, UIComponent component, String value) {
             if (value == null || value.length() == 0) {
                 return null;
             }
-            StepLogController controller = (StepLogController) facesContext.getApplication().getELResolver().
-                    getValue(facesContext.getELContext(), null, "stepLogController");
-            return controller.getStepLog(getKey(value));
+            RecordLogController controller = (RecordLogController) facesContext.getApplication().getELResolver().
+                    getValue(facesContext.getELContext(), null, "recordLogController");
+            return controller.getRecordLog(getKey(value));
         }
 
         java.lang.Integer getKey(String value) {
@@ -152,11 +152,11 @@ public class StepLogController implements Serializable {
             if (object == null) {
                 return null;
             }
-            if (object instanceof StepLog) {
-                StepLog o = (StepLog) object;
-                return getStringKey(o.getStepLogId());
+            if (object instanceof RecordLog) {
+                RecordLog o = (RecordLog) object;
+                return getStringKey(o.getRecordLogId());
             } else {
-                Logger.getLogger(this.getClass().getName()).log(Level.SEVERE, "object {0} is of type {1}; expected type: {2}", new Object[]{object, object.getClass().getName(), StepLog.class.getName()});
+                Logger.getLogger(this.getClass().getName()).log(Level.SEVERE, "object {0} is of type {1}; expected type: {2}", new Object[]{object, object.getClass().getName(), RecordLog.class.getName()});
                 return null;
             }
         }

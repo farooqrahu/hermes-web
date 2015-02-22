@@ -3,11 +3,11 @@
  * To change this template file, choose Tools | Templates
  * and open the template in the editor.
  */
-package es.jyago.hermes.activityLog;
+package es.jyago.hermes.categoryLog;
 
 import es.jyago.hermes.chart.ChartInterface;
 import es.jyago.hermes.person.Person;
-import es.jyago.hermes.stepLog.StepLog;
+import es.jyago.hermes.recordLog.RecordLog;
 import es.jyago.hermes.csv.CSVBeanInterface;
 import es.jyago.hermes.util.Constants;
 import static es.jyago.hermes.util.Constants.df;
@@ -57,47 +57,47 @@ import org.supercsv.cellprocessor.ift.CellProcessor;
 @Table(name = "activity_log")
 @XmlRootElement
 @NamedQueries({
-    @NamedQuery(name = "ActivityLog.findAll", query = "SELECT a FROM ActivityLog a"),
-    @NamedQuery(name = "ActivityLog.findByActivityLogId", query = "SELECT a FROM ActivityLog a WHERE a.activityLogId = :activityLogId"),
-    @NamedQuery(name = "ActivityLog.findByDate", query = "SELECT a FROM ActivityLog a WHERE a.date = :date")})
-public class ActivityLog implements Serializable, CSVBeanInterface, ChartInterface {
+    @NamedQuery(name = "CategoryLog.findAll", query = "SELECT a FROM CategoryLog a"),
+    @NamedQuery(name = "CategoryLog.findByCategoryLogId", query = "SELECT a FROM CategoryLog a WHERE a.categoryLogId = :categoryLogId"),
+    @NamedQuery(name = "CategoryLog.findByDate", query = "SELECT a FROM CategoryLog a WHERE a.date = :date")})
+public class CategoryLog implements Serializable, CSVBeanInterface, ChartInterface {
 
     private static final long serialVersionUID = 1L;
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     @Basic(optional = false)
     @Column(name = "activity_log_id")
-    private Integer activityLogId;
+    private Integer categoryLogId;
     @Basic(optional = false)
     @NotNull
     @Column(name = "date")
     @Temporal(TemporalType.DATE)
     private Date date;
-    @OneToMany(cascade = CascadeType.ALL, mappedBy = "activityLog")
+    @OneToMany(cascade = CascadeType.ALL, mappedBy = "categoryLog")
     @OrderBy("timeLog ASC")
-    private Collection<StepLog> stepLogCollection;
+    private Collection<RecordLog> recordLogCollection;
     @JoinColumn(name = "person_id", referencedColumnName = "person_id")
     @ManyToOne(optional = false)
     private Person person;
 
-    public ActivityLog() {
+    public CategoryLog() {
     }
 
-    public ActivityLog(Integer activityLogId) {
-        this.activityLogId = activityLogId;
+    public CategoryLog(Integer categoryLogId) {
+        this.categoryLogId = categoryLogId;
     }
 
-    public ActivityLog(Integer activityLogId, Date date) {
-        this.activityLogId = activityLogId;
+    public CategoryLog(Integer categoryLogId, Date date) {
+        this.categoryLogId = categoryLogId;
         this.date = date;
     }
 
-    public Integer getActivityLogId() {
-        return activityLogId;
+    public Integer getCategoryLogId() {
+        return categoryLogId;
     }
 
-    public void setActivityLogId(Integer activityLogId) {
-        this.activityLogId = activityLogId;
+    public void setCategoryLogId(Integer categoryLogId) {
+        this.categoryLogId = categoryLogId;
     }
 
     public Date getDate() {
@@ -108,12 +108,12 @@ public class ActivityLog implements Serializable, CSVBeanInterface, ChartInterfa
         this.date = date;
     }
 
-    public Collection<StepLog> getStepLogCollection() {
-        return stepLogCollection;
+    public Collection<RecordLog> getRecordLogCollection() {
+        return recordLogCollection;
     }
 
-    public void setStepLogCollection(Collection<StepLog> stepLogCollection) {
-        this.stepLogCollection = stepLogCollection;
+    public void setRecordLogCollection(Collection<RecordLog> recordLogCollection) {
+        this.recordLogCollection = recordLogCollection;
     }
 
     public Person getPerson() {
@@ -127,18 +127,18 @@ public class ActivityLog implements Serializable, CSVBeanInterface, ChartInterfa
     @Override
     public int hashCode() {
         int hash = 0;
-        hash += (activityLogId != null ? activityLogId.hashCode() : 0);
+        hash += (categoryLogId != null ? categoryLogId.hashCode() : 0);
         return hash;
     }
 
     @Override
     public boolean equals(Object object) {
         // TODO: Warning - this method won't work in the case the id fields are not set
-        if (!(object instanceof ActivityLog)) {
+        if (!(object instanceof CategoryLog)) {
             return false;
         }
-        ActivityLog other = (ActivityLog) object;
-        return !((this.activityLogId == null && other.activityLogId != null) || (this.activityLogId != null && !this.activityLogId.equals(other.activityLogId)));
+        CategoryLog other = (CategoryLog) object;
+        return !((this.categoryLogId == null && other.categoryLogId != null) || (this.categoryLogId != null && !this.categoryLogId.equals(other.categoryLogId)));
     }
 
     @Override
@@ -316,8 +316,8 @@ public class ActivityLog implements Serializable, CSVBeanInterface, ChartInterfa
         int remaining = getPerson().getStepsGoal();
         int achieved = 0;
 
-        for (StepLog stepLog : this.stepLogCollection) {
-            achieved += stepLog.getSteps();
+        for (RecordLog recordLog : this.recordLogCollection) {
+            achieved += recordLog.getSteps();
         }
 
         remaining -= achieved;
@@ -336,8 +336,8 @@ public class ActivityLog implements Serializable, CSVBeanInterface, ChartInterfa
     public LinkedHashMap<String, Integer> getValues() {
         LinkedHashMap<String, Integer> values = new LinkedHashMap();
 
-        for (StepLog stepLog : this.stepLogCollection) {
-            values.put(Constants.dfTime.format(stepLog.getTimeLog()), stepLog.getSteps());
+        for (RecordLog recordLog : this.recordLogCollection) {
+            values.put(Constants.dfTime.format(recordLog.getTimeLog()), recordLog.getSteps());
         }
 
         return values;

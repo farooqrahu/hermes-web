@@ -3,7 +3,7 @@
  * To change this template file, choose Tools | Templates
  * and open the template in the editor.
  */
-package es.jyago.hermes.activityLog;
+package es.jyago.hermes.recordLog;
 
 import es.jyago.hermes.AbstractFacade;
 import javax.ejb.Stateless;
@@ -15,7 +15,7 @@ import javax.persistence.PersistenceContext;
  * @author Jorge Yago
  */
 @Stateless
-public class ActivityLogFacade extends AbstractFacade<ActivityLog> {
+public class RecordLogFacade extends AbstractFacade<RecordLog> {
     @PersistenceContext(unitName = "HermesWeb_PU")
     private EntityManager em;
 
@@ -24,8 +24,8 @@ public class ActivityLogFacade extends AbstractFacade<ActivityLog> {
         return em;
     }
 
-    public ActivityLogFacade() {
-        super(ActivityLog.class);
+    public RecordLogFacade() {
+        super(RecordLog.class);
     }
     
 }

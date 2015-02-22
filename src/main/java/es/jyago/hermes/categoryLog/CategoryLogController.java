@@ -1,4 +1,4 @@
-package es.jyago.hermes.activityLog;
+package es.jyago.hermes.categoryLog;
 
 import es.jyago.hermes.util.JsfUtil;
 
@@ -23,23 +23,23 @@ import org.jfree.util.Log;
 import org.primefaces.model.chart.ChartModel;
 import org.primefaces.model.chart.LineChartModel;
 
-@Named("activityLogController")
+@Named("categoryLogController")
 @SessionScoped
-public class ActivityLogController implements Serializable {
+public class CategoryLogController implements Serializable {
 
     @EJB
-    private es.jyago.hermes.activityLog.ActivityLogFacade ejbFacade;
-    private List<ActivityLog> items = null;
-    private ActivityLog selected;
+    private es.jyago.hermes.categoryLog.CategoryLogFacade ejbFacade;
+    private List<CategoryLog> items = null;
+    private CategoryLog selected;
 
-    public ActivityLogController() {
+    public CategoryLogController() {
     }
 
-    public ActivityLog getSelected() {
+    public CategoryLog getSelected() {
         return selected;
     }
 
-    public void setSelected(ActivityLog selected) {
+    public void setSelected(CategoryLog selected) {
         this.selected = selected;
     }
 
@@ -49,36 +49,36 @@ public class ActivityLogController implements Serializable {
     protected void initializeEmbeddableKey() {
     }
 
-    private ActivityLogFacade getFacade() {
+    private CategoryLogFacade getFacade() {
         return ejbFacade;
     }
 
-    public ActivityLog prepareCreate() {
-        selected = new ActivityLog();
+    public CategoryLog prepareCreate() {
+        selected = new CategoryLog();
         initializeEmbeddableKey();
         return selected;
     }
 
     public void create() {
-        persist(JsfUtil.PersistAction.CREATE, ResourceBundle.getBundle("/Bundle").getString("ActivityLogCreated"));
+        persist(JsfUtil.PersistAction.CREATE, ResourceBundle.getBundle("/Bundle").getString("CategoryLogCreated"));
         if (!JsfUtil.isValidationFailed()) {
             items = null;    // Invalidate list of items to trigger re-query.
         }
     }
 
     public void update() {
-        persist(JsfUtil.PersistAction.UPDATE, ResourceBundle.getBundle("/Bundle").getString("ActivityLogUpdated"));
+        persist(JsfUtil.PersistAction.UPDATE, ResourceBundle.getBundle("/Bundle").getString("CategoryLogUpdated"));
     }
 
     public void destroy() {
-        persist(JsfUtil.PersistAction.DELETE, ResourceBundle.getBundle("/Bundle").getString("ActivityLogDeleted"));
+        persist(JsfUtil.PersistAction.DELETE, ResourceBundle.getBundle("/Bundle").getString("CategoryLogDeleted"));
         if (!JsfUtil.isValidationFailed()) {
             selected = null; // Remove selection
             items = null;    // Invalidate list of items to trigger re-query.
         }
     }
 
-    public List<ActivityLog> getItems() {
+    public List<CategoryLog> getItems() {
         if (items == null) {
             items = getFacade().findAll();
         }
@@ -117,15 +117,15 @@ public class ActivityLogController implements Serializable {
         }
     }
 
-    public ActivityLog getActivityLog(java.lang.Integer id) {
+    public CategoryLog getCategoryLog(java.lang.Integer id) {
         return getFacade().find(id);
     }
 
-    public List<ActivityLog> getItemsAvailableSelectMany() {
+    public List<CategoryLog> getItemsAvailableSelectMany() {
         return getFacade().findAll();
     }
 
-    public List<ActivityLog> getItemsAvailableSelectOne() {
+    public List<CategoryLog> getItemsAvailableSelectOne() {
         return getFacade().findAll();
     }
 
@@ -193,17 +193,17 @@ public class ActivityLogController implements Serializable {
         return null;
     }
 
-    @FacesConverter(forClass = ActivityLog.class)
-    public static class ActivityLogControllerConverter implements Converter {
+    @FacesConverter(forClass = CategoryLog.class)
+    public static class CategoryLogControllerConverter implements Converter {
 
         @Override
         public Object getAsObject(FacesContext facesContext, UIComponent component, String value) {
             if (value == null || value.length() == 0) {
                 return null;
             }
-            ActivityLogController controller = (ActivityLogController) facesContext.getApplication().getELResolver().
-                    getValue(facesContext.getELContext(), null, "activityLogController");
-            return controller.getActivityLog(getKey(value));
+            CategoryLogController controller = (CategoryLogController) facesContext.getApplication().getELResolver().
+                    getValue(facesContext.getELContext(), null, "categoryLogController");
+            return controller.getCategoryLog(getKey(value));
         }
 
         java.lang.Integer getKey(String value) {
@@ -223,11 +223,11 @@ public class ActivityLogController implements Serializable {
             if (object == null) {
                 return null;
             }
-            if (object instanceof ActivityLog) {
-                ActivityLog o = (ActivityLog) object;
-                return getStringKey(o.getActivityLogId());
+            if (object instanceof CategoryLog) {
+                CategoryLog o = (CategoryLog) object;
+                return getStringKey(o.getCategoryLogId());
             } else {
-                Logger.getLogger(this.getClass().getName()).log(Level.SEVERE, "object {0} is of type {1}; expected type: {2}", new Object[]{object, object.getClass().getName(), ActivityLog.class.getName()});
+                Logger.getLogger(this.getClass().getName()).log(Level.SEVERE, "object {0} is of type {1}; expected type: {2}", new Object[]{object, object.getClass().getName(), CategoryLog.class.getName()});
                 return null;
             }
         }

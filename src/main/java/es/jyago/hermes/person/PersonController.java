@@ -3,11 +3,11 @@ package es.jyago.hermes.person;
 import com.fitbit.api.FitbitAPIException;
 import com.fitbit.api.common.model.timeseries.IntradayData;
 import com.fitbit.api.common.model.timeseries.IntradaySummary;
-import es.jyago.hermes.activityLog.ActivityLog;
+import es.jyago.hermes.categoryLog.CategoryLog;
 import es.jyago.hermes.csv.CSVControllerInterface;
 import es.jyago.hermes.csv.CSVUtil;
 import es.jyago.hermes.fitbit.HermesFitbitController;
-import es.jyago.hermes.stepLog.StepLog;
+import es.jyago.hermes.recordLog.RecordLog;
 import es.jyago.hermes.util.Constants;
 import es.jyago.hermes.util.JsfUtil;
 import es.jyago.hermes.util.JsfUtil.PersistAction;
@@ -232,20 +232,20 @@ public class PersonController implements Serializable, CSVControllerInterface<Pe
             List<IntradaySummary> listIntradaySummary = hermesFitbitController.getIntradayData(startDate, endDate);
             
             for (IntradaySummary intradaySummary : listIntradaySummary) {
-                ActivityLog activityLog = new ActivityLog();
+                CategoryLog categoryLog = new CategoryLog();
                 try {
-                    activityLog.setDate(Constants.dfFitbit.parse(intradaySummary.getSummary().getDateTime()));
-                    activityLog.setStepLogCollection(new ArrayList());
-                    activityLog.setPerson(selected);
+                    categoryLog.setDate(Constants.dfFitbit.parse(intradaySummary.getSummary().getDateTime()));
+                    categoryLog.setRecordLogCollection(new ArrayList());
+                    categoryLog.setPerson(selected);
                     
                     for (IntradayData intradayData : intradaySummary.getIntradayDataset().getDataset()) {
-                        StepLog stepLog = new StepLog();
-                        stepLog.setActivityLog(activityLog);
-                        stepLog.setTimeLog(Constants.dfTime.parse(intradayData.getTime()));
-                        stepLog.setSteps((int) intradayData.getValue());
-                        activityLog.getStepLogCollection().add(stepLog);
+                        RecordLog recordLog = new RecordLog();
+                        recordLog.setCategoryLog(categoryLog);
+                        recordLog.setTimeLog(Constants.dfTime.parse(intradayData.getTime()));
+                        recordLog.setSteps((int) intradayData.getValue());
+                        categoryLog.getRecordLogCollection().add(recordLog);
                     }
-                    selected.getActivityLogCollection().add(activityLog);
+                    selected.getCategoryLogCollection().add(categoryLog);
                 } catch (ParseException ex) {
                     Logger.getLogger(PersonController.class.getName()).log(Level.SEVERE, null, ex);
                 }

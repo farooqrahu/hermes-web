@@ -54,7 +54,7 @@ public class HermesFitbitController {
 
     public static final String OAUTH_VERIFIER = "oauth_verifier";
 
-    private static final ResourceBundle ampFitbit = ResourceBundle.getBundle("AMPFitbit");
+    private static final ResourceBundle hermesFitbit = ResourceBundle.getBundle("HermesFitbit");
 
     private final Person person;
     private LocalUserDetail localUserDetail;
@@ -108,11 +108,11 @@ public class HermesFitbitController {
 
         apiClientService = new FitbitAPIClientService(
                 new FitbitApiClientAgent(
-                        ampFitbit.getString("apiBaseUrl"),
-                        ampFitbit.getString("fitbitSiteBaseUrl"),
+                        hermesFitbit.getString("apiBaseUrl"),
+                        hermesFitbit.getString("fitbitSiteBaseUrl"),
                         credentialsCache),
-                ampFitbit.getString("clientConsumerKey"),
-                ampFitbit.getString("clientConsumerSecret"),
+                hermesFitbit.getString("clientConsumerKey"),
+                hermesFitbit.getString("clientConsumerSecret"),
                 credentialsCache,
                 entityCache,
                 subscriptionStore);

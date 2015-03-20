@@ -18,8 +18,16 @@
         
         <!-- JYFR: Archivo de configuración de Fitbit -->
         <resource-bundle>
-            <base-name>/AMPFitbit</base-name>
-            <var>ampFitbit</var>
+            <base-name>/HermesFitbit</base-name>
+            <var>hermesFitbit</var>
+        </resource-bundle>
+        <resource-bundle>
+            <base-name>/Bundle</base-name>
+            <var>bundle</var>
+        </resource-bundle>
+        <resource-bundle>
+            <base-name>/Bundle</base-name>
+            <var>bundle</var>
         </resource-bundle>
     </application>
     

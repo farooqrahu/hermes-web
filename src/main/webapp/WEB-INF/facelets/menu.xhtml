@@ -6,16 +6,19 @@
                 xmlns:f="http://java.sun.com/jsf/core">
     <p:outputPanel id="menuPanel" layout="block">
         <p:menu rendered="#{userLogin.loggedIn}">
-            <p:menuitem value="#{bundle.Menu_home}" outcome="/main.xhtml" icon="inicio-icon" style="vertical-align: middle; font-weight: bold"/>
+            <p:menuitem value="#{bundle.Menu_home}" outcome="/main.xhtml" icon="inicio-icon" style="vertical-align: middle; font-weight: bold" onclick="PF('statusDialog').show()" oncomplete="PF('statusDialog').hide()"/>
             <p:submenu label="#{bundle.Menu_people}">
-                <p:menuitem value="#{bundle.Menu_person}" outcome="/secured/person/List.xhtml" icon="person-icon"/>
+                <p:menuitem value="#{bundle.Menu_person}" outcome="/secured/person/List.xhtml" icon="person-icon" onclick="PF('statusDialog').show()" oncomplete="PF('statusDialog').hide()"/>
             </p:submenu>
             <p:submenu label="#{bundle.Menu_activities}">
-                <p:menuitem value="#{bundle.Menu_step}" outcome="/secured/categoryLog/List.xhtml" icon="step-icon"/>
+                <p:menuitem value="#{bundle.Menu_step}" outcome="/secured/activityLog/List.xhtml" icon="step-icon" onclick="PF('statusDialog').show()" oncomplete="PF('statusDialog').hide()"/>
             </p:submenu>
             <p:submenu label="#{bundle.Menu_control}">
-                <p:menuitem value="#{bundle.Menu_report}" outcome="/secured/report/List.xhtml" icon="report-icon"/>
-                <p:menuitem value="#{bundle.Menu_role}" outcome="/secured/role/List.xhtml" icon="role-icon"/>
+                <p:menuitem value="#{bundle.Menu_report}" outcome="/secured/report/List.xhtml" icon="report-icon" onclick="PF('statusDialog').show()" oncomplete="PF('statusDialog').hide()"/>
+                <p:menuitem value="#{bundle.Menu_role}" outcome="/secured/role/List.xhtml" icon="role-icon" onclick="PF('statusDialog').show()" oncomplete="PF('statusDialog').hide()"/>
+            </p:submenu>
+            <p:submenu label="#{bundle.Menu_options}">
+                <p:menuitem value="#{bundle.Menu_config}" outcome="/secured/option/List.xhtml" icon="config-icon" onclick="PF('statusDialog').show()" oncomplete="PF('statusDialog').hide()"/>
             </p:submenu>
         </p:menu>
     </p:outputPanel>

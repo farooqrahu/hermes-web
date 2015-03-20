@@ -16,10 +16,6 @@
             <!-- JYFR: Es necesario especificar 'enctype="multipart/form-data"' para poder subir archivos con la etiqueta 'p:fileUpload' -->
             <h:form id="PersonListForm" enctype="multipart/form-data">
 
-                <p:dialog modal="true" widgetVar="statusDialog" header="#{bundle.State}" draggable="false" closable="false" resizable="false">
-                    <p:graphicImage value="/resources/img/ajax_loading_bar.gif" />
-                </p:dialog>
-
                 <p:confirmDialog global="true" showEffect="fade" hideEffect="explode">
                     <p:commandButton value="#{bundle.Yes}" type="button" styleClass="ui-confirmdialog-yes" icon="ui-icon-check" />
                     <p:commandButton value="#{bundle.No}" type="button" styleClass="ui-confirmdialog-no" icon="ui-icon-close" />
@@ -35,8 +31,8 @@
                                  resizableColumns="true"
                                  >
 
-                        <p:ajax event="rowSelect"   update="createButton viewButton editButton authorizeButton synchronizeButton deleteButton"/>
-                        <p:ajax event="rowUnselect" update="createButton viewButton editButton authorizeButton synchronizeButton deleteButton"/>
+                        <p:ajax event="rowSelect"   update="createButton viewButton editButton authorizeButton synchronizeButton sendButton deleteButton"/>
+                        <p:ajax event="rowUnselect" update="createButton viewButton editButton authorizeButton synchronizeButton sendButton deleteButton"/>
 
                         <f:facet name="header">
                             <p:commandButton icon="ui-icon-calculator" id="toggler" style="float: right; margin-top: 7px !important" type="button" value="#{bundle.Column}"/>
@@ -100,7 +96,7 @@
                             <p:commandButton id="createButton" icon="ui-icon-plus"   value="#{bundle.Create}" actionListener="#{personController.prepareCreate}" update=":PersonCreateForm" oncomplete="PF('PersonCreateDialog').show()"/>
                             <p:commandButton id="viewButton"   icon="ui-icon-search" value="#{bundle.View}" update=":PersonViewForm" oncomplete="PF('PersonViewDialog').show()" disabled="#{empty personController.selected}"/>
                             <p:commandButton id="editButton"   icon="ui-icon-pencil" value="#{bundle.Edit}" update=":PersonEditForm" oncomplete="PF('PersonEditDialog').show()" disabled="#{empty personController.selected}"/>
-                            <p:commandButton id="authorizeButton" icon="ui-icon-plus" value="#{bundle.Authorize}" update="openWindow" actionListener="#{personController.authorize()}" disabled="#{empty personController.selected}">
+                            <p:commandButton id="authorizeButton" icon="ui-icon-key" value="#{bundle.Authorize}" update="openWindow" actionListener="#{personController.authorize()}" disabled="#{empty personController.selected}">
                                 <f:param name="nextPage" value="/faces/secured/person/List.xhtml" />
                             </p:commandButton>
                             <h:panelGroup id="openWindow">
@@ -108,14 +104,14 @@
                                     window.open('#{personController.authorizeUrlAndReset}', '_self')
                                 </h:outputScript>
                             </h:panelGroup>
-                            <p:commandButton id="synchronizeButton" icon="ui-icon-plus" value="#{bundle.Synchronize}" update=":PersonSynchronizeForm" oncomplete="PF('PersonSynchronizeDialog').show()" disabled="#{empty personController.selected || !personController.selected.hasFitbitCredentials()}" />
+                            <p:commandButton id="synchronizeButton" icon="ui-icon-clock" value="#{bundle.Synchronize}" update=":PersonSynchronizeForm" oncomplete="PF('PersonSynchronizeDialog').show()" disabled="#{empty personController.selected || !personController.selected.hasFitbitCredentials()}" />
                             <p:commandButton id="deleteButton" icon="ui-icon-trash"  value="#{bundle.Delete}" actionListener="#{personController.destroy}" update=":messages,datalist" disabled="#{empty personController.selected}">
                                 <p:confirm header="#{bundle.Confirmation}" message="#{bundle.DeleteElementConfirm}" icon="ui-icon-alert" />
                             </p:commandButton>
                             <p:commandButton value="#{bundle.Download}" ajax="false" onclick="PrimeFaces.monitorDownload(start, stop);" icon="ui-icon-arrowthick-1-s">
                                 <p:fileDownload value="#{personController.file}" />
                             </p:commandButton>
-
+                            <p:commandButton id="sendButton"   icon="ui-icon-mail-closed" value="#{bundle.SendZtreamy}" update=":PersonSendForm" oncomplete="PF('PersonSendDialog').show()" disabled="#{empty personController.selected}"/>
                         </f:facet>
                     </p:dataTable>
                 </p:panel>
@@ -123,8 +119,9 @@
 
             <ui:include src="Create.xhtml"/>
             <ui:include src="Edit.xhtml"/>
-            <ui:include src="Synchronize.xhtml"/>
             <ui:include src="View.xhtml"/>
+            <ui:include src="Synchronize.xhtml"/>
+            <ui:include src="Send.xhtml"/>
         </ui:define>
     </ui:composition>
 

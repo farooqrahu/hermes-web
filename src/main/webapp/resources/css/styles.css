@@ -76,6 +76,13 @@
     text-align: left !important;
 }
 
+.config-icon {
+    background: url(img/config.png) no-repeat !important;
+    height: 32px !important;
+    width: 32px !important;
+}
+
+/* JYFR - Inicio PRUEBA */
 .jqplot-meterGauge-tick {
     font-size: 0.75em;
     color: #000000;
@@ -85,3 +92,4 @@
     font-size: 1em;
     color: #000000;
 }
+/* JYFR - Fin PRUEBA */

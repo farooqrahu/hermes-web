@@ -46,8 +46,10 @@
     </servlet-mapping>
     <!-- SESSION CONFIG -->
     <session-config>
+        <!-- Tiempo de inactividad -->
+        <!-- PRUEBA -->
         <session-timeout>
-            30
+            2
         </session-timeout>
     </session-config>
     <!-- WELCOME FILE LIST -->

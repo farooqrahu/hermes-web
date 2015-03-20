@@ -13,7 +13,7 @@
                 <!-- JYFR: Post validación -->
                 <f:event listener="#{personController.validate()}" type="postValidate" />
 
-                <p:tabView dynamic="true" cache="true" rendered="#{personController.selected != null}" activeIndex="0" binding="#{personController.tabView}">
+                <p:tabView dynamic="true" cache="true" rendered="#{personController.selected != null}" activeIndex="0">
                     <p:tab title="#{bundle.PersonalInfo}">
                         <p:panelGrid columns="2">
                             <p:outputLabel value="#{bundle.EditPersonLabel_photo}" for="photo" />

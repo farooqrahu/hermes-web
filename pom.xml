@@ -129,6 +129,14 @@
             <version>2.6</version>
         </dependency>
         
+        <!-- JYFR: Ztreamy (lo he mavenizado) -->
+        <dependency>
+            <groupId>ztreamy</groupId>
+            <artifactId>ztreamyPublisher</artifactId>
+            <version>0.3</version>
+            <type>jar</type>
+        </dependency>
+        
     </dependencies>
 
     <build>

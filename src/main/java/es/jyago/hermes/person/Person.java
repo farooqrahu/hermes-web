@@ -5,13 +5,15 @@
  */
 package es.jyago.hermes.person;
 
-import es.jyago.hermes.categoryLog.CategoryLog;
+import es.jyago.hermes.activityLog.ActivityLog;
 import es.jyago.hermes.csv.CSVBeanInterface;
 import es.jyago.hermes.role.Role;
 import es.jyago.hermes.util.Constants;
 import java.io.IOException;
 import java.io.Serializable;
 import java.util.Collection;
+import java.util.Date;
+import java.util.HashSet;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 import javax.persistence.Basic;
@@ -105,7 +107,7 @@ public class Person implements Serializable, CSVBeanInterface {
     @ManyToOne(optional = false)
     private Role role;
     @OneToMany(cascade = CascadeType.ALL, mappedBy = "person")
-    private Collection<CategoryLog> categoryLogCollection;
+    private Collection<ActivityLog> activityLogCollection;
     @Basic(optional = true)
     @Size(min = 1, max = 20)
     @Column(name = "username")
@@ -122,7 +124,7 @@ public class Person implements Serializable, CSVBeanInterface {
     private int endSessionStoppedMinutes;
     @Column(name = "rest_steps_threshold")
     private int restStepsThreshold;
-    
+
     public Person() {
         // Por defecto, la persona tendrá un rol de usuario.
         this.role = new Role(Constants.USER_ROLE);
@@ -234,12 +236,26 @@ public class Person implements Serializable, CSVBeanInterface {
         this.role = role;
     }
 
-    public Collection<CategoryLog> getCategoryLogCollection() {
-        return categoryLogCollection;
+    public Collection<ActivityLog> getActivityLogCollection() {
+        return activityLogCollection;
     }
 
-    public void setCategoryLogCollection(Collection<CategoryLog> categoryLogCollection) {
-        this.categoryLogCollection = categoryLogCollection;
+    public Collection<ActivityLog> getActivityLogCollection(Date startDate, Date endDate) {
+        Collection<ActivityLog> filteredCollection = new HashSet<>();
+
+        if (activityLogCollection != null) {
+            for (ActivityLog activityLog : activityLogCollection) {
+                if ((activityLog.getDate().compareTo(startDate) >= 0) && (activityLog.getDate().compareTo(endDate) <= 0)) {
+                    filteredCollection.add(activityLog);
+                }
+            }
+        }
+
+        return filteredCollection;
+    }
+
+    public void setActivityLogCollection(Collection<ActivityLog> activityLogCollection) {
+        this.activityLogCollection = activityLogCollection;
     }
 
     public String getUsername() {

@@ -9,10 +9,19 @@
             <h:outputScript library="js" name="scripts.js"/>
         </h:head>
         <h:body>
+            <!-- Caducidad de la sesión -->
+            <ui:include src="sessionTimeOut.xhtml" />
+
             <!-- Mensajes informativos -->
             <p:growl id="messages" showDetail="true"/>
 
             <p:layout fullPage="true">
+                <!-- JYFR: Ventana emergente de 'Cargando...' -->
+                <p:ajaxStatus onstart="PF('statusDialog').show()" onsuccess="PF('statusDialog').hide()" />
+
+                <p:dialog modal="true" widgetVar="statusDialog" header="#{bundle.Processing}" draggable="false" closable="false" resizable="false">
+                    <p:graphicImage value="/resources/img/ajax_loading_bar.gif" />
+                </p:dialog>
                 <!-- CABECERA -->
                 <p:layoutUnit position="north" id="header" size="100" >
                     <ui:include src="header.xhtml"/>
@@ -23,7 +32,7 @@
                 </p:layoutUnit>
                 <!-- CUERPO -->
                 <p:layoutUnit position="center" id="content">
-                    <ui:insert name="content" />
+                    <ui:insert name="content"/>
                 </p:layoutUnit>
                 <!-- PIE -->
                 <p:layoutUnit position="south" id="footer" resizable="false" size="30">

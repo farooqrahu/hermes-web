@@ -10,7 +10,7 @@
         <p:dialog id="PersonCreateDlg" widgetVar="PersonCreateDialog" modal="true" resizable="false" appendTo="@(body)" header="#{bundle.CreatePersonTitle}" closeOnEscape="true">
             <!-- JYFR: Es necesario especificar 'enctype="multipart/form-data"' para poder subir archivos con la etiqueta 'p:fileUpload' -->
             <h:form id="PersonCreateForm">
-                <p:tabView dynamic="true" cache="true" rendered="#{personController.selected != null}">
+                <p:tabView id="createTabView" dynamic="true" cache="true" rendered="#{personController.selected != null}" activeIndex="0">
                     <p:tab title="#{bundle.PersonalInfo}">
                         <p:panelGrid columns="2">
                             <p:outputLabel value="#{bundle.CreatePersonLabel_photo}" for="photo" />

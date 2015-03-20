@@ -174,7 +174,7 @@ public class CategoryLogController implements Serializable {
 
         return null;
     }
-    
+
     public LineChartModel getAnalyzedChartModel() {
         if (selected != null) {
             LinkedHashMap<String, Integer> values = selected.getValues();

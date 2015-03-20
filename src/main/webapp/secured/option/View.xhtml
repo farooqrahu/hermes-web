@@ -1,0 +1,32 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml"
+      xmlns:ui="http://xmlns.jcp.org/jsf/facelets"
+      xmlns:h="http://xmlns.jcp.org/jsf/html"
+      xmlns:f="http://xmlns.jcp.org/jsf/core"
+      xmlns:p="http://primefaces.org/ui">
+
+    <ui:composition>
+
+        <p:dialog id="OptionViewDlg" widgetVar="OptionViewDialog" modal="true" resizable="false" appendTo="@(body)" header="#{bundle.ViewOptionTitle}">
+            <h:form id="OptionViewForm">
+                <h:panelGroup id="display">
+                    <p:panelGrid columns="2" rendered="#{configurationController.selected != null}">
+                        <h:outputText value="#{bundle.ViewOptionLabel_optionKey}"/>
+                        <h:outputText value="#{configurationController.selected.optionKey}" title="#{bundle.ViewOptionTitle_optionKey}"/>
+                        <h:outputText value="#{bundle.ViewOptionLabel_optionValue}"/>
+                        <h:outputText value="#{configurationController.selected.optionValue}" title="#{bundle.ViewOptionTitle_optionValue}"/>
+                        <h:outputText value="#{bundle.ViewOptionLabel_optionLabel}"/>
+                        <h:outputText value="#{configurationController.selected.optionLabel}" title="#{bundle.ViewOptionTitle_optionLabel}"/>
+                        <h:outputText value="#{bundle.ViewOptionLabel_optionDescription}"/>
+                        <h:outputText value="#{configurationController.selected.optionDescription}" title="#{bundle.ViewOptionTitle_optionDescription}"/>
+                        <h:outputText value="#{bundle.ViewOptionLabel_optionRolesAllowed}"/>
+                        <h:outputText value="#{configurationController.selected.optionRolesAllowed}" title="#{bundle.ViewOptionTitle_optionRolesAllowed}"/>
+                    </p:panelGrid>
+                    <p:commandButton value="#{bundle.Close}" onclick="OptionViewDialog.hide()"/>
+                </h:panelGroup>
+            </h:form>
+        </p:dialog>
+
+    </ui:composition>
+</html>

@@ -3,9 +3,10 @@
  * To change this template file, choose Tools | Templates
  * and open the template in the editor.
  */
-package es.jyago.hermes.categoryLog;
+package es.jyago.hermes.stepLog;
 
 import es.jyago.hermes.AbstractFacade;
+import es.jyago.hermes.stepLog.StepLog;
 import javax.ejb.Stateless;
 import javax.persistence.EntityManager;
 import javax.persistence.PersistenceContext;
@@ -15,7 +16,7 @@ import javax.persistence.PersistenceContext;
  * @author Jorge Yago
  */
 @Stateless
-public class CategoryLogFacade extends AbstractFacade<CategoryLog> {
+public class StepLogFacade extends AbstractFacade<StepLog> {
     @PersistenceContext(unitName = "HermesWeb_PU")
     private EntityManager em;
 
@@ -24,8 +25,8 @@ public class CategoryLogFacade extends AbstractFacade<CategoryLog> {
         return em;
     }
 
-    public CategoryLogFacade() {
-        super(CategoryLog.class);
+    public StepLogFacade() {
+        super(StepLog.class);
     }
     
 }

@@ -3,9 +3,9 @@
  * To change this template file, choose Tools | Templates
  * and open the template in the editor.
  */
-package es.jyago.hermes.recordLog;
+package es.jyago.hermes.stepLog;
 
-import es.jyago.hermes.categoryLog.CategoryLog;
+import es.jyago.hermes.activityLog.ActivityLog;
 import java.io.Serializable;
 import java.util.Date;
 import javax.persistence.Basic;
@@ -32,17 +32,17 @@ import javax.xml.bind.annotation.XmlRootElement;
 @Table(name = "step_log")
 @XmlRootElement
 @NamedQueries({
-    @NamedQuery(name = "RecordLog.findAll", query = "SELECT s FROM RecordLog s"),
-    @NamedQuery(name = "RecordLog.findByRecordLogId", query = "SELECT s FROM RecordLog s WHERE s.recordLogId = :recordLogId"),
-    @NamedQuery(name = "RecordLog.findByTimeLog", query = "SELECT s FROM RecordLog s WHERE s.timeLog = :timeLog"),
-    @NamedQuery(name = "RecordLog.findBySteps", query = "SELECT s FROM RecordLog s WHERE s.steps = :steps")})
-public class RecordLog implements Serializable {
+    @NamedQuery(name = "StepLog.findAll", query = "SELECT s FROM StepLog s"),
+    @NamedQuery(name = "StepLog.findByStepLogId", query = "SELECT s FROM StepLog s WHERE s.stepLogId = :stepLogId"),
+    @NamedQuery(name = "StepLog.findByTimeLog", query = "SELECT s FROM StepLog s WHERE s.timeLog = :timeLog"),
+    @NamedQuery(name = "StepLog.findBySteps", query = "SELECT s FROM StepLog s WHERE s.steps = :steps")})
+public class StepLog implements Serializable {
     private static final long serialVersionUID = 1L;
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     @Basic(optional = false)
     @Column(name = "step_log_id")
-    private Integer recordLogId;
+    private Integer stepLogId;
     @Basic(optional = false)
     @NotNull
     @Column(name = "time_log")
@@ -54,27 +54,27 @@ public class RecordLog implements Serializable {
     private int steps;
     @JoinColumn(name = "activity_log_id", referencedColumnName = "activity_log_id")
     @ManyToOne(optional = false)
-    private CategoryLog categoryLog;
+    private ActivityLog activityLog;
 
-    public RecordLog() {
+    public StepLog() {
     }
 
-    public RecordLog(Integer recordLogId) {
-        this.recordLogId = recordLogId;
+    public StepLog(Integer stepLogId) {
+        this.stepLogId = stepLogId;
     }
 
-    public RecordLog(Integer recordLogId, Date timeLog, int steps) {
-        this.recordLogId = recordLogId;
+    public StepLog(Integer stepLogId, Date timeLog, int steps) {
+        this.stepLogId = stepLogId;
         this.timeLog = timeLog;
         this.steps = steps;
     }
 
-    public Integer getRecordLogId() {
-        return recordLogId;
+    public Integer getStepLogId() {
+        return stepLogId;
     }
 
-    public void setRecordLogId(Integer recordLogId) {
-        this.recordLogId = recordLogId;
+    public void setStepLogId(Integer stepLogId) {
+        this.stepLogId = stepLogId;
     }
 
     public Date getTimeLog() {
@@ -93,29 +93,29 @@ public class RecordLog implements Serializable {
         this.steps = steps;
     }
 
-    public CategoryLog getCategoryLog() {
-        return categoryLog;
+    public ActivityLog getActivityLog() {
+        return activityLog;
     }
 
-    public void setCategoryLog(CategoryLog categoryLog) {
-        this.categoryLog = categoryLog;
+    public void setActivityLog(ActivityLog activityLog) {
+        this.activityLog = activityLog;
     }
 
     @Override
     public int hashCode() {
         int hash = 0;
-        hash += (recordLogId != null ? recordLogId.hashCode() : 0);
+        hash += (stepLogId != null ? stepLogId.hashCode() : 0);
         return hash;
     }
 
     @Override
     public boolean equals(Object object) {
         // TODO: Warning - this method won't work in the case the id fields are not set
-        if (!(object instanceof RecordLog)) {
+        if (!(object instanceof StepLog)) {
             return false;
         }
-        RecordLog other = (RecordLog) object;
-        if ((this.recordLogId == null && other.recordLogId != null) || (this.recordLogId != null && !this.recordLogId.equals(other.recordLogId))) {
+        StepLog other = (StepLog) object;
+        if ((this.stepLogId == null && other.stepLogId != null) || (this.stepLogId != null && !this.stepLogId.equals(other.stepLogId))) {
             return false;
         }
         return true;
@@ -123,7 +123,7 @@ public class RecordLog implements Serializable {
 
     @Override
     public String toString() {
-        return "es.jyago.amp.RecordLog[ recordLogId=" + recordLogId + " ]";
+        return "es.jyago.amp.StepLog[ stepLogId=" + stepLogId + " ]";
     }
     
 }

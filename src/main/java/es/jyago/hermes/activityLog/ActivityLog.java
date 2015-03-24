@@ -3,11 +3,11 @@
  * To change this template file, choose Tools | Templates
  * and open the template in the editor.
  */
-package es.jyago.hermes.categoryLog;
+package es.jyago.hermes.activityLog;
 
 import es.jyago.hermes.chart.ChartInterface;
 import es.jyago.hermes.person.Person;
-import es.jyago.hermes.recordLog.RecordLog;
+import es.jyago.hermes.stepLog.StepLog;
 import es.jyago.hermes.csv.CSVBeanInterface;
 import es.jyago.hermes.util.Constants;
 import static es.jyago.hermes.util.Constants.df;
@@ -16,7 +16,9 @@ import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Date;
 import java.util.HashMap;
+import java.util.Iterator;
 import java.util.LinkedHashMap;
+import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.ResourceBundle;
@@ -36,8 +38,11 @@ import javax.persistence.OrderBy;
 import javax.persistence.Table;
 import javax.persistence.Temporal;
 import javax.persistence.TemporalType;
+import javax.persistence.Transient;
 import javax.validation.constraints.NotNull;
 import javax.xml.bind.annotation.XmlRootElement;
+import org.joda.time.DateTime;
+import org.joda.time.LocalTime;
 import org.primefaces.model.chart.Axis;
 import org.primefaces.model.chart.AxisType;
 import org.primefaces.model.chart.CategoryAxis;
@@ -57,47 +62,50 @@ import org.supercsv.cellprocessor.ift.CellProcessor;
 @Table(name = "activity_log")
 @XmlRootElement
 @NamedQueries({
-    @NamedQuery(name = "CategoryLog.findAll", query = "SELECT a FROM CategoryLog a"),
-    @NamedQuery(name = "CategoryLog.findByCategoryLogId", query = "SELECT a FROM CategoryLog a WHERE a.categoryLogId = :categoryLogId"),
-    @NamedQuery(name = "CategoryLog.findByDate", query = "SELECT a FROM CategoryLog a WHERE a.date = :date")})
-public class CategoryLog implements Serializable, CSVBeanInterface, ChartInterface {
+    @NamedQuery(name = "ActivityLog.findAll", query = "SELECT a FROM ActivityLog a"),
+    @NamedQuery(name = "ActivityLog.findByActivityLogId", query = "SELECT a FROM ActivityLog a WHERE a.activityLogId = :activityLogId"),
+    @NamedQuery(name = "ActivityLog.findByDate", query = "SELECT a FROM ActivityLog a WHERE a.date = :date")})
+public class ActivityLog implements Serializable, CSVBeanInterface, ChartInterface {
 
     private static final long serialVersionUID = 1L;
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     @Basic(optional = false)
     @Column(name = "activity_log_id")
-    private Integer categoryLogId;
+    private Integer activityLogId;
     @Basic(optional = false)
     @NotNull
     @Column(name = "date")
     @Temporal(TemporalType.DATE)
     private Date date;
-    @OneToMany(cascade = CascadeType.ALL, mappedBy = "categoryLog")
+    @OneToMany(cascade = CascadeType.ALL, mappedBy = "activityLog")
     @OrderBy("timeLog ASC")
-    private Collection<RecordLog> recordLogCollection;
+    private Collection<StepLog> stepLogCollection;
     @JoinColumn(name = "person_id", referencedColumnName = "person_id")
     @ManyToOne(optional = false)
     private Person person;
 
-    public CategoryLog() {
+    @Transient
+    private String aggregation;
+
+    public ActivityLog() {
     }
 
-    public CategoryLog(Integer categoryLogId) {
-        this.categoryLogId = categoryLogId;
+    public ActivityLog(Integer activityLogId) {
+        this.activityLogId = activityLogId;
     }
 
-    public CategoryLog(Integer categoryLogId, Date date) {
-        this.categoryLogId = categoryLogId;
+    public ActivityLog(Integer activityLogId, Date date) {
+        this.activityLogId = activityLogId;
         this.date = date;
     }
 
-    public Integer getCategoryLogId() {
-        return categoryLogId;
+    public Integer getActivityLogId() {
+        return activityLogId;
     }
 
-    public void setCategoryLogId(Integer categoryLogId) {
-        this.categoryLogId = categoryLogId;
+    public void setActivityLogId(Integer activityLogId) {
+        this.activityLogId = activityLogId;
     }
 
     public Date getDate() {
@@ -108,12 +116,12 @@ public class CategoryLog implements Serializable, CSVBeanInterface, ChartInterfa
         this.date = date;
     }
 
-    public Collection<RecordLog> getRecordLogCollection() {
-        return recordLogCollection;
+    public Collection<StepLog> getStepLogCollection() {
+        return stepLogCollection;
     }
 
-    public void setRecordLogCollection(Collection<RecordLog> recordLogCollection) {
-        this.recordLogCollection = recordLogCollection;
+    public void setStepLogCollection(Collection<StepLog> stepLogCollection) {
+        this.stepLogCollection = stepLogCollection;
     }
 
     public Person getPerson() {
@@ -127,18 +135,18 @@ public class CategoryLog implements Serializable, CSVBeanInterface, ChartInterfa
     @Override
     public int hashCode() {
         int hash = 0;
-        hash += (categoryLogId != null ? categoryLogId.hashCode() : 0);
+        hash += (activityLogId != null ? activityLogId.hashCode() : 0);
         return hash;
     }
 
     @Override
     public boolean equals(Object object) {
         // TODO: Warning - this method won't work in the case the id fields are not set
-        if (!(object instanceof CategoryLog)) {
+        if (!(object instanceof ActivityLog)) {
             return false;
         }
-        CategoryLog other = (CategoryLog) object;
-        return !((this.categoryLogId == null && other.categoryLogId != null) || (this.categoryLogId != null && !this.categoryLogId.equals(other.categoryLogId)));
+        ActivityLog other = (ActivityLog) object;
+        return !((this.activityLogId == null && other.activityLogId != null) || (this.activityLogId != null && !this.activityLogId.equals(other.activityLogId)));
     }
 
     @Override
@@ -221,7 +229,7 @@ public class CategoryLog implements Serializable, CSVBeanInterface, ChartInterfa
             series.set(key, value);
         }
         series.setLabel(ResourceBundle.getBundle("/Bundle").getString("Steps"));
-        
+
         return series;
     }
 
@@ -316,8 +324,8 @@ public class CategoryLog implements Serializable, CSVBeanInterface, ChartInterfa
         int remaining = getPerson().getStepsGoal();
         int achieved = 0;
 
-        for (RecordLog recordLog : this.recordLogCollection) {
-            achieved += recordLog.getSteps();
+        for (StepLog stepLog : this.stepLogCollection) {
+            achieved += stepLog.getSteps();
         }
 
         remaining -= achieved;
@@ -336,8 +344,8 @@ public class CategoryLog implements Serializable, CSVBeanInterface, ChartInterfa
     public LinkedHashMap<String, Integer> getValues() {
         LinkedHashMap<String, Integer> values = new LinkedHashMap();
 
-        for (RecordLog recordLog : this.recordLogCollection) {
-            values.put(Constants.dfTime.format(recordLog.getTimeLog()), recordLog.getSteps());
+        for (StepLog stepLog : this.stepLogCollection) {
+            values.put(Constants.dfTime.format(stepLog.getTimeLog()), stepLog.getSteps());
         }
 
         return values;
@@ -360,5 +368,76 @@ public class CategoryLog implements Serializable, CSVBeanInterface, ChartInterfa
         meterGaugeModel.setIntervalOuterRadius(30);
 
         return meterGaugeModel;
+    }
+
+    public Collection<StepLog> getAggregatedStepCollection() {
+
+        if (getAggregation().equals(Constants.TimeAggregations.Days.toString())) {
+            // Agregación por días.
+            Collection<StepLog> stepLogCollectionByDay = new LinkedHashSet<>();
+            StepLog stepLog = new StepLog();
+            stepLog.setSteps(getTotalStepsByDay());
+            stepLogCollectionByDay.add(stepLog);
+            return stepLogCollectionByDay;
+        } else if (getAggregation().equals(Constants.TimeAggregations.Hours.toString())) {
+            // Agregación por horas.
+            return getStepLogCollectionByHours();
+        } else {
+            // Agregación por minutos.
+            return getStepLogCollection();
+        }
+    }
+
+    private Collection<StepLog> getStepLogCollectionByHours() {
+        Collection<StepLog> stepLogCollectionByHour = new ArrayList<>();
+        LocalTime localTime = new LocalTime(0, 0);
+
+        // Tenemos que hacerlo así porque no tenemos garantía de que estén los 1440 minutos del día.
+        Iterator it = stepLogCollection.iterator();
+        int amount = 0;
+
+        for (int hour = 0; hour < 24; hour++) {
+            
+            StepLog stepLogHour = new StepLog();
+            stepLogHour.setTimeLog(localTime.toDateTimeToday().toDate());
+
+            while (it.hasNext()) {
+                StepLog stepLog = (StepLog) it.next();
+                DateTime time = new DateTime(stepLog.getTimeLog());
+                if (time.getHourOfDay() == localTime.getHourOfDay()) {
+                    amount += stepLog.getSteps();
+                } else {
+                    stepLogHour.setSteps(amount);
+                    amount = stepLog.getSteps();
+                    break;
+                }
+            }
+            stepLogCollectionByHour.add(stepLogHour);
+            localTime = localTime.plusHours(1);
+        }
+
+        return stepLogCollectionByHour;
+    }
+
+    public int getTotalStepsByDay() {
+        int amount = 0;
+
+        for (StepLog stepLog : stepLogCollection) {
+            amount += stepLog.getSteps();
+        }
+
+        return amount;
+    }
+
+    public void setAggregation(String aggregation) {
+        this.aggregation = aggregation;
+    }
+
+    public String getAggregation() {
+        if (aggregation == null) {
+            // La agregación por defecto será por 'Minutos', que es como se almacena en la B.D.
+            aggregation = Constants.TimeAggregations.Minutes.toString();
+        }
+        return aggregation;
     }
 }

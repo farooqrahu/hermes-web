@@ -13,9 +13,14 @@
                 <h:panelGroup id="display">
                     <p:panelGrid columns="2" rendered="#{personController.selected != null}">
                         <p:outputLabel value="#{bundle.Start_date}" for="startDate" />
-                        <p:calendar id="startDate" pattern="dd/MM/yyyy" value="#{personController.startDate}" title="#{bundle.Start_date}" required="true" requiredMessage="#{bundle.Start_date}" showOn="button"/>
+                        <p:calendar id="startDate" pattern="dd/MM/yyyy" value="#{personController.startDate}" title="#{bundle.Start_date}" required="true" requiredMessage="#{bundle.Start_date}" showOn="button">
+                            <p:ajax event="dateSelect" update="endDate" />
+                        </p:calendar>
                         <p:outputLabel value="#{bundle.End_date}" for="endDate" />
-                        <p:calendar id="endDate" pattern="dd/MM/yyyy" value="#{personController.endDate}" title="#{bundle.End_date}" required="true" requiredMessage="#{bundle.End_date}" showOn="button"/>
+                        <p:calendar id="endDate" pattern="dd/MM/yyyy" value="#{personController.endDate}" title="#{bundle.End_date}" required="true" requiredMessage="#{bundle.End_date}" showOn="button">
+                            <f:attribute name="startDate" value="#{personController.startDate}" />
+                            <f:validator validatorId="dateRangeValidator" />
+                        </p:calendar>
                         <p:outputLabel for="aggregation" value="#{bundle.Aggregation}" />
                         <h:selectOneMenu id="aggregation" value="#{personController.aggregation}" >
                             <f:selectItems value="#{constants.timeAggregations}" var="element" itemLabel="#{bundle[element]}"/>

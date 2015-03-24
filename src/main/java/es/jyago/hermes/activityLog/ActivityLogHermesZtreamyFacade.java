@@ -3,11 +3,12 @@
  * To change this template file, choose Tools | Templates
  * and open the template in the editor.
  */
-package es.jyago.hermes.ztreamy;
+package es.jyago.hermes.activityLog;
 
 import es.jyago.hermes.activityLog.ActivityLog;
 import es.jyago.hermes.stepLog.StepLog;
 import es.jyago.hermes.util.Constants;
+import es.jyago.hermes.ztreamy.AbstractHermesZtreamyFacade;
 import java.net.MalformedURLException;
 import java.util.ArrayList;
 import java.util.Collection;
@@ -36,12 +37,11 @@ public class ActivityLogHermesZtreamyFacade extends AbstractHermesZtreamyFacade<
         Collection<ZtreamyActivityLog> setZtreamyActivityLog = new HashSet<>();
 
         for (ActivityLog activityLog : collectionActivityLog) {
-            
             List<ZtreamyStepLog> listZtreanyStepLog = new ArrayList<>();
-            
-            for (StepLog stepLog : activityLog.getStepLogCollection()) {
-                ZtreamyStepLog ztreanyStepLog = new ZtreamyStepLog(stepLog.getTimeLog(), stepLog.getSteps());
-                listZtreanyStepLog.add(ztreanyStepLog);
+
+            for (StepLog stepLog : activityLog.getAggregatedStepCollection()) {
+                ZtreamyStepLog ztreamyStepLog = new ZtreamyStepLog(stepLog.getTimeLog(), stepLog.getSteps());
+                listZtreanyStepLog.add(ztreamyStepLog);
             }
 
             ZtreamyActivityLog ztreanyActivityLog = new ZtreamyActivityLog(activityLog.getDate(), listZtreanyStepLog);

@@ -240,12 +240,26 @@ public class Person implements Serializable, CSVBeanInterface {
         return activityLogCollection;
     }
 
-    public Collection<ActivityLog> getActivityLogCollection(Date startDate, Date endDate) {
+    /**
+     * Método para obtener los datos de las actividades desde una fecha de
+     * inicio a una fecha de fin, agregados según la forma indicada. Si la
+     * agregación es nula o un valor no válido, los datos se devolverán por
+     * minuto.
+     *
+     * @param startDate Fecha de inicio (incluida)
+     * @param endDate Fecha de fin (incluida)
+     * @param aggregation Modo de agregación. Si el valor es nulo o un valor no
+     * válido, los datos se devolverán por minuto.
+     * @return
+     */
+    public Collection<ActivityLog> getActivityLogCollection(Date startDate, Date endDate, String aggregation) {
         Collection<ActivityLog> filteredCollection = new HashSet<>();
 
         if (activityLogCollection != null) {
             for (ActivityLog activityLog : activityLogCollection) {
+                // Comprobamos si la fecha de la actividad está en el rango de fechas que solicita el usuario.
                 if ((activityLog.getDate().compareTo(startDate) >= 0) && (activityLog.getDate().compareTo(endDate) <= 0)) {
+                    activityLog.setAggregation(aggregation);
                     filteredCollection.add(activityLog);
                 }
             }

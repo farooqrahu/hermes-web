@@ -41,7 +41,7 @@ public abstract class AbstractHermesZtreamyFacade<T> {
                 "application/json", applicationId);
         setBody(element);
     }
-    
+
     public AbstractHermesZtreamyFacade(Collection<T> collection) throws MalformedURLException {
         Serializer serializer = new JSONSerializer();
         publisher = new Publisher(new URL(url), serializer);
@@ -49,28 +49,31 @@ public abstract class AbstractHermesZtreamyFacade<T> {
                 "application/json", applicationId);
         setBody(collection);
     }
-    
-    private void setBody(T element)
-    {
+
+    private void setBody(T element) {
         event.setBody(getBodyObject(element));
     }
-    
-    private void setBody(Collection<T> collection)
-    {
+
+    private void setBody(Collection<T> collection) {
         event.setBody(getBodyObject(collection));
     }
 
-    public final void send() throws IOException {
+    public final boolean send() throws IOException {
 
+        boolean ok = false;
         int result = publisher.publish(event);
+
         if (result == 200) {
-           Logger.getLogger(Person.class.getName()).log(Level.INFO, "Datos enviados a Ztreamy satisfactoriamente");
+            ok = true;
+            Logger.getLogger(Person.class.getName()).log(Level.INFO, "Datos enviados a Ztreamy satisfactoriamente");
         } else {
             Logger.getLogger(Person.class.getName()).log(Level.SEVERE, "Error al enviar los datos a Ztreamy", result);
         }
+
+        return ok;
     }
 
     public abstract Map<String, Object> getBodyObject(T element);
-    
+
     public abstract Map<String, Object> getBodyObject(Collection<T> collection);
 }

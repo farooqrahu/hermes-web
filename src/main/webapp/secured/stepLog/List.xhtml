@@ -1,0 +1,70 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml"
+      xmlns:ui="http://xmlns.jcp.org/jsf/facelets"
+      xmlns:h="http://xmlns.jcp.org/jsf/html"
+      xmlns:f="http://xmlns.jcp.org/jsf/core">
+
+    <ui:composition template="/WEB-INF/facelets/template.xhtml">
+        <ui:define name="title">
+            <h:outputText value="#{bundle.ListStepLogTitle}"></h:outputText>
+        </ui:define>
+        <ui:define name="content">
+            <h:form styleClass="jsfcrud_list_form">
+                <h:panelGroup id="messagePanel" layout="block">
+                    <h:messages errorStyle="color: red" infoStyle="color: green" layout="table"/>
+                </h:panelGroup>
+                <h:outputText escape="false" value="#{bundle.ListStepLogEmpty}" rendered="#{stepLogController.items.rowCount == 0}"/>
+                <h:panelGroup rendered="#{stepLogController.items.rowCount > 0}">
+                    <h:outputText value="#{stepLogController.pagination.pageFirstItem + 1}..#{stepLogController.pagination.pageLastItem + 1}/#{stepLogController.pagination.itemsCount}"/>&nbsp;
+                    <h:commandLink action="#{stepLogController.previous}" value="#{bundle.Previous} #{stepLogController.pagination.pageSize}" rendered="#{stepLogController.pagination.hasPreviousPage}"/>&nbsp;
+                    <h:commandLink action="#{stepLogController.next}" value="#{bundle.Next} #{stepLogController.pagination.pageSize}" rendered="#{stepLogController.pagination.hasNextPage}"/>&nbsp;
+                    <h:dataTable value="#{stepLogController.items}" var="item" border="0" cellpadding="2" cellspacing="0" rowClasses="jsfcrud_odd_row,jsfcrud_even_row" rules="all" style="border:solid 1px">
+                        <h:column>
+                            <f:facet name="header">
+                                <h:outputText value="#{bundle.ListStepLogTitle_stepLogId}"/>
+                            </f:facet>
+                            <h:outputText value="#{item.stepLogId}"/>
+                        </h:column>
+                        <h:column>
+                            <f:facet name="header">
+                                <h:outputText value="#{bundle.ListStepLogTitle_timeLog}"/>
+                            </f:facet>
+                            <h:outputText value="#{item.timeLog}">
+                                <f:convertDateTime pattern="HH:mm:ss" />
+                            </h:outputText>
+                        </h:column>
+                        <h:column>
+                            <f:facet name="header">
+                                <h:outputText value="#{bundle.ListStepLogTitle_steps}"/>
+                            </f:facet>
+                            <h:outputText value="#{item.steps}"/>
+                        </h:column>
+                        <h:column>
+                            <f:facet name="header">
+                                <h:outputText value="#{bundle.ListStepLogTitle_activityLogId}"/>
+                            </f:facet>
+                            <h:outputText value="#{item.activityLogId}"/>
+                        </h:column>
+                        <h:column>
+                            <f:facet name="header">
+                                <h:outputText value="&nbsp;"/>
+                            </f:facet>
+                            <h:commandLink action="#{stepLogController.prepareView}" value="#{bundle.ListStepLogViewLink}"/>
+                            <h:outputText value=" "/>
+                            <h:commandLink action="#{stepLogController.prepareEdit}" value="#{bundle.ListStepLogEditLink}"/>
+                            <h:outputText value=" "/>
+                            <h:commandLink action="#{stepLogController.destroy}" value="#{bundle.ListStepLogDestroyLink}"/>
+                        </h:column>
+                    </h:dataTable>
+                </h:panelGroup>
+                <br />
+                <h:commandLink action="#{stepLogController.prepareCreate}" value="#{bundle.ListStepLogCreateLink}"/>
+                <br />
+                <br />
+                <h:link outcome="/index" value="#{bundle.ListStepLogIndexLink}"/>
+            </h:form>
+        </ui:define>
+    </ui:composition>
+
+</html>

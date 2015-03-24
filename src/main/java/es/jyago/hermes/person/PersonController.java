@@ -12,7 +12,7 @@ import es.jyago.hermes.stepLog.StepLog;
 import es.jyago.hermes.util.Constants;
 import es.jyago.hermes.util.JsfUtil;
 import es.jyago.hermes.util.JsfUtil.PersistAction;
-import es.jyago.hermes.ztreamy.ActivityLogHermesZtreamyFacade;
+import es.jyago.hermes.activityLog.ActivityLogHermesZtreamyFacade;
 import java.io.IOException;
 import java.io.Serializable;
 import java.net.MalformedURLException;
@@ -32,9 +32,10 @@ import javax.faces.component.UIComponent;
 import javax.faces.context.FacesContext;
 import javax.faces.convert.Converter;
 import javax.faces.convert.FacesConverter;
+import javax.faces.validator.FacesValidator;
+import javax.faces.validator.ValidatorException;
 import javax.inject.Named;
 import javax.servlet.http.HttpServletRequest;
-import org.primefaces.component.tabview.TabView;
 import org.primefaces.context.RequestContext;
 import org.primefaces.event.FileUploadEvent;
 import org.primefaces.model.StreamedContent;
@@ -292,21 +293,31 @@ public class PersonController implements Serializable, CSVControllerInterface<Pe
     }
 
     public void sendToZtreamy() {
+        FacesMessage message;
+
         try {
-            ActivityLogHermesZtreamyFacade ztreamy = new ActivityLogHermesZtreamyFacade(this.getSelected().getActivityLogCollection(startDate, endDate));
-            ztreamy.send();
+            ActivityLogHermesZtreamyFacade ztreamy = new ActivityLogHermesZtreamyFacade(this.getSelected().getActivityLogCollection(startDate, endDate, aggregation));
+            
+            if (ztreamy.send()) {
+                message = new FacesMessage(FacesMessage.SEVERITY_INFO, ResourceBundle.getBundle("/Bundle").getString("Ztreamy"), ResourceBundle.getBundle("/Bundle").getString("ZtreamySendOK"));
+            } else {
+                message = new FacesMessage(FacesMessage.SEVERITY_ERROR, ResourceBundle.getBundle("/Bundle").getString("Error"), ResourceBundle.getBundle("/Bundle").getString("ZtreamyError"));
+            }
         } catch (MalformedURLException ex) {
+            message = new FacesMessage(FacesMessage.SEVERITY_ERROR, ResourceBundle.getBundle("/Bundle").getString("Error"), ResourceBundle.getBundle("/Bundle").getString("ZtreamyURLError"));
             Logger.getLogger(ActivityLogController.class.getName()).log(Level.SEVERE, null, ex);
         } catch (IOException ex) {
+            message = new FacesMessage(FacesMessage.SEVERITY_ERROR, ResourceBundle.getBundle("/Bundle").getString("Error"), ResourceBundle.getBundle("/Bundle").getString("ZtreamyError"));
             Logger.getLogger(ActivityLogController.class.getName()).log(Level.SEVERE, null, ex);
         }
-    }
 
-    public void onComplete() {
-        FacesContext.getCurrentInstance().addMessage(null, new FacesMessage("Progress Completed"));
+        FacesContext.getCurrentInstance().addMessage(null, message);
     }
 
     public String getAggregation() {
+        // La agregación por defecto, será 'Horas'.
+        if (aggregation == null)
+            aggregation = Constants.TimeAggregations.Hours.toString();
         return aggregation;
     }
 
@@ -353,6 +364,26 @@ public class PersonController implements Serializable, CSVControllerInterface<Pe
             }
         }
 
+    }
+    
+    public void sendDateRangeValidator(FacesContext context, UIComponent component, Object value) throws ValidatorException {
+
+        System.out.println(value);
+        if (value == null) {
+            return;
+        }
+         
+        Object startDateValue = component.getAttributes().get("startDate");
+        if (startDateValue==null) {
+            return;
+        }
+         
+        Date startDate = (Date)startDateValue;
+        Date endDate = (Date)value;
+        if (endDate.before(startDate)) {
+            throw new ValidatorException(
+                    new FacesMessage(FacesMessage.SEVERITY_ERROR, ResourceBundle.getBundle("/Bundle").getString("Error"), ResourceBundle.getBundle("/Bundle").getString("SynchronizedError")));
+        }
     }
 
     public StreamedContent getFile() {

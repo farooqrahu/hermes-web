@@ -8,6 +8,8 @@ import javax.faces.bean.ManagedBean;
 @ApplicationScoped
 public class Constants {
 
+    public static final String VERSION = "v0.2.1";
+    
     public static final String SUCCESS = "success";
     public static final String ERROR = "error";
 
@@ -29,4 +31,7 @@ public class Constants {
     public static final SimpleDateFormat dfe = new SimpleDateFormat("yyyy/MM/dd");
     public static final SimpleDateFormat dfFitbit = new SimpleDateFormat("yyyy-MM-dd");
 
+    public String getVersion() {
+        return VERSION;
+    }
 }

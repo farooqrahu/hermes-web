@@ -1,0 +1,43 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml"
+      xmlns:ui="http://xmlns.jcp.org/jsf/facelets"
+      xmlns:h="http://xmlns.jcp.org/jsf/html"
+      xmlns:f="http://xmlns.jcp.org/jsf/core">
+
+    <ui:composition template="/WEB-INF/facelets/template.xhtml">
+        <ui:define name="title">
+            <h:outputText value="#{bundle.CreateStepLogTitle}"></h:outputText>
+        </ui:define>
+        <ui:define name="content">
+            <h:panelGroup id="messagePanel" layout="block">
+                <h:messages errorStyle="color: red" infoStyle="color: green" layout="table"/>
+            </h:panelGroup>
+            <h:form>
+                <h:panelGrid columns="2">
+                    <h:outputLabel value="#{bundle.CreateStepLogLabel_stepLogId}" for="stepLogId" />
+                    <h:inputText id="stepLogId" value="#{stepLogController.selected.stepLogId}" title="#{bundle.CreateStepLogTitle_stepLogId}" required="true" requiredMessage="#{bundle.CreateStepLogRequiredMessage_stepLogId}"/>
+                    <h:outputLabel value="#{bundle.CreateStepLogLabel_timeLog}" for="timeLog" />
+                    <h:inputText id="timeLog" value="#{stepLogController.selected.timeLog}" title="#{bundle.CreateStepLogTitle_timeLog}" required="true" requiredMessage="#{bundle.CreateStepLogRequiredMessage_timeLog}">
+                        <f:convertDateTime pattern="HH:mm:ss" />
+                    </h:inputText>
+                    <h:outputLabel value="#{bundle.CreateStepLogLabel_steps}" for="steps" />
+                    <h:inputText id="steps" value="#{stepLogController.selected.steps}" title="#{bundle.CreateStepLogTitle_steps}" required="true" requiredMessage="#{bundle.CreateStepLogRequiredMessage_steps}"/>
+                    <h:outputLabel value="#{bundle.CreateStepLogLabel_activityLogId}" for="activityLogId" />
+                    <h:selectOneMenu id="activityLogId" value="#{stepLogController.selected.activityLogId}" title="#{bundle.CreateStepLogTitle_activityLogId}" required="true" requiredMessage="#{bundle.CreateStepLogRequiredMessage_activityLogId}">
+                        <f:selectItems value="#{activityLogController.itemsAvailableSelectOne}"/>
+                    </h:selectOneMenu>
+                </h:panelGrid>
+                <br />
+                <h:commandLink action="#{stepLogController.create}" value="#{bundle.CreateStepLogSaveLink}" />
+                <br />
+                <br />
+                <h:commandLink action="#{stepLogController.prepareList}" value="#{bundle.CreateStepLogShowAllLink}" immediate="true"/>
+                <br />
+                <br />
+                <h:link outcome="/index" value="#{bundle.CreateStepLogIndexLink}"/>
+            </h:form>
+        </ui:define>
+    </ui:composition>
+
+</html>

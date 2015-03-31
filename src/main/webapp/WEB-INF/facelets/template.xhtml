@@ -15,7 +15,7 @@
             <!-- Mensajes informativos -->
             <p:growl id="messages" showDetail="true"/>
 
-            <p:layout fullPage="true">
+            <p:layout widgetVar="allLayouts" fullPage="true">
                 <!-- JYFR: Ventana emergente de 'Cargando...' -->
                 <p:ajaxStatus onstart="PF('statusDialog').show()" onsuccess="PF('statusDialog').hide()" />
 
@@ -27,7 +27,7 @@
                     <ui:include src="header.xhtml"/>
                 </p:layoutUnit>
                 <!-- MENU (a la izquierda) -->
-                <p:layoutUnit position="west" id="menu" resizable="false" header="#{bundle.Menu_options}" size="180" >
+                <p:layoutUnit position="west" id="menu" resizable="false" header="#{bundle.Menu_options}" size="180" collapsed="#{!userLogin.loggedIn}">
                     <ui:include src="menu.xhtml" />
                 </p:layoutUnit>
                 <!-- CUERPO -->
@@ -38,6 +38,7 @@
                 <p:layoutUnit position="south" id="footer" resizable="false" size="30">
                     <ui:include src="footer.xhtml"/>
                 </p:layoutUnit>
+                <p:log id="log" rendered="#{constants.debug}" />
             </p:layout>
         </h:body>
     </html>

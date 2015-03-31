@@ -3,7 +3,8 @@
 <f:view xmlns:f="http://java.sun.com/jsf/core"
         xmlns:h="http://java.sun.com/jsf/html"
         xmlns:p="http://primefaces.org/ui"
-        xmlns:ui="http://java.sun.com/jsf/facelets">
+        xmlns:ui="http://java.sun.com/jsf/facelets"
+        xmlns:c="http://xmlns.jcp.org/jsp/jstl/core">
     <html xmlns="http://www.w3.org/1999/xhtml">
         <h:head>
             <script type="text/javascript">
@@ -12,13 +13,23 @@
                         PF('dlg').jq.effect("shake", {times: 5}, 100);
                     }
                     else {
+                        // Ocultamos la ventana de 'login'.
                         PF('dlg').hide();
-                        $('#loginLink').fadeOut();
+                        // Cargamos el menú lateral con las opciones.
+                        PF('allLayouts').toggle('west');
                     }
                 }
+
+                // Sólo mostramos la ventana de 'login' si el usuario no tiene iniciada la sesión.
+                <c:if test='${empty sessionScope.userLogin.user}'>
+                    window.onload = function() {
+                        PF('dlg').show();
+                    };
+                </c:if>
             </script>
         </h:head>
-        <h:body onload="PF('dlg').show();">
+
+        <h:body>
             <ui:composition template="WEB-INF/facelets/template.xhtml">
                 <ui:define name="content">
                     <p:outputPanel id="welcomePanel">
@@ -26,7 +37,7 @@
                             <h2>#{bundle['Body.Welcome']}</h2>
                         </p:panel>
                     </p:outputPanel>
-                    <h:form>            
+                    <h:form>
                         <p:dialog widgetVar="dlg" resizable="false" closable="false" header="#{bundle.LoginTitle}">
                             <h:panelGrid columns="2" cellpadding="5">
                                 <h:outputLabel for="username" value="#{bundle.Username}" />
@@ -45,8 +56,9 @@
                                         </h:panelGroup>
                                     </p:outputPanel>
                                     <p:outputPanel style="float: right"> 
-                                        <p:commandButton value="#{bundle.Login}" update=":messages,:menuPanel,:welcomePanel" actionListener="#{userLogin.login}"
-                                                         oncomplete="handleLoginRequest(xhr, status, args)"/>
+                                        <p:commandButton id="loginButton" value="#{bundle.Login}" update=":messages,:welcomePanel,:logoutPanel,:menuPanel,:timeoutForm" actionListener="#{userLogin.login}"
+                                                         oncomplete="handleLoginRequest(xhr, status, args)" />
+                                        <p:defaultCommand target="loginButton"/>
                                     </p:outputPanel>
                                 </f:facet>  
                             </h:panelGrid>
@@ -54,12 +66,6 @@
                     </h:form>
                 </ui:define>
             </ui:composition>
-            <br />
-            <h:link outcome="/secured/option/option/List" value="Show All Option Items"/>
-            <br />
-            <h:link outcome="/secured/option/List" value="Show All Option Items"/>
         </h:body>
-
-
     </html>
 </f:view>

@@ -47,9 +47,8 @@
     <!-- SESSION CONFIG -->
     <session-config>
         <!-- Tiempo de inactividad -->
-        <!-- PRUEBA -->
         <session-timeout>
-            2
+            15
         </session-timeout>
     </session-config>
     <!-- WELCOME FILE LIST -->
@@ -57,16 +56,32 @@
         <welcome-file>faces/index.xhtml</welcome-file>
     </welcome-file-list>
     <error-page>
-        <error-code>403</error-code>
-        <!-- access denied -->
-        <location>/index.xhtml</location>
+        <location>/faces/error.xhtml?faces-redirect=true</location>
     </error-page>
+    <!-- TODO: ¿Definir varias páginas de error?
+    <error-page>
+        <exception-type>javax.faces.application.ViewExpiredException</exception-type>
+        <location>/WEB-INF/errorpages/expired.xhtml</location>
+    </error-page>
+    <error-page>
+        <exception-type>java.lang.RuntimeException</exception-type>
+        <location>/WEB-INF/errorpages/error.xhtml</location>
+    </error-page>
+    <error-page>
+        <error-code>500</error-code>
+        <location>/WEB-INF/errorpages/error.xhtml</location>
+    </error-page>
+    <error-page>
+        <error-code>404</error-code>
+        <location>/WEB-INF/errorpages/404.xhtml</location>
+    </error-page>
+    -->
     <filter>
         <filter-name>LoginFilter</filter-name>
         <filter-class>es.jyago.hermes.login.LoginFilter</filter-class>
     </filter>
     <filter-mapping>
         <filter-name>LoginFilter</filter-name>
-        <url-pattern>/secured/*</url-pattern>
+        <url-pattern>/faces/secured/*</url-pattern>
     </filter-mapping>
 </web-app>

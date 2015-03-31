@@ -5,7 +5,6 @@
  */
 package es.jyago.hermes.util;
 
-import java.util.Date;
 import java.util.ResourceBundle;
 
 import javax.faces.application.FacesMessage;
@@ -14,10 +13,11 @@ import javax.faces.context.FacesContext;
 import javax.faces.validator.FacesValidator;
 import javax.faces.validator.Validator;
 import javax.faces.validator.ValidatorException;
-import org.joda.time.DateTimeComparator;
 import org.joda.time.LocalDate;
 
 /**
+ * Clase de validación de un rango de fechas. Los atributos deben ser
+ * 'startDate' y 'endDate'.
  *
  * @author Jorge Yago
  */
@@ -25,9 +25,9 @@ import org.joda.time.LocalDate;
 public class DateRangeValidator implements Validator {
 
     /**
-     * Validación de un rango de fechas. Los atributos deben ser 'startDate' y
-     * 'endDate'. Si 'endDate' es nulo -> OK Si 'endDate' tiene valor y
-     * 'startDate' es nulo -> OK Si 'endDate' es posterior a 'startDate' -> OK
+     * Validación de un rango de fechas. Si 'endDate' es nulo -> OK Si 'endDate'
+     * tiene valor y 'startDate' es nulo -> OK Si 'endDate' es posterior a
+     * 'startDate' -> OK
      *
      * @param context
      * @param component

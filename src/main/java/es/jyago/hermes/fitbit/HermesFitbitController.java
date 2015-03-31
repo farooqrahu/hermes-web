@@ -22,7 +22,9 @@ import com.fitbit.api.model.APIResourceCredentials;
 import com.fitbit.api.model.ApiSubscription;
 import com.fitbit.api.model.FitbitUser;
 import es.jyago.hermes.person.Person;
+import es.jyago.hermes.util.Constants;
 import es.jyago.hermes.util.ImageUtil;
+import es.jyago.hermes.util.InternationalizedException;
 import java.io.IOException;
 import java.net.MalformedURLException;
 import java.net.URL;
@@ -35,6 +37,7 @@ import java.util.ResourceBundle;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 import javax.servlet.http.HttpServletRequest;
+import org.joda.time.DateTime;
 import org.joda.time.Days;
 import org.joda.time.LocalDate;
 
@@ -43,6 +46,9 @@ import org.joda.time.LocalDate;
  */
 public class HermesFitbitController {
 
+    public static final String OAUTH_TOKEN = "oauth_token";
+    public static final String OAUTH_VERIFIER = "oauth_verifier";
+
     // JYFR: PRUEBA Le damos una validez de un mes a la cookie.
     private static final int APP_USER_COOKIE_TTL = 2592000;
     // JYFR: PRUEBA
@@ -50,13 +56,9 @@ public class HermesFitbitController {
     // JYFR: PRUEBA
     private static final String NOTIFICATION_UPDATES_SUBSCRIBER_ID = "1";
 
-    public static final String OAUTH_TOKEN = "oauth_token";
-
-    public static final String OAUTH_VERIFIER = "oauth_verifier";
-
     private static final ResourceBundle hermesFitbit = ResourceBundle.getBundle("HermesFitbit");
 
-    private final Person person;
+    private Person person;
     private LocalUserDetail localUserDetail;
 
 //    private FitbitAPIEntityCache entityCache;
@@ -70,18 +72,23 @@ public class HermesFitbitController {
         initApiClientService(false);
     }
 
-    public String getAuthorizeURL(HttpServletRequest request, String nextPage) {
+    // FIXME: ¿Tiene sentido este constructor con una persona vacía?
+    public HermesFitbitController() {
+        this(new Person());
+    }
+
+    public String getAuthorizeURL(HttpServletRequest request, String nextPage) throws FitbitAPIException {
         populate();
         String url = request.getScheme() + "://" + request.getServerName() + ":" + request.getServerPort() + request.getContextPath();
+
         initApiClientService(true);
 
         try {
             return apiClientService.getResourceOwnerAuthorizationURL(localUserDetail, url + nextPage);
         } catch (FitbitAPIException ex) {
-            Logger.getLogger(HermesFitbitController.class.getName()).log(Level.SEVERE, "getAuthorizeURL() - Error al obtener la url de autorización de Fitbit", ex);
+            Logger.getLogger(HermesFitbitController.class.getName()).log(Level.SEVERE, "getAuthorizeURL() - Error al obtener la URL de autorización de Fitbit", ex);
+            throw ex;
         }
-
-        return null;
     }
 
     private void initApiClientService(boolean restore) {
@@ -118,7 +125,7 @@ public class HermesFitbitController {
                 subscriptionStore);
     }
 
-    public boolean populate() {
+    public boolean populate() throws FitbitAPIException {
         resourceCredentials = apiClientService.getResourceCredentialsByUser(localUserDetail);
         boolean isAuthorized = resourceCredentials != null && resourceCredentials.isAuthorized();
         boolean isSubscribed = false;
@@ -128,8 +135,9 @@ public class HermesFitbitController {
 
             try {
                 subscriptions = apiClientService.getClient().getSubscriptions(localUserDetail);
-            } catch (FitbitAPIException e) {
-                Logger.getLogger(this.getClass().getName()).log(Level.SEVERE, "Error al suscribirse", e);
+            } catch (FitbitAPIException ex) {
+                Logger.getLogger(this.getClass().getName()).log(Level.SEVERE, "Error al suscribirse", ex);
+                throw ex;
             }
             if (localUserDetail != null && subscriptions.size() > 0) {
                 isSubscribed = true;
@@ -139,7 +147,7 @@ public class HermesFitbitController {
         return isSubscribed;
     }
 
-    public void completeAuthorization(String tempTokenReceived, String tempTokenVerifier) {
+    public void completeAuthorization(String tempTokenReceived, String tempTokenVerifier) throws FitbitAPIException {
         resourceCredentials = apiClientService.getResourceCredentialsByTempToken(tempTokenReceived);
 
         if (resourceCredentials == null) {
@@ -152,16 +160,15 @@ public class HermesFitbitController {
                 try {
                     // Obtenemos los 'tokens' de acceso para el usuario.
                     apiClientService.getTokenCredentials(new LocalUserDetail(resourceCredentials.getLocalUserId()));
-                } catch (FitbitAPIException e) {
-                    Logger.getLogger(this.getClass().getName()).log(Level.SEVERE, "completeAuthorization() - Error al solicitar la autorización de Fitbit", e);
-                    // TODO: Modificar para que el error para que salga por pantalla.
-                    // request.setAttribute("errors", Collections.singletonList(e.getMessage()));
+                } catch (FitbitAPIException ex) {
+                    Logger.getLogger(this.getClass().getName()).log(Level.SEVERE, "completeAuthorization() - Error al solicitar la autorización de Fitbit", ex);
+                    throw ex;
                 }
             }
         }
     }
 
-    public List<IntradaySummary> getIntradayData(Date startDate, Date endDate) throws FitbitAPIException {
+    public List<IntradaySummary> getIntradayData(Date startDate, Date endDate) throws FitbitAPIException, InternationalizedException {
         FitbitUser fitbitUser = new FitbitUser(resourceCredentials.getLocalUserId());
         List<IntradaySummary> intradaySummaryList = new ArrayList();
 
@@ -169,6 +176,7 @@ public class HermesFitbitController {
         LocalDate localEndDate = new LocalDate(endDate);
         int days = Days.daysBetween(localStartDate, localEndDate).getDays();
 
+        checkEnoughRemainingRequests(days);
         for (int i = 0; i <= days; i++) {
             LocalDate currentDate = new LocalDate(localStartDate.plusDays(i));
 
@@ -184,21 +192,27 @@ public class HermesFitbitController {
         return intradaySummaryList;
     }
 
-    public void transferUserInfoToPerson(Person person) {
+    public void transferUserInfoToPerson(Person person) throws FitbitAPIException {
         try {
             UserInfo userInfo = apiClientService.getClient().getUserInfo(localUserDetail);
             // Transferimos la información personal de Fitbit a la ficha del usuario.
             person.setFirstName(userInfo.getFullName());
             try {
                 person.setPhoto(ImageUtil.getPhotoImageAsByteArray(new URL(userInfo.getAvatar())));
+
             } catch (MalformedURLException ex) {
-                Logger.getLogger(HermesFitbitController.class.getName()).log(Level.SEVERE, "transferUserInfoToPerson() - Error al obtener la foto del usuario de Fitbit" , ex);
+                Logger.getLogger(HermesFitbitController.class
+                        .getName()).log(Level.SEVERE, "transferUserInfoToPerson() - Error al obtener la foto del usuario de Fitbit", ex);
             } catch (IOException ex) {
-                Logger.getLogger(HermesFitbitController.class.getName()).log(Level.SEVERE, "transferUserInfoToPerson() - Error al obtener la foto del usuario de Fitbit", ex);
+                Logger.getLogger(HermesFitbitController.class
+                        .getName()).log(Level.SEVERE, "transferUserInfoToPerson() - Error al obtener la foto del usuario de Fitbit", ex);
             }
             person.setComments(userInfo.getAboutMe());
+
         } catch (FitbitAPIException ex) {
-            Logger.getLogger(HermesFitbitController.class.getName()).log(Level.SEVERE, "transferUserInfoToPerson() - Error al obtener la información del usuario de Fitbit", ex);
+            Logger.getLogger(HermesFitbitController.class
+                    .getName()).log(Level.SEVERE, "transferUserInfoToPerson() - Error al obtener la información del usuario de Fitbit", ex);
+            throw ex;
         }
 
         // Transferimos las credenciales de Fitbit.
@@ -210,4 +224,40 @@ public class HermesFitbitController {
     public boolean isResourceCredentialsSet() {
         return resourceCredentials != null;
     }
+
+    public Person getPerson() {
+        return person;
+    }
+
+    public void setPerson(Person person) {
+        this.person = person;
+        initApiClientService(false);
+    }
+
+    private void checkEnoughRemainingRequests(int requestsNeeded) throws FitbitAPIException, InternationalizedException {
+        // Obtenemos los límites actuales del usuario.
+        int remainingRequests;
+
+        try {
+            DateTime timeToReset = apiClientService.getClientRateLimitStatus().getResetTime();
+            // Por seguridad, le restamos al total de peticiones restantes un número de peticiones de control (10), ya que las comprobaciones también consumen peticiones.
+            remainingRequests = apiClientService.getClientRateLimitStatus().getRemainingHits() - 10;
+
+            if (!(remainingRequests > requestsNeeded)) {
+                Logger.getLogger(HermesFitbitController.class.getName()).log(Level.WARNING, "enoughRemainingRequests() - Se ha llegado al límite de peticiones por hora a Fitbit");
+                throw new InternationalizedException("Fitbit.warning.ReachedRequestLimit", Constants.dfTime.format(timeToReset.getMillis()));
+            }
+        } catch (FitbitAPIException ex) {
+            Logger.getLogger(HermesFitbitController.class.getName()).log(Level.SEVERE, "enoughRemainingRequests() - Error al comprobar si se ha alcanzado el límite de peticiones a Fitbit", ex);
+            throw ex;
+        }
+
+    }
+
+    // TODO: Aplicar!
+//    public int getLimit() throws FitbitAPIException {
+//        ApiRateLimitStatus clientAndViewerRateLimitStatus = apiClientService.getClientAndViewerRateLimitStatus(localUserDetail);
+//
+//        return clientAndViewerRateLimitStatus.getHourlyLimit();
+//    }
 }

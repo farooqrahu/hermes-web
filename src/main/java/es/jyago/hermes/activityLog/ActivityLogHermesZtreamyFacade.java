@@ -5,10 +5,10 @@
  */
 package es.jyago.hermes.activityLog;
 
-import es.jyago.hermes.activityLog.ActivityLog;
 import es.jyago.hermes.stepLog.StepLog;
 import es.jyago.hermes.util.Constants;
 import es.jyago.hermes.ztreamy.AbstractHermesZtreamyFacade;
+import java.io.Serializable;
 import java.net.MalformedURLException;
 import java.util.ArrayList;
 import java.util.Collection;
@@ -19,6 +19,7 @@ import java.util.List;
 import java.util.Map;
 
 /**
+ * Clase para transmitir los registros de actividad por Ztreamy.
  *
  * @author Jorge Yago
  */
@@ -34,7 +35,7 @@ public class ActivityLogHermesZtreamyFacade extends AbstractHermesZtreamyFacade<
 
     @Override
     public Map<String, Object> getBodyObject(Collection<ActivityLog> collectionActivityLog) {
-        Collection<ZtreamyActivityLog> setZtreamyActivityLog = new HashSet<>();
+        List<ZtreamyActivityLog> listZtreamyActivityLog = new ArrayList<>();
 
         for (ActivityLog activityLog : collectionActivityLog) {
             List<ZtreamyStepLog> listZtreanyStepLog = new ArrayList<>();
@@ -45,11 +46,11 @@ public class ActivityLogHermesZtreamyFacade extends AbstractHermesZtreamyFacade<
             }
 
             ZtreamyActivityLog ztreanyActivityLog = new ZtreamyActivityLog(activityLog.getDate(), listZtreanyStepLog);
-            setZtreamyActivityLog.add(ztreanyActivityLog);
+            listZtreamyActivityLog.add(ztreanyActivityLog);
         }
 
         Map<String, Object> bodyObject = new HashMap<>();
-        bodyObject.put("dataset", setZtreamyActivityLog);
+        bodyObject.put("dataset", listZtreamyActivityLog);
         return bodyObject;
     }
 
@@ -62,40 +63,11 @@ public class ActivityLogHermesZtreamyFacade extends AbstractHermesZtreamyFacade<
         return getBodyObject(collectionActivityLog);
     }
 
-//    private static JsonObject getJSONElement(StepLog stepLog) {
-//
-//        JsonObject jsonObject = new JsonObject();
-//
-//        jsonObject.addProperty("time", dfTime.format(stepLog.getTimeLog().getTime()));
-//        jsonObject.addProperty("value", Integer.toString(stepLog.getSteps()));
-//
-//        return jsonObject;
-//    }
-//
-//    @Override
-//    public Map<String, Object> getBodyObject(List<StepLog> list) {
-//        Map<String, Object> bodyObject = new LinkedHashMap<String, Object>();
-//        JsonObject body = new JsonObject();
-//        JsonArray p = new JsonArray();
-//
-//        for (StepLog stepLog : list) {
-//            p.add(getElement(stepLog));
-//        }
-//        body.add("dataset", p);
-//
-//        return bodyObject;
-//    }
-//
-//    private JsonObject getElement(StepLog stepLog) {
-//
-//        JsonObject jsonObject = new JsonObject();
-//
-//        jsonObject.addProperty("time", dfTime.format(stepLog.getTimeLog().getTime()));
-//        jsonObject.addProperty("value", Integer.toString(stepLog.getSteps()));
-//
-//        return jsonObject;
-//    }
-    class ZtreamyActivityLog {
+    /**
+     * Clase con los atributos mínimos en el registro de actividad, para enviar
+     * por Ztreamy.
+     */
+    class ZtreamyActivityLog implements Serializable {
 
         private final String dateTime;
         private final List<ZtreamyStepLog> stepsList;
@@ -114,7 +86,11 @@ public class ActivityLogHermesZtreamyFacade extends AbstractHermesZtreamyFacade<
         }
     }
 
-    class ZtreamyStepLog {
+    /**
+     * Clase con los atributos mínimos en el registro de pasos, para enviar a
+     * Ztreamy.
+     */
+    class ZtreamyStepLog implements Serializable {
 
         private final String timeLog;
         private final int steps;

@@ -32,9 +32,7 @@ public class LoginFilter implements Filter {
         } else {
             // El usuario no está registrado, lo redirigimos a la página de login.
             HttpServletResponse res = (HttpServletResponse) response;
-//            request.getScheme() + "://" + request.getServerName() + ":" + request.getServerPort() + request.getContextPath();
-//            res.sendRedirect("http://localhost:8080/AnalizaMisPasos");
-             res.sendRedirect(req.getContextPath() + "/faces/index.xhtml");
+            res.sendRedirect(req.getContextPath() + "/faces/index.xhtml");
         }
     }
 

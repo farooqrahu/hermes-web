@@ -78,7 +78,7 @@ public class ActivityLog implements Serializable, CSVBeanInterface, ChartInterfa
     @Column(name = "date")
     @Temporal(TemporalType.DATE)
     private Date date;
-    @OneToMany(cascade = CascadeType.ALL, mappedBy = "activityLog")
+    @OneToMany(cascade = CascadeType.ALL, mappedBy = "activityLog", orphanRemoval=true)
     @OrderBy("timeLog ASC")
     private Collection<StepLog> stepLogCollection;
     @JoinColumn(name = "person_id", referencedColumnName = "person_id")
@@ -135,18 +135,22 @@ public class ActivityLog implements Serializable, CSVBeanInterface, ChartInterfa
     @Override
     public int hashCode() {
         int hash = 0;
-        hash += (activityLogId != null ? activityLogId.hashCode() : 0);
+        hash += (date != null ? date.hashCode() : 0);
         return hash;
     }
 
     @Override
     public boolean equals(Object object) {
-        // TODO: Warning - this method won't work in the case the id fields are not set
         if (!(object instanceof ActivityLog)) {
             return false;
         }
         ActivityLog other = (ActivityLog) object;
-        return !((this.activityLogId == null && other.activityLogId != null) || (this.activityLogId != null && !this.activityLogId.equals(other.activityLogId)));
+        
+        // Dos 'ActivityLog' serán iguales si tienen la misma fecha y son de la misma persona.
+        String thisDate = Constants.df.format(this.date);
+        String otherDate = Constants.df.format(other.date);
+        
+        return (thisDate.equals(otherDate) && this.person.equals(other.person));
     }
 
     @Override
@@ -440,4 +444,6 @@ public class ActivityLog implements Serializable, CSVBeanInterface, ChartInterfa
         }
         return aggregation;
     }
+    
+    
 }

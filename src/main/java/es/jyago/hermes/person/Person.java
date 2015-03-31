@@ -11,9 +11,9 @@ import es.jyago.hermes.role.Role;
 import es.jyago.hermes.util.Constants;
 import java.io.IOException;
 import java.io.Serializable;
+import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Date;
-import java.util.HashSet;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 import javax.persistence.Basic;
@@ -29,6 +29,7 @@ import javax.persistence.ManyToOne;
 import javax.persistence.NamedQueries;
 import javax.persistence.NamedQuery;
 import javax.persistence.OneToMany;
+import javax.persistence.OrderBy;
 import javax.persistence.Table;
 import javax.validation.constraints.NotNull;
 import javax.validation.constraints.Size;
@@ -106,7 +107,8 @@ public class Person implements Serializable, CSVBeanInterface {
     @JoinColumn(name = "role_id", referencedColumnName = "role_id")
     @ManyToOne(optional = false)
     private Role role;
-    @OneToMany(cascade = CascadeType.ALL, mappedBy = "person")
+    @OneToMany(cascade = CascadeType.ALL, mappedBy = "person", orphanRemoval=true)
+    @OrderBy("date ASC")
     private Collection<ActivityLog> activityLogCollection;
     @Basic(optional = true)
     @Size(min = 1, max = 20)
@@ -253,19 +255,19 @@ public class Person implements Serializable, CSVBeanInterface {
      * @return
      */
     public Collection<ActivityLog> getActivityLogCollection(Date startDate, Date endDate, String aggregation) {
-        Collection<ActivityLog> filteredCollection = new HashSet<>();
+        Collection<ActivityLog> filteredList = new ArrayList<>();
 
         if (activityLogCollection != null) {
             for (ActivityLog activityLog : activityLogCollection) {
                 // Comprobamos si la fecha de la actividad está en el rango de fechas que solicita el usuario.
                 if ((activityLog.getDate().compareTo(startDate) >= 0) && (activityLog.getDate().compareTo(endDate) <= 0)) {
                     activityLog.setAggregation(aggregation);
-                    filteredCollection.add(activityLog);
+                    filteredList.add(activityLog);
                 }
             }
         }
 
-        return filteredCollection;
+        return filteredList;
     }
 
     public void setActivityLogCollection(Collection<ActivityLog> activityLogCollection) {
@@ -338,11 +340,12 @@ public class Person implements Serializable, CSVBeanInterface {
 
     @Override
     public boolean equals(Object object) {
-        // TODO: Warning - this method won't work in the case the id fields are not set
         if (!(object instanceof Person)) {
             return false;
         }
         Person other = (Person) object;
+        
+        // Dos 'Person' serán iguales si tienen el mismo identificador.
         return !((this.personId == null && other.personId != null) || (this.personId != null && !this.personId.equals(other.personId)));
     }
 

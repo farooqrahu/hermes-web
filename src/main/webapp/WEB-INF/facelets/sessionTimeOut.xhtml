@@ -6,11 +6,13 @@
       xmlns:p="http://primefaces.org/ui">
 
     <ui:composition>
-        <h:form prependId="false">
-            <p:idleMonitor
-                timeout="#{session.maxInactiveInterval * 1000 - 125000}"
-                onidle="startIdleMonitor()"
-                onactive="timeoutDialog.hide()" />
+        <!-- TODO: Hacer que en la pantalla de main también cuente el tiempo -->
+        <h:form id="timeoutForm" prependId="false" rendered="#{userLogin.loggedIn}">
+            <!-- Descontamos el tiempo de la ventana emergente del tiempo de sesión configurado en el web.xml, menos 5 segundos más de margen -->
+            <p:idleMonitor widgetVar="idleMonitor"
+                           timeout="#{(session.maxInactiveInterval * 1000) - 65000}"
+                           onidle="startIdleMonitor()"
+                           onactive="PF('timeoutDialog').hide()" />
 
             <p:dialog id="timeoutSession"
                       header="#{bundle['Session.expire']}"
@@ -29,22 +31,21 @@
                 <p>
                     <span class="ui-icon ui-icon-alert" style="float: left; margin: 8px 8px 0;"/>
                     <p:panel>
-                        #{msg['logoff.soon.1']}
+                        #{bundle['Session.expire.message']}
                         <span id="dialog-countdown" style="font-weight: bold"></span>
-                        #{msg['logoff.soon.2']}
+                        #{bundle['Seconds']}
                     </p:panel>
                 </p>
-                <br />
-                <p style="font-weight: bold;">#{msg['move.cursor']}</p>
             </p:dialog>
-            <p:remoteCommand name="keepAlive" actionListener="#{auth.keepSessionAlive}" />
+            <p:remoteCommand name="keepAlive" actionListener="#{userLogin.keepSessionAlive}" />
         </h:form>
         <script type="text/javascript">
-            var TIME = 120; // in seconds
+            // Tiempo del mensaje de la ventana emergente.
+            var TIME = 60;
             var countTimer = TIME;
             var processTimer;
             var timer_is_on = 0;
-            var redirectPage = "#{request.contextPath}/auth/j_verinice_timeout";
+            var redirectPage = "#{request.contextPath}";
 
             var countDownDiv = "dialog-countdown";
             var txtCountDown = null;
@@ -54,7 +55,7 @@
             function startIdleMonitor() {
                 countTimer = TIME;
                 txtCountDown.innerHTML = countTimer;
-                timeoutDialog.show();
+                PF('timeoutDialog').show();
             }
             function timedCount() {
                 txtCountDown.innerHTML = countTimer;

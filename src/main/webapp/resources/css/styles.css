@@ -89,10 +89,16 @@
     width: 32px !important;
 }
 
+.logout-icon {
+    background: url(img/logout.png) no-repeat !important;
+    height: 16px !important;
+    width: 16px !important;
+}
+
 /* JYFR - Inicio PRUEBA */
 .jqplot-meterGauge-tick {
     font-size: 0.75em;
-    color: #000000;
+    font-weight: bold;
 }
 
 .jqplot-meterGauge-label {

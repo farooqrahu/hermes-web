@@ -71,7 +71,11 @@ public class LoginBean {
 
     public String logout() {
         FacesContext.getCurrentInstance().getExternalContext().invalidateSession();
-        return "index?faces-redirect=true";
+        return "/index?faces-redirect=true";
+    }
+
+    public void keepSessionAlive() {
+        Log.debug("Mantener activa la sesión del usuario: " + username);
     }
 
     public boolean isLoggedIn() {

@@ -13,6 +13,7 @@ import es.jyago.hermes.util.Constants;
 import es.jyago.hermes.util.JsfUtil;
 import es.jyago.hermes.util.JsfUtil.PersistAction;
 import es.jyago.hermes.activityLog.ActivityLogHermesZtreamyFacade;
+import es.jyago.hermes.util.InternationalizedException;
 import java.io.IOException;
 import java.io.Serializable;
 import java.net.MalformedURLException;
@@ -20,6 +21,7 @@ import java.text.ParseException;
 import java.util.ArrayList;
 import java.util.Calendar;
 import java.util.Date;
+import java.util.HashSet;
 import java.util.List;
 import java.util.ResourceBundle;
 import java.util.logging.Level;
@@ -32,11 +34,9 @@ import javax.faces.component.UIComponent;
 import javax.faces.context.FacesContext;
 import javax.faces.convert.Converter;
 import javax.faces.convert.FacesConverter;
-import javax.faces.validator.FacesValidator;
 import javax.faces.validator.ValidatorException;
 import javax.inject.Named;
 import javax.servlet.http.HttpServletRequest;
-import org.primefaces.context.RequestContext;
 import org.primefaces.event.FileUploadEvent;
 import org.primefaces.model.StreamedContent;
 
@@ -108,26 +108,27 @@ public class PersonController implements Serializable, CSVControllerInterface<Pe
 
     @Override
     public List<Person> getItems() {
+        // TODO: Nuevo registro autorizando por Fitbit
         // TODO: Reubicar.
-        FacesContext ctx = FacesContext.getCurrentInstance();
-        HttpServletRequest request = (HttpServletRequest) ctx.getExternalContext().getRequest();
-
-        String tempTokenReceived = request.getParameter(HermesFitbitController.OAUTH_TOKEN);
-        String tempTokenVerifier = request.getParameter(HermesFitbitController.OAUTH_VERIFIER);
-
-        if (tempTokenReceived != null && tempTokenVerifier != null) {
-            hermesFitbitController.completeAuthorization(tempTokenReceived, tempTokenVerifier);
-            if (hermesFitbitController.isResourceCredentialsSet() && selected != null) {
-                hermesFitbitController.transferUserInfoToPerson(selected);
-                // FIXME
-                // Comprobamos si está rellena la información necesaria y si no, la rellenamos con valores por defecto.
-                fillDefaultPerson();
-                create();
-                //update();
-                // Invocamos el formulario de edición de usuario, para que el usuario pueda corregir sus datos.
-                RequestContext.getCurrentInstance().execute("PF('PersonEditDialog').show()");
-            }
-        }
+//        FacesContext ctx = FacesContext.getCurrentInstance();
+//        HttpServletRequest request = (HttpServletRequest) ctx.getExternalContext().getRequest();
+//
+//        String tempTokenReceived = request.getParameter(HermesFitbitController.OAUTH_TOKEN);
+//        String tempTokenVerifier = request.getParameter(HermesFitbitController.OAUTH_VERIFIER);
+//
+//        if (tempTokenReceived != null && tempTokenVerifier != null) {
+//            hermesFitbitController.completeAuthorization(tempTokenReceived, tempTokenVerifier);
+//            if (hermesFitbitController.isResourceCredentialsSet() && selected != null) {
+//                hermesFitbitController.transferUserInfoToPerson(selected);
+//                // FIXME
+//                // Comprobamos si está rellena la información necesaria y si no, la rellenamos con valores por defecto.
+//                fillDefaultPerson();
+//                create();
+//                //update();
+//                // Invocamos el formulario de edición de usuario, para que el usuario pueda corregir sus datos.
+//                RequestContext.getCurrentInstance().execute("PF('PersonEditDialog').show()");
+//            }
+//        }
 
         if (items == null) {
             items = getFacade().findAll();
@@ -204,7 +205,11 @@ public class PersonController implements Serializable, CSVControllerInterface<Pe
 
     public void authorize(String nextPage) {
         initFitbitController();
-        authorizeUrl = hermesFitbitController.getAuthorizeURL((HttpServletRequest) FacesContext.getCurrentInstance().getExternalContext().getRequest(), nextPage);
+        try {
+            authorizeUrl = hermesFitbitController.getAuthorizeURL((HttpServletRequest) FacesContext.getCurrentInstance().getExternalContext().getRequest(), nextPage);
+        } catch (FitbitAPIException ex) {
+            FacesContext.getCurrentInstance().addMessage(null, new FacesMessage(FacesMessage.SEVERITY_ERROR, ResourceBundle.getBundle("/Bundle").getString("Error"), ResourceBundle.getBundle("/Bundle").getString("Fitbit.error.authorization")));
+        }
     }
 
     public void register() {
@@ -229,14 +234,15 @@ public class PersonController implements Serializable, CSVControllerInterface<Pe
 
     public void synchronize() {
         initFitbitController();
-        hermesFitbitController.populate();
-        FacesMessage message;
 
         try {
+            hermesFitbitController.populate();
             List<IntradaySummary> listIntradaySummary = hermesFitbitController.getIntradayData(startDate, endDate);
 
+            HashSet<ActivityLog> hashSetActivityLog = new HashSet<>(selected.getActivityLogCollection());
             for (IntradaySummary intradaySummary : listIntradaySummary) {
                 ActivityLog activityLog = new ActivityLog();
+
                 try {
                     activityLog.setDate(Constants.dfFitbit.parse(intradaySummary.getSummary().getDateTime()));
                     activityLog.setStepLogCollection(new ArrayList());
@@ -249,19 +255,24 @@ public class PersonController implements Serializable, CSVControllerInterface<Pe
                         stepLog.setSteps((int) intradayData.getValue());
                         activityLog.getStepLogCollection().add(stepLog);
                     }
-                    selected.getActivityLogCollection().add(activityLog);
+                    hashSetActivityLog.remove(activityLog);
+                    hashSetActivityLog.add(activityLog);
                 } catch (ParseException ex) {
                     Logger.getLogger(PersonController.class.getName()).log(Level.SEVERE, null, ex);
                 }
             }
+            selected.getActivityLogCollection().clear();
             update();
-            message = new FacesMessage(FacesMessage.SEVERITY_INFO, ResourceBundle.getBundle("/Bundle").getString("Synchronize"), ResourceBundle.getBundle("/Bundle").getString("SynchronizedOK"));
+            selected.getActivityLogCollection().addAll(hashSetActivityLog);
+            update();
         } catch (FitbitAPIException ex) {
-            message = new FacesMessage(FacesMessage.SEVERITY_ERROR, ResourceBundle.getBundle("/Bundle").getString("Error"), ResourceBundle.getBundle("/Bundle").getString("SynchronizedError"));
+            FacesContext.getCurrentInstance().addMessage(null, new FacesMessage(FacesMessage.SEVERITY_ERROR, ResourceBundle.getBundle("/Bundle").getString("Error"), ResourceBundle.getBundle("/Bundle").getString("Fitbit.error.Synchronize")));
+            Logger.getLogger(PersonController.class.getName()).log(Level.SEVERE, null, ex);
+        } catch (InternationalizedException ex) {
+            FacesContext.getCurrentInstance().addMessage(null, new FacesMessage(FacesMessage.SEVERITY_ERROR, ResourceBundle.getBundle("/Bundle").getString("Error"), ex.getMessage()));
             Logger.getLogger(PersonController.class.getName()).log(Level.SEVERE, null, ex);
         }
 
-        FacesContext.getCurrentInstance().addMessage(null, message);
     }
 
     public void validate() {
@@ -297,17 +308,17 @@ public class PersonController implements Serializable, CSVControllerInterface<Pe
 
         try {
             ActivityLogHermesZtreamyFacade ztreamy = new ActivityLogHermesZtreamyFacade(this.getSelected().getActivityLogCollection(startDate, endDate, aggregation));
-            
+
             if (ztreamy.send()) {
                 message = new FacesMessage(FacesMessage.SEVERITY_INFO, ResourceBundle.getBundle("/Bundle").getString("Ztreamy"), ResourceBundle.getBundle("/Bundle").getString("ZtreamySendOK"));
             } else {
-                message = new FacesMessage(FacesMessage.SEVERITY_ERROR, ResourceBundle.getBundle("/Bundle").getString("Error"), ResourceBundle.getBundle("/Bundle").getString("ZtreamyError"));
+                message = new FacesMessage(FacesMessage.SEVERITY_ERROR, ResourceBundle.getBundle("/Bundle").getString("Error"), ResourceBundle.getBundle("/Bundle").getString("Ztreamy.error"));
             }
         } catch (MalformedURLException ex) {
-            message = new FacesMessage(FacesMessage.SEVERITY_ERROR, ResourceBundle.getBundle("/Bundle").getString("Error"), ResourceBundle.getBundle("/Bundle").getString("ZtreamyURLError"));
+            message = new FacesMessage(FacesMessage.SEVERITY_ERROR, ResourceBundle.getBundle("/Bundle").getString("Error"), ResourceBundle.getBundle("/Bundle").getString("Ztreamy.error.Url"));
             Logger.getLogger(ActivityLogController.class.getName()).log(Level.SEVERE, null, ex);
         } catch (IOException ex) {
-            message = new FacesMessage(FacesMessage.SEVERITY_ERROR, ResourceBundle.getBundle("/Bundle").getString("Error"), ResourceBundle.getBundle("/Bundle").getString("ZtreamyError"));
+            message = new FacesMessage(FacesMessage.SEVERITY_ERROR, ResourceBundle.getBundle("/Bundle").getString("Error"), ResourceBundle.getBundle("/Bundle").getString("Ztreamy.error"));
             Logger.getLogger(ActivityLogController.class.getName()).log(Level.SEVERE, null, ex);
         }
 
@@ -316,8 +327,9 @@ public class PersonController implements Serializable, CSVControllerInterface<Pe
 
     public String getAggregation() {
         // La agregación por defecto, será 'Horas'.
-        if (aggregation == null)
+        if (aggregation == null) {
             aggregation = Constants.TimeAggregations.Hours.toString();
+        }
         return aggregation;
     }
 
@@ -365,25 +377,29 @@ public class PersonController implements Serializable, CSVControllerInterface<Pe
         }
 
     }
-    
+
     public void sendDateRangeValidator(FacesContext context, UIComponent component, Object value) throws ValidatorException {
 
         System.out.println(value);
         if (value == null) {
             return;
         }
-         
+
         Object startDateValue = component.getAttributes().get("startDate");
-        if (startDateValue==null) {
+        if (startDateValue == null) {
             return;
         }
-         
-        Date startDate = (Date)startDateValue;
-        Date endDate = (Date)value;
+
+        Date startDate = (Date) startDateValue;
+        Date endDate = (Date) value;
         if (endDate.before(startDate)) {
             throw new ValidatorException(
-                    new FacesMessage(FacesMessage.SEVERITY_ERROR, ResourceBundle.getBundle("/Bundle").getString("Error"), ResourceBundle.getBundle("/Bundle").getString("SynchronizedError")));
+                    new FacesMessage(FacesMessage.SEVERITY_ERROR, ResourceBundle.getBundle("/Bundle").getString("Error"), ResourceBundle.getBundle("/Bundle").getString("Fitbit.error.Synchronize")));
         }
+    }
+
+    public HermesFitbitController getHermesFitbitController() {
+        return hermesFitbitController;
     }
 
     public StreamedContent getFile() {

@@ -25,7 +25,7 @@
                     </p:panelGrid>
                     <p:commandButton actionListener="#{activityLogController.update}" value="#{bundle.Save}" update="display,:ActivityLogListForm:datalist,:messages" oncomplete="handleSubmit(args, 'ActivityLogEditDialog');"/>
                     <!-- JYFR: Indicamos el atributo 'immediate="true"' para evitar que se hagan las validaciones AJAX al cancelar -->
-                    <p:commandButton value="#{bundle.Cancel}" onclick="ActivityLogEditDialog.hide()" immediate="true" />
+                    <p:commandButton value="#{bundle.Cancel}" onclick="PF('ActivityLogEditDialog').hide()" immediate="true" />
                 </h:panelGroup>
             </h:form>
         </p:dialog>

@@ -23,7 +23,7 @@
                         <h:outputText value="#{bundle.ViewOptionLabel_optionRolesAllowed}"/>
                         <h:outputText value="#{configurationController.selected.optionRolesAllowed}" title="#{bundle.ViewOptionTitle_optionRolesAllowed}"/>
                     </p:panelGrid>
-                    <p:commandButton value="#{bundle.Close}" onclick="OptionViewDialog.hide()"/>
+                    <p:commandButton value="#{bundle.Close}" onclick="PF('OptionViewDialog').hide()"/>
                 </h:panelGroup>
             </h:form>
         </p:dialog>

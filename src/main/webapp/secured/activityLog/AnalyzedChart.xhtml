@@ -14,15 +14,20 @@
                 <h:panelGroup id="display">
                     <p:chart type="line" model="#{activityLogController.analyzedChartModel}" style="width:1024px;height:500px" rendered="#{activityLogController.selected != null}" />
 
-                    <p:panelGrid columns="2" rendered="#{activityLogController.selected != null}">
-                        <h:outputText value="#{bundle.ViewActivityLogLabel_personId}"/>
-                        <h:outputText value="#{activityLogController.selected.person}" title="#{bundle.ViewActivityLogTitle_personId}"/>
-                        <h:outputText value="#{bundle.ViewActivityLogLabel_date}"/>
-                        <h:outputText value="#{activityLogController.selected.date}" title="#{bundle.ViewActivityLogTitle_date}">
-                            <f:convertDateTime pattern="dd/MM/yyyy" />
-                        </h:outputText>
+                   <p:panelGrid columns="2" rendered="#{activityLogController.selected != null}">
+                        <p:panelGrid columns="4">
+                            <h:outputText value="#{bundle.ViewActivityLogLabel_personId}"/>
+                            <h:outputText value="#{activityLogController.selected.person.toString()}" title="#{bundle.ViewActivityLogTitle_personId}"/>
+                            <h:outputText value="#{bundle.Achieved}"/>
+                            <h:outputText value="#{activityLogController.selected.aggregatedValues.Achieved}" title="#{bundle.Achieved}"/>
+                            <h:outputText value="#{bundle.Target}"/>
+                            <h:outputText value="#{activityLogController.selected.person.stepsGoal}" title="#{bundle.Target}"/>
+                            <h:outputText value="#{bundle.Remaining}"/>
+                            <h:outputText value="#{activityLogController.selected.aggregatedValues.Remaining}" title="#{bundle.Remaining}"/>
+                        </p:panelGrid>
+                        <p:commandButton value="#{bundle.ZoomReset}" type="button" onclick="PF('chart').resetZoom()" icon="ui-icon-cancel" />
                     </p:panelGrid>
-                    <p:commandButton value="#{bundle.Close}" onclick="ActivityLogAnalyzedChartDialog.hide()"/>
+                    <p:commandButton value="#{bundle.Close}" onclick="PF('ActivityLogAnalyzedChartDialog').hide()"/>
                 </h:panelGroup>
             </h:form>
         </p:dialog>

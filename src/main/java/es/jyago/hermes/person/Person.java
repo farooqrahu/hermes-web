@@ -6,14 +6,17 @@
 package es.jyago.hermes.person;
 
 import es.jyago.hermes.activityLog.ActivityLog;
+import es.jyago.hermes.chart.LineChartInterface;
 import es.jyago.hermes.csv.CSVBeanInterface;
 import es.jyago.hermes.role.Role;
 import es.jyago.hermes.util.Constants;
 import java.io.IOException;
 import java.io.Serializable;
 import java.util.ArrayList;
-import java.util.Collection;
 import java.util.Date;
+import java.util.LinkedHashMap;
+import java.util.List;
+import java.util.ResourceBundle;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 import javax.persistence.Basic;
@@ -31,12 +34,18 @@ import javax.persistence.NamedQuery;
 import javax.persistence.OneToMany;
 import javax.persistence.OrderBy;
 import javax.persistence.Table;
+import javax.persistence.UniqueConstraint;
 import javax.validation.constraints.NotNull;
 import javax.validation.constraints.Size;
 import javax.xml.bind.annotation.XmlRootElement;
 import org.apache.commons.io.IOUtils;
 import org.primefaces.event.FileUploadEvent;
 import org.primefaces.model.UploadedFile;
+import org.primefaces.model.chart.Axis;
+import org.primefaces.model.chart.AxisType;
+import org.primefaces.model.chart.DateAxis;
+import org.primefaces.model.chart.LineChartModel;
+import org.primefaces.model.chart.LineChartSeries;
 import org.supercsv.cellprocessor.ift.CellProcessor;
 
 /**
@@ -44,7 +53,7 @@ import org.supercsv.cellprocessor.ift.CellProcessor;
  * @author Jorge Yago
  */
 @Entity
-@Table(name = "person")
+@Table(name = "person", uniqueConstraints = @UniqueConstraint(columnNames={"username"}))
 @XmlRootElement
 @NamedQueries({
     @NamedQuery(name = "Person.findAll", query = "SELECT p FROM Person p"),
@@ -57,8 +66,9 @@ import org.supercsv.cellprocessor.ift.CellProcessor;
     @NamedQuery(name = "Person.findByFitbitAccessToken", query = "SELECT p FROM Person p WHERE p.fitbitAccessToken = :fitbitAccessToken"),
     @NamedQuery(name = "Person.findByFitbitAccessTokenSecret", query = "SELECT p FROM Person p WHERE p.fitbitAccessTokenSecret = :fitbitAccessTokenSecret"),
     @NamedQuery(name = "Person.findByComments", query = "SELECT p FROM Person p WHERE p.comments = :comments"),
-    @NamedQuery(name = "Person.findByUsernamePassword", query = "SELECT p FROM Person p WHERE p.username = :username AND p.password = :password")})
-public class Person implements Serializable, CSVBeanInterface {
+    @NamedQuery(name = "Person.findByUsernamePassword", query = "SELECT p FROM Person p WHERE p.username = :username AND p.password = :password"),
+    @NamedQuery(name = "Person.findByUsername", query = "SELECT p FROM Person p WHERE p.username = :username")})
+public class Person implements Serializable, CSVBeanInterface, LineChartInterface {
 
     private static final long serialVersionUID = 1L;
     @Id
@@ -107,14 +117,14 @@ public class Person implements Serializable, CSVBeanInterface {
     @JoinColumn(name = "role_id", referencedColumnName = "role_id")
     @ManyToOne(optional = false)
     private Role role;
-    @OneToMany(cascade = CascadeType.ALL, mappedBy = "person", orphanRemoval=true)
+    @OneToMany(cascade = CascadeType.ALL, mappedBy = "person", orphanRemoval = true)
     @OrderBy("date ASC")
-    private Collection<ActivityLog> activityLogCollection;
-    @Basic(optional = true)
+    private List<ActivityLog> activityLogCollection;
+    @Basic(optional = false)
     @Size(min = 1, max = 20)
-    @Column(name = "username")
+    @Column(name = "username", unique = true)
     private String username;
-    @Basic(optional = true)
+    @Basic(optional = false)
     @Size(min = 1, max = 20)
     @Column(name = "password")
     private String password;
@@ -238,7 +248,7 @@ public class Person implements Serializable, CSVBeanInterface {
         this.role = role;
     }
 
-    public Collection<ActivityLog> getActivityLogCollection() {
+    public List<ActivityLog> getActivityLogCollection() {
         return activityLogCollection;
     }
 
@@ -254,9 +264,15 @@ public class Person implements Serializable, CSVBeanInterface {
      * válido, los datos se devolverán por minuto.
      * @return
      */
-    public Collection<ActivityLog> getActivityLogCollection(Date startDate, Date endDate, String aggregation) {
-        Collection<ActivityLog> filteredList = new ArrayList<>();
+    public List<ActivityLog> getActivityLogCollection(Date startDate, Date endDate, String aggregation) {
+        List<ActivityLog> filteredList = new ArrayList<>();
 
+        if (startDate == null) {
+            startDate = new Date(Long.MIN_VALUE);
+        }
+        if (endDate == null) {
+            endDate = new Date(Long.MAX_VALUE);
+        }
         if (activityLogCollection != null) {
             for (ActivityLog activityLog : activityLogCollection) {
                 // Comprobamos si la fecha de la actividad está en el rango de fechas que solicita el usuario.
@@ -270,7 +286,7 @@ public class Person implements Serializable, CSVBeanInterface {
         return filteredList;
     }
 
-    public void setActivityLogCollection(Collection<ActivityLog> activityLogCollection) {
+    public void setActivityLogCollection(List<ActivityLog> activityLogCollection) {
         this.activityLogCollection = activityLogCollection;
     }
 
@@ -322,6 +338,15 @@ public class Person implements Serializable, CSVBeanInterface {
         this.restStepsThreshold = restStepsThreshold;
     }
 
+    public Date getLastSynchronization() {
+        if (activityLogCollection != null && !activityLogCollection.isEmpty()) {
+            List<ActivityLog> listActivityLog = new ArrayList(activityLogCollection);
+            return listActivityLog.get(listActivityLog.size() - 1).getDate();
+        } else {
+            return null;
+        }
+    }
+
     public boolean hasFitbitCredentials() {
         return (fitbitUserId != null
                 && fitbitUserId.length() > 0
@@ -329,6 +354,45 @@ public class Person implements Serializable, CSVBeanInterface {
                 && fitbitAccessToken.length() > 0
                 && fitbitAccessTokenSecret != null
                 && fitbitAccessTokenSecret.length() > 0);
+    }
+
+    @Override
+    public LineChartModel getLineModel(LinkedHashMap<Date, Integer> values, String title) {
+        LineChartModel model = new LineChartModel();
+        LineChartSeries series = new LineChartSeries();
+
+        // Rellenamos la serie con las fechas y los totales de pasos.
+        for (Date key : values.keySet()) {
+            int value = values.get(key);
+            series.set(key.getTime(), value);
+        }
+
+        // Indicamos el texto de la leyenda.
+        series.setLabel(ResourceBundle.getBundle("/Bundle").getString("Steps"));
+
+        model.setTitle(title);
+        model.setLegendPosition("ne");
+        model.setShowPointLabels(true);
+        model.setShowDatatip(true);
+        model.setMouseoverHighlight(true);
+        model.setDatatipFormat("%1$s -> %2$d");
+        model.setSeriesColors("2DC800");
+        model.setAnimate(true);
+        model.setZoom(true);
+
+        DateAxis xAxis = new DateAxis(ResourceBundle.getBundle("/Bundle").getString("Days"));
+        xAxis.setTickAngle(-45);
+        xAxis.setTickFormat("%d/%m/%Y");
+        xAxis.setTickAngle(-45);
+        model.getAxes().put(AxisType.X, xAxis);
+        
+        Axis yAxis = model.getAxis(AxisType.Y);
+        yAxis.setLabel(ResourceBundle.getBundle("/Bundle").getString("Steps"));
+        yAxis.setMin(0);
+
+        model.addSeries(series);
+
+        return model;
     }
 
     @Override
@@ -344,7 +408,7 @@ public class Person implements Serializable, CSVBeanInterface {
             return false;
         }
         Person other = (Person) object;
-        
+
         // Dos 'Person' serán iguales si tienen el mismo identificador.
         return !((this.personId == null && other.personId != null) || (this.personId != null && !this.personId.equals(other.personId)));
     }

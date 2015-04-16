@@ -89,7 +89,7 @@ public class StepLogController implements Serializable {
                 }
                 JsfUtil.addSuccessMessage(successMessage);
             } catch (EJBException ex) {
-                // JYFR: Activamos la bandera para indicar que ha habido un error.
+                // Activamos la bandera para indicar que ha habido un error.
                 FacesContext.getCurrentInstance().validationFailed();
                 String msg = "";
                 Throwable cause = ex.getCause();
@@ -97,7 +97,7 @@ public class StepLogController implements Serializable {
                     msg = cause.getLocalizedMessage();
                 }
                 if (msg.length() > 0) {
-                    // JYFR: Mostramos un mensaje informativo para que revise el formulario.
+                    // Mostramos un mensaje informativo para que revise el formulario.
                     JsfUtil.addErrorMessage(msg, ResourceBundle.getBundle("/Bundle").getString("CheckData"));
                 } else {
                     JsfUtil.addErrorMessage(ex, ResourceBundle.getBundle("/Bundle").getString("PersistenceErrorOccured"));

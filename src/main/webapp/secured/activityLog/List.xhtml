@@ -23,8 +23,12 @@
                                  resizableColumns="true"
                                  >
 
+                        <p:ajax process="datalist" event="rowSelect" update=":ActivityLogListForm:contextMenu"/>
+
+                        <!--
                         <p:ajax event="rowSelect"   update="createButton viewButton editButton deleteButton pieChartButton lineChartButton analyzedChartButton"/>
                         <p:ajax event="rowUnselect" update="createButton viewButton editButton deleteButton pieChartButton lineChartButton analyzedChartButton"/>
+                        -->
 
                         <f:facet name="header">
                             <p:commandButton icon="ui-icon-calculator" id="toggler" style="float: right; margin-top: 7px !important" type="button" value="#{bundle.Column}"/>
@@ -38,11 +42,27 @@
                                 <f:convertDateTime pattern="dd/MM/yyyy" />
                             </h:outputText>
                         </p:column>
-                        <p:column sortBy="#{item.person}" filterBy="#{item.person}">
+                        <p:column sortBy="#{item.total}" filterBy="#{item.total}">
                             <f:facet name="header">
-                                <h:outputText value="#{bundle.ListActivityLogTitle_personId}"/>
+                                <h:outputText value="#{bundle.TotalSteps}"/>
                             </f:facet>
-                            <h:outputText value="#{item.person.toString()}"/>
+                            <h:outputText value="#{item.total}"/>
+                        </p:column>
+                        <p:column>
+                            <f:facet name="header">
+                                <h:outputText value="#{bundle.Graphic}"/>
+                            </f:facet>
+                            <h:panelGroup>
+                                <p:commandButton id="pieChartButton"  icon="pieChart-icon" title="#{bundle.PieGraphic}" update=":ActivityLogPieChartForm" oncomplete="PF('ActivityLogPieChartDialog').show()">
+                                    <f:setPropertyActionListener value="#{item}" target="#{activityLogController.selected}" />
+                                </p:commandButton>
+                                <p:commandButton id="lineChartButton"  icon="lineChart-icon" title="#{bundle.LineGraphic}" update=":ActivityLogLineChartForm" oncomplete="PF('ActivityLogLineChartDialog').show()">
+                                    <f:setPropertyActionListener value="#{item}" target="#{activityLogController.selected}" />
+                                </p:commandButton>
+                                <p:commandButton id="analyzedChartButton"  icon="barChart-icon" title="#{bundle.AnalyzedGraphic}" update=":ActivityLogAnalyzedChartForm" oncomplete="PF('ActivityLogAnalyzedChartDialog').show()">
+                                    <f:setPropertyActionListener value="#{item}" target="#{activityLogController.selected}" />
+                                </p:commandButton>
+                            </h:panelGroup>
                         </p:column>
                         <p:column style="padding: 0; margin: 0">
                             <f:facet name="header">
@@ -50,6 +70,7 @@
                             </f:facet>
                             <p:chart type="metergauge" model="#{item.gaugeModel}" style="width:180px; height:100px;" />
                         </p:column>
+                        <!--
                         <f:facet name="footer">
                             <p:commandButton id="createButton" icon="ui-icon-plus"   value="#{bundle.Create}" actionListener="#{activityLogController.prepareCreate}" update=":ActivityLogCreateForm" oncomplete="PF('ActivityLogCreateDialog').show()"/>
                             <p:commandButton id="viewButton"   icon="ui-icon-search" value="#{bundle.View}" update=":ActivityLogViewForm" oncomplete="PF('ActivityLogViewDialog').show()" disabled="#{empty activityLogController.selected}"/>
@@ -62,12 +83,24 @@
                             <p:commandButton id="lineChartButton"  icon="ui-icon-signal" value="#{bundle.LineGraphic}" update=":ActivityLogLineChartForm" oncomplete="PF('ActivityLogLineChartDialog').show()" disabled="#{empty activityLogController.selected}"/>
                             <p:commandButton id="analyzedChartButton"  icon="ui-icon-signal" value="#{bundle.AnalyzedGraphic}" update=":ActivityLogAnalyzedChartForm" oncomplete="PF('ActivityLogAnalyzedChartDialog').show()" disabled="#{empty activityLogController.selected}"/>
                         </f:facet>
+                        -->
                     </p:dataTable>
+
+                    <!-- JYFR: Menú contextual -->
+                    <p:contextMenu id="contextMenu" widgetVar="ctxMenu" for="datalist">
+                        <p:menuitem id="viewButton"        icon="ui-icon-search"      value="#{bundle.View}"        update=":ActivityLogViewForm"        oncomplete="PF('ActivityLogViewDialog').show()"/>
+                        <!-- <p:menuitem id="editButton"        icon="ui-icon-pencil"      value="#{bundle.Edit}"        update=":ActivityLogEditForm"        oncomplete="PF('ActivityLogEditDialog').show()"/> -->
+                        <p:menuitem id="deleteButton"      icon="ui-icon-trash"       value="#{bundle.Delete}"      update=":messages,datalist" actionListener="#{activityLogController.destroy}">
+                            <p:confirmDialog header="#{bundle.Confirmation}" message="#{bundle.DeleteElementConfirm}" appendTo="@(body)"/>
+                        </p:menuitem>
+                    </p:contextMenu>
                 </p:panel>
             </h:form>
 
+            <!--
             <ui:include src="Create.xhtml"/>
             <ui:include src="Edit.xhtml"/>
+            -->
             <ui:include src="View.xhtml"/>
             <ui:include src="PieChart.xhtml"/>
             <ui:include src="LineChart.xhtml"/>

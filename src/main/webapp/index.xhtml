@@ -48,7 +48,7 @@
 
                                 <f:facet name="footer" >
                                     <p:outputPanel style="float: left">
-                                        <p:commandButton value="#{bundle.Register}" update="openWindow" actionListener="#{personController.register()}" />
+                                        <p:commandButton value="#{bundle.Register}" update="openWindow" actionListener="#{personController.prepareRegister()}" />
                                         <h:panelGroup id="openWindow">
                                             <h:outputScript rendered="#{not empty personController.authorizeUrl}">
                                                 window.open('#{personController.authorizeUrlAndReset}', '_self')

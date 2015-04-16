@@ -33,7 +33,8 @@ import javax.xml.bind.annotation.XmlRootElement;
 @NamedQueries({
     @NamedQuery(name = "Role.findAll", query = "SELECT r FROM Role r"),
     @NamedQuery(name = "Role.findByRoleId", query = "SELECT r FROM Role r WHERE r.roleId = :roleId"),
-    @NamedQuery(name = "Role.findByName", query = "SELECT r FROM Role r WHERE r.name = :name")})
+    @NamedQuery(name = "Role.findByName", query = "SELECT r FROM Role r WHERE r.name = :name"),
+    @NamedQuery(name = "Role.findAllLessThan", query = "SELECT r FROM Role r WHERE r.roleId >= :roleId")})
 public class Role implements Serializable {
     private static final long serialVersionUID = 1L;
     @Id

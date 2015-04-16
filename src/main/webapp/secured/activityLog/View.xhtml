@@ -19,7 +19,7 @@
                         <h:outputText value="#{bundle.CreateActivityLogLabel_personId}"/>
                         <h:outputText id="person" value="#{activityLogController.selected.person}" title="#{bundle.ViewActivityLogLabel_personId}"/>
                     </p:panelGrid>
-                    <p:commandButton value="#{bundle.Close}" onclick="ActivityLogViewDialog.hide()"/>
+                    <p:commandButton value="#{bundle.Close}" onclick="PF('ActivityLogViewDialog').hide()"/>
                 </h:panelGroup>
             </h:form>
         </p:dialog>

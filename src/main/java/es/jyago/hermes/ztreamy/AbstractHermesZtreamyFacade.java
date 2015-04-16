@@ -65,9 +65,9 @@ public abstract class AbstractHermesZtreamyFacade<T> {
 
         if (result == 200) {
             ok = true;
-            Logger.getLogger(Person.class.getName()).log(Level.INFO, "Datos enviados por Ztreamy satisfactoriamente");
+            Logger.getLogger(Person.class.getName()).log(Level.INFO, "send() - Datos enviados por Ztreamy satisfactoriamente");
         } else {
-            Logger.getLogger(Person.class.getName()).log(Level.SEVERE, "Error al enviar los datos por Ztreamy", result);
+            Logger.getLogger(Person.class.getName()).log(Level.SEVERE, "send() - Error al enviar los datos por Ztreamy", result);
         }
 
         return ok;

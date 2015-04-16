@@ -6,6 +6,7 @@
 package es.jyago.hermes.activityLog;
 
 import es.jyago.hermes.AbstractFacade;
+import java.util.List;
 import javax.ejb.Stateless;
 import javax.persistence.EntityManager;
 import javax.persistence.PersistenceContext;
@@ -27,5 +28,4 @@ public class ActivityLogFacade extends AbstractFacade<ActivityLog> {
     public ActivityLogFacade() {
         super(ActivityLog.class);
     }
-    
 }

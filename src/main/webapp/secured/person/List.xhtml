@@ -23,7 +23,8 @@
 
                 <p:panel header="#{bundle.ListPersonTitle}">
                     <p:dataTable id="datalist" value="#{personController.items}" var="item"
-                                 selectionMode="single" selection="#{personController.selected}"
+                                 selectionMode="single" 
+                                 selection="#{personController.selected}"
                                  paginator="true"
                                  rowKey="#{item.personId}"
                                  rows="10"
@@ -31,13 +32,26 @@
                                  resizableColumns="true"
                                  >
 
-                        <p:ajax event="rowSelect"   update="createButton viewButton editButton authorizeButton synchronizeButton sendButton deleteButton"/>
-                        <p:ajax event="rowUnselect" update="createButton viewButton editButton authorizeButton synchronizeButton sendButton deleteButton"/>
+                        <!--<p:ajax process="datalist" event="rowSelect" update=":PersonListForm:contextMenu" />-->
+                        <!--<p:ajax event="contextMenu" update=":PersonListForm:datalist" />-->
+                        <!--<p:ajax event="contextMenu" oncomplete="PF('ctxMenu').show(currentEvent);"/>-->
+                        <p:ajax event="contextMenu" update=":PersonListForm:datalist"/>
 
                         <f:facet name="header">
+                            <p:commandButton icon="ui-icon-plus" id="createButton"  style="float: left; margin-top: 7px !important" value="#{bundle.Create}" actionListener="#{personController.prepareCreate}" update=":PersonCreateForm" oncomplete="PF('PersonCreateDialog').show()"/>
                             <p:commandButton icon="ui-icon-calculator" id="toggler" style="float: right; margin-top: 7px !important" type="button" value="#{bundle.Column}"/>
                             <p:columnToggler datasource="datalist" trigger="toggler"/>
                         </f:facet>
+
+                        <p:column style="text-align: center">
+                            <f:facet name="header">
+                                <h:outputText value="#{bundle.Steps}"/>	
+                            </f:facet>
+                            <p:commandButton action="#{activityLogController.initListFromPerson(item.personId)}" image="steps-icon" title="#{bundle.Steps}"/>
+                            <p:commandButton id="lineChartButton" image="lineChart-icon" title="#{bundle.LineGraphicMonth}" update=":PersonActivityLineChartForm" oncomplete="PF('PersonActivityLineChartDialog').show()" action="#{personController.initChartDates()}">
+                                <f:setPropertyActionListener value="#{item}" target="#{personController.selected}" />
+                            </p:commandButton>
+                        </p:column>
                         <p:column style="text-align: center">
                             <f:facet name="header">
                                 <h:outputText value="#{bundle.ListPersonTitle_photo}"/>	
@@ -77,6 +91,15 @@
                             <h:outputText value="#{item.phone}"/>
                         </p:column>
 
+                        <p:column sortBy="#{item.lastSynchronization}" style="text-align: center">
+                            <f:facet name="header">
+                                <h:outputText escape="false" value="#{bundle.FitbitLastSynch}"/>
+                            </f:facet>
+                            <h:outputText value="#{item.lastSynchronization}">
+                                <f:convertDateTime pattern="dd-MM-yyyy"/>
+                            </h:outputText>
+                        </p:column>
+
                         <p:column sortBy="#{item.hasFitbitCredentials()}" style="text-align: center">
                             <f:facet name="header">
                                 <h:outputText escape="false" value="#{bundle.HasFitbitCredentials}"/>
@@ -92,28 +115,27 @@
                             </f:facet>
                             <h:outputText value="#{item.role}"/>
                         </p:column>-->
-                        <f:facet name="footer">
-                            <p:commandButton id="createButton" icon="ui-icon-plus"   value="#{bundle.Create}" actionListener="#{personController.prepareCreate}" update=":PersonCreateForm" oncomplete="PF('PersonCreateDialog').show()"/>
-                            <p:commandButton id="viewButton"   icon="ui-icon-search" value="#{bundle.View}" update=":PersonViewForm" oncomplete="PF('PersonViewDialog').show()" disabled="#{empty personController.selected}"/>
-                            <p:commandButton id="editButton"   icon="ui-icon-pencil" value="#{bundle.Edit}" update=":PersonEditForm" oncomplete="PF('PersonEditDialog').show()" disabled="#{empty personController.selected}"/>
-                            <p:commandButton id="deleteButton" icon="ui-icon-trash"  value="#{bundle.Delete}" actionListener="#{personController.destroy}" update=":messages,datalist" disabled="#{empty personController.selected}">
-                                <p:confirm header="#{bundle.Confirmation}" message="#{bundle.DeleteElementConfirm}" icon="ui-icon-alert" />
-                            </p:commandButton>
-                            <p:commandButton value="#{bundle.Download}" ajax="false" onclick="PrimeFaces.monitorDownload(start, stop);" icon="ui-icon-arrowthick-1-s">
-                                <p:fileDownload value="#{personController.file}" />
-                            </p:commandButton>
-                            <p:commandButton id="authorizeButton" icon="ui-icon-key" value="#{bundle.Authorize}" update="openWindow" actionListener="#{personController.authorize()}" disabled="#{empty personController.selected}">
-                                <f:param name="nextPage" value="/faces/secured/person/List.xhtml" />
-                            </p:commandButton>
-                            <h:panelGroup id="openWindow">
-                                <h:outputScript rendered="#{not empty personController.authorizeUrl}">
-                                    window.open('#{personController.authorizeUrlAndReset}', '_self')
-                                </h:outputScript>
-                            </h:panelGroup>
-                            <p:commandButton id="synchronizeButton" icon="ui-icon-clock" value="#{bundle.Synchronize}" update=":PersonSynchronizeForm" oncomplete="PF('PersonSynchronizeDialog').show()" disabled="#{empty personController.selected || !personController.selected.hasFitbitCredentials()}" />
-                            <p:commandButton id="sendButton"   icon="ui-icon-mail-closed" value="#{bundle.ZtreamySend}" update=":PersonSendForm" oncomplete="PF('PersonSendDialog').show()" disabled="#{empty personController.selected}"/>
-                        </f:facet>
+
                     </p:dataTable>
+                    
+                    <!-- JYFR: Menú contextual -->
+                    <p:contextMenu id="contextMenu" widgetVar="ctxMenu" for="datalist" beforeShow="" selectionMode="single">
+                        <p:menuitem id="viewButton"        icon="ui-icon-search"      value="#{bundle.View}"        update=":PersonViewForm"        oncomplete="PF('PersonViewDialog').show()"/>
+                        <p:menuitem id="editButton"        icon="ui-icon-pencil"      value="#{bundle.Edit}"        update=":PersonEditForm"        oncomplete="PF('PersonEditDialog').show()"/>
+                        <p:menuitem id="deleteButton"      icon="ui-icon-trash"       value="#{bundle.Delete}"      update=":messages,datalist" actionListener="#{personController.destroy}">
+                            <p:confirmDialog header="#{bundle.Confirmation}" message="#{bundle.DeleteElementConfirm}" appendTo="@(body)"/>
+                        </p:menuitem>
+                        <p:menuitem id="authorizeButton"   icon="ui-icon-key"         value="#{bundle.Authorize}"   update="openWindowAuthorize" actionListener="#{personController.authorize('/faces/secured/person/List.xhtml')}">
+                            <f:param name="nextPage" value="/faces/secured/person/List.xhtml" />
+                        </p:menuitem>
+                        <p:menuitem id="synchronizeButton" icon="ui-icon-clock"       value="#{bundle.Synchronize}" update=":PersonSynchronizeForm" oncomplete="PF('PersonSynchronizeDialog').show()" disabled="#{!personController.selected.hasFitbitCredentials()}" actionListener="#{personController.initSynchronizationDates}"/>
+                        <p:menuitem id="sendButton"        icon="ui-icon-mail-closed" value="#{bundle.ZtreamySend}" update=":PersonSendForm"        oncomplete="PF('PersonSendDialog').show()"/>
+                    </p:contextMenu>
+                    <h:panelGroup id="openWindowAuthorize">
+                        <h:outputScript rendered="#{not empty personController.authorizeUrl}">
+                            window.open('#{personController.authorizeUrlAndReset}', '_self')
+                        </h:outputScript>
+                    </h:panelGroup>
                 </p:panel>
             </h:form>
 
@@ -122,6 +144,7 @@
             <ui:include src="View.xhtml"/>
             <ui:include src="Synchronize.xhtml"/>
             <ui:include src="Send.xhtml"/>
+            <ui:include src="LineChart.xhtml"/>
         </ui:define>
     </ui:composition>
 

@@ -1,12 +1,12 @@
 package es.jyago.hermes.activityLog;
 
-import es.jyago.hermes.stepLog.StepLog;
+import es.jyago.hermes.person.Person;
+import es.jyago.hermes.util.Constants;
 import es.jyago.hermes.util.JsfUtil;
 
 import java.io.Serializable;
-import java.util.Collection;
+import java.util.Date;
 import java.util.HashMap;
-import java.util.HashSet;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
@@ -88,6 +88,13 @@ public class ActivityLogController implements Serializable {
         return items;
     }
 
+    public String initListFromPerson(int personId) {
+        items = ejbFacade.getEntityManager().createNamedQuery("ActivityLog.findAllFromPerson")
+                .setParameter("personId", personId).getResultList();
+
+        return "/faces/secured/activityLog/List.xhtml";
+    }
+
     private void persist(JsfUtil.PersistAction persistAction, String successMessage) {
         if (selected != null) {
             setEmbeddableKeys();
@@ -99,7 +106,7 @@ public class ActivityLogController implements Serializable {
                 }
                 JsfUtil.addSuccessMessage(successMessage);
             } catch (EJBException ex) {
-                // JYFR: Activamos la bandera para indicar que ha habido un error.
+                // Activamos la bandera para indicar que ha habido un error.
                 FacesContext.getCurrentInstance().validationFailed();
                 String msg = "";
                 Throwable cause = ex.getCause();
@@ -107,7 +114,7 @@ public class ActivityLogController implements Serializable {
                     msg = cause.getLocalizedMessage();
                 }
                 if (msg.length() > 0) {
-                    // JYFR: Mostramos un mensaje informativo para que revise el formulario.
+                    // Mostramos un mensaje informativo para que revise el formulario.
                     JsfUtil.addErrorMessage(msg, ResourceBundle.getBundle("/Bundle").getString("CheckData"));
                 } else {
                     JsfUtil.addErrorMessage(ex, ResourceBundle.getBundle("/Bundle").getString("PersistenceErrorOccured"));
@@ -162,17 +169,12 @@ public class ActivityLogController implements Serializable {
 
     public LineChartModel getLineChartModel() {
         if (selected != null) {
-            LinkedHashMap<String, Integer> values = selected.getValues();
+            LinkedHashMap<Date, Integer> values = selected.getValues();
             if (values == null) {
                 values = new LinkedHashMap();
             }
-            LinkedHashMap<String, Integer> localizedValues = new LinkedHashMap();
 
-            for (String key : values.keySet()) {
-                localizedValues.put(key, values.get(key));
-            }
-
-            return selected.getLineModel(localizedValues);
+            return selected.getLineModel(values, Constants.df.format(selected.getDate()));
         }
 
         return null;
@@ -180,17 +182,12 @@ public class ActivityLogController implements Serializable {
 
     public LineChartModel getAnalyzedChartModel() {
         if (selected != null) {
-            LinkedHashMap<String, Integer> values = selected.getValues();
+            LinkedHashMap<Date, Integer> values = selected.getValues();
             if (values == null) {
                 values = new LinkedHashMap();
             }
-            LinkedHashMap<String, Integer> localizedValues = new LinkedHashMap();
 
-            for (String key : values.keySet()) {
-                localizedValues.put(key, values.get(key));
-            }
-
-            return selected.getAreaModel(localizedValues);
+            return selected.getAreaModel(values, Constants.df.format(selected.getDate()));
         }
 
         return null;

@@ -6,19 +6,14 @@
 
 package es.jyago.hermes.chart;
 
-import java.util.LinkedHashMap;
 import java.util.Map;
-import org.primefaces.model.chart.LineChartModel;
 import org.primefaces.model.chart.PieChartModel;
 
 /**
  *
  * @author Jorge Yago
  */
-public interface ChartInterface {
+public interface PieChartInterface {
     
     public PieChartModel getPieModel(Map<String, Integer> values);
-    public LineChartModel getLineModel(LinkedHashMap<String, Integer> values);
-    public Map<String, Integer> getAggregatedValues();
-    public LinkedHashMap<String, Integer> getValues();
 }

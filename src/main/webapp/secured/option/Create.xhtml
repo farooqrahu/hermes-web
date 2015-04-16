@@ -25,7 +25,7 @@
                     </p:panelGrid>
                     <p:commandButton actionListener="#{configurationController.create}" value="#{bundle.Save}" update="display,:OptionListForm:datalist,:messages" oncomplete="handleSubmit(args,'OptionCreateDialog');"/>
                     <!-- JYFR: Indicamos el atributo 'immediate="true"' para evitar que se hagan las validaciones AJAX al cancelar -->
-                    <p:commandButton value="#{bundle.Cancel}" onclick="OptionCreateDialog.hide()" immediate="true" />
+                    <p:commandButton value="#{bundle.Cancel}" onclick="PF('OptionCreateDialog').hide()" immediate="true" />
                 </h:panelGroup>
             </h:form>
         </p:dialog>

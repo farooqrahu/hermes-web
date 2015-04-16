@@ -14,7 +14,7 @@
                         <h:outputText value="#{bundle.ViewRoleLabel_name}"/>
                         <h:outputText value="#{roleController.selected.name}" title="#{bundle.ViewRoleTitle_name}"/>
                     </p:panelGrid>
-                    <p:commandButton value="#{bundle.Close}" onclick="RoleViewDialog.hide()"/>
+                    <p:commandButton value="#{bundle.Close}" onclick="PF('RoleViewDialog').hide()"/>
                 </h:panelGroup>
             </h:form>
         </p:dialog>

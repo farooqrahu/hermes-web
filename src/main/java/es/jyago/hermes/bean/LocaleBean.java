@@ -7,8 +7,9 @@ import javax.faces.bean.ManagedBean;
 import javax.faces.bean.SessionScoped;
 import javax.faces.context.FacesContext;
 
-// JYFR: Uso la sesión para que se conserve la selección de idioma durante toda la sesión del usuario.
+// JYFR: Tiene que ser @ManagedBean en lugar de @Named para que pueda gestionarlo PrimeFaces.
 @ManagedBean
+// JYFR: Uso la sesión para que se conserve la selección de idioma durante toda la sesión del usuario.
 @SessionScoped
 public class LocaleBean implements Serializable{
 

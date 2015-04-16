@@ -16,7 +16,7 @@
                     </p:panelGrid>
                     <p:commandButton actionListener="#{roleController.update}" value="#{bundle.Save}" update="display,:RoleListForm:datalist,:messages" oncomplete="handleSubmit(args, 'RoleEditDialog');"/>
                     <!-- JYFR: Indicamos el atributo 'immediate="true"' para evitar que se hagan las validaciones AJAX al cancelar -->
-                    <p:commandButton value="#{bundle.Cancel}" onclick="RoleEditDialog.hide()" immediate="true" />
+                    <p:commandButton value="#{bundle.Cancel}" onclick="PF('RoleEditDialog').hide()" immediate="true" />
                 </h:panelGroup>
             </h:form>
         </p:dialog>

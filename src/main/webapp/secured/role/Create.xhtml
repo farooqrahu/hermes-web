@@ -17,7 +17,7 @@
                     </p:panelGrid>
                     <p:commandButton actionListener="#{roleController.create}" value="#{bundle.Save}" update="display,:RoleListForm:datalist,:messages" oncomplete="handleSubmit(args,'RoleCreateDialog');"/>
                     <!-- JYFR: Indicamos el atributo 'immediate="true"' para evitar que se hagan las validaciones AJAX al cancelar -->
-                    <p:commandButton value="#{bundle.Cancel}" onclick="RoleCreateDialog.hide()" immediate="true" />
+                    <p:commandButton value="#{bundle.Cancel}" onclick="PF('RoleCreateDialog').hide()" immediate="true" />
                 </h:panelGroup>
             </h:form>
         </p:dialog>

@@ -7,7 +7,7 @@
       xmlns:p="http://primefaces.org/ui">
 
     <ui:composition>
-        <p:dialog id="PersonEditDlg" widgetVar="PersonEditDialog" modal="true" resizable="false" appendTo="@(body)" header="#{bundle.EditPersonTitle}" closeOnEscape="#{(personController.selected != null) and (personController.selected.personId != null)}" closable="#{(personController.selected != null) and (personController.selected.personId != null)}">
+        <p:dialog id="PersonEditDlg" widgetVar="PersonEditDialog" modal="true" resizable="false" appendTo="@(body)" header="#{bundle.EditPersonTitle}" closeOnEscape="true" closable="true">
             <!-- JYFR: Es necesario especificar 'enctype="multipart/form-data"' para poder subir archivos con la etiqueta 'p:fileUpload' -->
             <h:form id="PersonEditForm" enctype="multipart/form-data">
                 <!-- JYFR: Post validación -->
@@ -84,7 +84,7 @@
                             <p:outputLabel value="#{bundle.EditPersonLabel_roleId}" for="roleId" />
                             <p:selectOneMenu id="roleId" value="#{personController.selected.role}" required="true" requiredMessage="#{bundle.EditPersonRequiredMessage_roleId}">
                                 <f:selectItem itemLabel="#{bundle.SelectOneMessage}"/>
-                                <f:selectItems value="#{roleController.itemsAvailableSelectOne}"
+                                <f:selectItems value="#{roleController.getItemsAvailableSelectOneLessThanMine(userLogin.user.role)}"
                                                var="roleIdItem"
                                                itemValue="#{roleIdItem}"/>
                             </p:selectOneMenu>
@@ -93,7 +93,7 @@
                 </p:tabView>
                 <p:commandButton actionListener="#{personController.update}" value="#{bundle.Save}" update=":PersonListForm:datalist,:messages" oncomplete="handleSubmit(args, 'PersonEditDialog');"/>
                 <!-- JYFR: Indicamos el atributo 'immediate="true"' para evitar que se hagan las validaciones AJAX al cancelar -->
-                <p:commandButton value="#{bundle.Cancel}" onclick="PersonEditDialog.hide()" immediate="true" rendered="#{(personController.selected != null) and (personController.selected.personId != null)}" />
+                <p:commandButton value="#{bundle.Cancel}" onclick="PF('PersonEditDialog').hide()" immediate="true" rendered="#{(personController.selected != null) and (personController.selected.personId != null)}" />
             </h:form>
         </p:dialog>
     </ui:composition>

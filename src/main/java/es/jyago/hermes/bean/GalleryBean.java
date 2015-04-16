@@ -17,6 +17,7 @@ import javax.faces.bean.ManagedProperty;
  *
  * @author Jorge Yago
  */
+// JYFR: Tiene que ser @ManagedBean en lugar de @Named para que pueda gestionarlo PrimeFaces.
 @ManagedBean
 public class GalleryBean {
 

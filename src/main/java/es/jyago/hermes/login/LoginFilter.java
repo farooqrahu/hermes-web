@@ -16,6 +16,8 @@ import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
 
 /**
+ * Filtro de acceso. Para cualquier petición de URL, si el usuario no está
+ * registrado se le manda a la página de inicio.
  *
  * @author Jorge Yago
  */
@@ -30,7 +32,7 @@ public class LoginFilter implements Filter {
             // El usuario está registrado, lo redirigimos a la página solicitada.
             chain.doFilter(request, response);
         } else {
-            // El usuario no está registrado, lo redirigimos a la página de login.
+            // El usuario no está registrado, lo redirigimos a la página de inicio.
             HttpServletResponse res = (HttpServletResponse) response;
             res.sendRedirect(req.getContextPath() + "/faces/index.xhtml");
         }

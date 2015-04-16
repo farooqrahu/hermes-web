@@ -95,6 +95,43 @@
     width: 16px !important;
 }
 
+.steps-icon {
+    background: url(img/steps.png) no-repeat !important;
+    height: 16px !important;
+    width: 16px !important;
+}
+
+.pieChart-icon {
+    background: url(img/pieChart.png) no-repeat !important;
+    height: 16px !important;
+    width: 16px !important;
+}
+
+.lineChart-icon {
+    background: url(img/lineChart.png) no-repeat !important;
+    height: 16px !important;
+    width: 16px !important;
+}
+
+.barChart-icon {
+    background: url(img/barChart.png) no-repeat !important;
+    height: 16px !important;
+    width: 16px !important;
+}
+
+.footerInfoPanel {
+    border: none !important;
+    position: absolute;
+    left: 2px;
+    top: -6px;
+}
+
+.footerSeparator {
+    margin-left: 5px;
+    margin-right: 5px;
+    border-left: 1px solid;
+}
+
 /* JYFR - Inicio PRUEBA */
 .jqplot-meterGauge-tick {
     font-size: 0.75em;
@@ -103,6 +140,10 @@
 
 .jqplot-meterGauge-label {
     font-size: 1em;
+    color: #000000;
+}
+
+.jqplot-meterGauge-ring {
     color: #000000;
 }
 /* JYFR - Fin PRUEBA */

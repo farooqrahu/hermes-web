@@ -28,7 +28,7 @@
                     </p:panelGrid>
                     <p:commandButton actionListener="#{personController.sendToZtreamy()}" value="#{bundle.Send}" update="display,:PersonListForm:datalist,:messages" oncomplete="handleSubmit(args, 'PersonSendDialog');"/>
                     <!-- JYFR: Indicamos el atributo 'immediate="true"' para evitar que se hagan las validaciones AJAX al cancelar -->
-                    <p:commandButton value="#{bundle.Cancel}" onclick="PersonSendDialog.hide()" immediate="true" />
+                    <p:commandButton value="#{bundle.Cancel}" onclick="PF('PersonSendDialog').hide()" immediate="true" />
                 </h:panelGroup>
             </h:form>
         </p:dialog>

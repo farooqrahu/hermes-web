@@ -3,13 +3,14 @@ package es.jyago.hermes.bean;
 import java.io.Serializable;
 import java.util.Map;
 import java.util.TreeMap;
-
 import javax.faces.bean.ManagedBean;
+
 import javax.faces.bean.SessionScoped;
 import javax.faces.event.AjaxBehaviorEvent;
 
 import org.primefaces.component.themeswitcher.ThemeSwitcher;
 
+// JYFR: Tiene que ser @ManagedBean en lugar de @Named para que pueda gestionarlo PrimeFaces.
 @ManagedBean
 @SessionScoped
 public class ThemeBean implements Serializable{

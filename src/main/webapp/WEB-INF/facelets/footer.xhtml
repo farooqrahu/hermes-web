@@ -7,19 +7,17 @@
                 xmlns:f="http://java.sun.com/jsf/core"
                 xmlns:c="http://xmlns.jcp.org/jsp/jstl/core">
 
-    <div style="position:absolute; left: 10px; bottom: 0px;">
 
-        <p:outputPanel id="logoutPanel">
-            <h:form>
-                <p:commandButton id="logout" type="submit" value="#{bundle.Logout}"
-                                 image="logout-icon" action="#{userLogin.logout()}" ajax="false"
-                                 title="#{bundle.Logout}" rendered="#{userLogin.loggedIn}"/>
-                <p:outputLabel value="#{userLogin.user.toString()}"/>
-            </h:form>
-        </p:outputPanel>
-    </div>
+    <p:outputPanel id="logoutPanel" class="footerInfoPanel">
+        <h:form rendered="#{userLogin.loggedIn}">
+            <p:commandButton id="logout" type="submit" value="#{bundle.Logout}"
+                             image="logout-icon" action="#{userLogin.logout()}" ajax="false"
+                             title="#{bundle.Logout}" />
+            <h:outputText value="#{userLogin.user.toString()}" style="margin-left: 5px;"/>
+        </h:form>
+    </p:outputPanel>
 
-    <div style="position:absolute; right: 10px; bottom: 6px;">
+    <div style="position:absolute; right: 10px; bottom: 10px;">
         <p:clock pattern="HH:mm:ss - dd/MM/yyyy" mode="server" />
     </div>
 

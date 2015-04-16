@@ -8,12 +8,7 @@ package es.jyago.hermes.util;
 import es.jyago.hermes.person.Person;
 import es.jyago.hermes.person.PersonFacade;
 import java.io.ByteArrayInputStream;
-import java.io.ByteArrayOutputStream;
 import java.io.IOException;
-import java.io.InputStream;
-import java.net.URL;
-import java.util.logging.Level;
-import java.util.logging.Logger;
 import javax.ejb.EJB;
 import javax.faces.bean.ApplicationScoped;
 import javax.faces.bean.ManagedBean;
@@ -28,6 +23,7 @@ import org.primefaces.model.StreamedContent;
  *
  * @author Jorge Yago
  */
+// JYFR: Tiene que ser @ManagedBean en lugar de @Named para que pueda gestionarlo PrimeFaces.
 @ManagedBean
 @ApplicationScoped
 public class ImageStreamer {

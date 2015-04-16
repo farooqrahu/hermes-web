@@ -2,6 +2,7 @@ package es.jyago.hermes.login;
 
 import es.jyago.hermes.person.Person;
 import java.util.ResourceBundle;
+import java.util.logging.Level;
 import java.util.logging.Logger;
 import javax.ejb.EJB;
 import javax.faces.application.FacesMessage;
@@ -11,13 +12,13 @@ import javax.faces.bean.SessionScoped;
 import javax.faces.context.FacesContext;
 import javax.faces.event.ActionEvent;
 import javax.persistence.NoResultException;
-import org.jfree.util.Log;
 
+// JYFR: Tiene que ser @ManagedBean en lugar de @Named para que pueda gestionarlo PrimeFaces.
 @ManagedBean(name = "userLogin")
 @SessionScoped
 public class LoginBean {
 
-    private static final Logger LOG = Logger.getLogger(LoginBean.class.getName());
+    private static final Logger log = Logger.getLogger(LoginBean.class.getName());
     private String username;
     private String password;
     private Person user;
@@ -63,9 +64,9 @@ public class LoginBean {
 
             FacesContext.getCurrentInstance().addMessage(null, message);
         } catch (NoResultException ex) {
-            Log.debug("No existe el usuario: " + username, ex);
+            log.log(Level.SEVERE, "login() - No existe el usuario: " + username, ex);
         } catch (Exception ex) {
-            Log.error("Error al acceder al sistema", ex);
+            log.log(Level.SEVERE, "login() - Error al acceder al sistema", ex);
         }
     }
 
@@ -75,7 +76,7 @@ public class LoginBean {
     }
 
     public void keepSessionAlive() {
-        Log.debug("Mantener activa la sesión del usuario: " + username);
+        log.log(Level.INFO, "keepSessionAlive() - Mantener activa la sesiónn del usuario: {0}", username);
     }
 
     public boolean isLoggedIn() {

@@ -182,6 +182,6 @@ public class ScheduleBean implements Serializable {
     }
      
     private void addMessage(FacesMessage message) {
-        FacesContext.getCurrentInstance().addMessage(null, message);
+        FacesContext.getCurrentInstance().addMessage("messages", message);
     }
 }

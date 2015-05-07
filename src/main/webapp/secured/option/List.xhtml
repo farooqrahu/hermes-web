@@ -13,6 +13,14 @@
         </ui:define>
 
         <ui:define name="content">
+            <p:confirmDialog header="#{bundle.Confirmation}" message="#{bundle.DeleteElementConfirm}" global="false" severity="alert" widgetVar="DeleteDialog" appendTo="@(body)">
+                <!-- El confirmDialog necesita su propio formulario porque al usar appendTo="@(body)" para evitar que salga el 'dialog' por debajo del fondo, se añade al final del HTML, fuera del formulario principal -->
+                <h:form id="DeletePersonForm">
+                    <p:commandButton value="#{bundle.Yes}" styleClass="ui-confirmdialog-yes" icon="ui-icon-check" oncomplete="PF('DeleteDialog').hide()" update=":OptionListForm:datalist" action="#{configurationController.destroy()}"/>
+                    <p:commandButton value="#{bundle.No}" type="button" styleClass="ui-confirmdialog-no" icon="ui-icon-close" onclick="PF('DeleteDialog').hide()" />
+                </h:form>
+            </p:confirmDialog>
+            
             <h:form id="OptionListForm">
                 <p:panel header="#{bundle.ListOptionTitle}">
                     <p:dataTable id="datalist" value="#{configurationController.items}" var="item"
@@ -21,42 +29,44 @@
                                  rowKey="#{item.optionKey}"
                                  rows="10"
                                  rowsPerPageTemplate="10,20,30,40,50"
+                                 emptyMessage="#{bundle.NoRows}"
+                                 sortBy="#{bundle[item.optionKey]}"
+                                 sortOrder="ascending"
                                  >
 
-                        <p:ajax event="rowSelect"   update="createButton viewButton editButton deleteButton"/>
-                        <p:ajax event="rowUnselect" update="createButton viewButton editButton deleteButton"/>
+                        <f:facet name="header">
+                            <p:commandButton id="createButton" icon="ui-icon-plus" style="float: left; margin-top: 7px !important" value="#{bundle.Create}" actionListener="#{configurationController.prepareCreate}" update=":OptionCreateForm, :messages" oncomplete="PF('OptionCreateDialog').show()"/>
+                        </f:facet>
 
-                        <p:column>
+                        <p:column sortBy="#{bundle[item.optionKey]}" filterBy="#{bundle[item.optionKey]}" style="width:70%">
                             <f:facet name="header">
-                                <h:outputText value="#{bundle.ListOptionTitle_optionLabel}"/>
+                                <h:outputText value="#{bundle.Option}"/>
                             </f:facet>
-                            <h:outputText value="#{item.optionLabel}"/>
+                            <h:outputText value="#{bundle[item.optionKey]}"/>
                         </p:column>
-                        <p:column>
+                        <p:column sortBy="#{item.optionValue}" filterBy="#{item.optionValue}" style="width: 30%">
                             <f:facet name="header">
                                 <h:outputText value="#{bundle.ListOptionTitle_optionValue}"/>
                             </f:facet>
                             <h:outputText value="#{item.optionValue}"/>
                         </p:column>
-                        <p:column>
-                            <f:facet name="header">
-                                <h:outputText value="#{bundle.ListOptionTitle_optionDescription}"/>
-                            </f:facet>
-                            <h:outputText value="#{item.optionDescription}"/>
-                        </p:column>
-                        <f:facet name="footer">
-                            <p:commandButton id="createButton" icon="ui-icon-plus"   value="#{bundle.Create}" actionListener="#{configurationController.prepareCreate}" update=":OptionCreateForm" oncomplete="PF('OptionCreateDialog').show()"/>
-                            <p:commandButton id="viewButton"   icon="ui-icon-search" value="#{bundle.View}" update=":OptionViewForm" oncomplete="PF('OptionViewDialog').show()" disabled="#{empty configurationController.selected}"/>
-                            <p:commandButton id="editButton"   icon="ui-icon-pencil" value="#{bundle.Edit}" update=":OptionEditForm" oncomplete="PF('OptionEditDialog').show()" disabled="#{empty configurationController.selected}"/>
-                            <p:commandButton id="deleteButton" icon="ui-icon-trash"  value="#{bundle.Delete}" actionListener="#{configurationController.destroy}" update=":messages,datalist" disabled="#{empty configurationController.selected}"/>
-                        </f:facet>
+                        <!--                        <f:facet name="footer">
+                                                    <p:commandButton id="createButton" icon="ui-icon-plus"   value="#{bundle.Create}" actionListener="#{configurationController.prepareCreate}" update=":OptionCreateForm" oncomplete="PF('OptionCreateDialog').show()"/>
+                                                    <p:commandButton id="editButton"   icon="ui-icon-pencil" value="#{bundle.Edit}" update=":OptionEditForm" oncomplete="PF('OptionEditDialog').show()" disabled="#{empty configurationController.selected}"/>
+                                                    <p:commandButton id="deleteButton" icon="ui-icon-trash"  value="#{bundle.Delete}" actionListener="#{configurationController.destroy}" update=":messages,datalist" disabled="#{empty configurationController.selected}"/>
+                                                </f:facet>-->
                     </p:dataTable>
+
+                    <!-- Menú contextual -->
+                    <p:contextMenu id="contextMenu" widgetVar="ctxMenu" for="datalist" selectionMode="single">
+                        <p:menuitem id="editButton"   icon="ui-icon-pencil" value="#{bundle.Edit}"   update=":OptionEditForm" oncomplete="PF('OptionEditDialog').show()"/>
+                        <p:menuitem id="deleteButton" icon="ui-icon-trash"  value="#{bundle.Delete}"                          oncomplete="PF('DeleteDialog').show()"/>
+                    </p:contextMenu>
                 </p:panel>
             </h:form>
 
             <ui:include src="Create.xhtml"/>
             <ui:include src="Edit.xhtml"/>
-            <ui:include src="View.xhtml"/>
         </ui:define>
     </ui:composition>
 

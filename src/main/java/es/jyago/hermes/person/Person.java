@@ -7,15 +7,20 @@ package es.jyago.hermes.person;
 
 import es.jyago.hermes.activityLog.ActivityLog;
 import es.jyago.hermes.chart.LineChartInterface;
+import es.jyago.hermes.configuration.Configuration;
 import es.jyago.hermes.csv.CSVBeanInterface;
+import es.jyago.hermes.person.configuration.PersonConfiguration;
 import es.jyago.hermes.role.Role;
 import es.jyago.hermes.util.Constants;
 import java.io.IOException;
 import java.io.Serializable;
 import java.util.ArrayList;
+import java.util.Calendar;
 import java.util.Date;
+import java.util.HashMap;
 import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.ResourceBundle;
 import java.util.logging.Level;
 import java.util.logging.Logger;
@@ -33,7 +38,9 @@ import javax.persistence.NamedQueries;
 import javax.persistence.NamedQuery;
 import javax.persistence.OneToMany;
 import javax.persistence.OrderBy;
+import javax.persistence.PostLoad;
 import javax.persistence.Table;
+import javax.persistence.Transient;
 import javax.persistence.UniqueConstraint;
 import javax.validation.constraints.NotNull;
 import javax.validation.constraints.Size;
@@ -43,6 +50,9 @@ import org.primefaces.event.FileUploadEvent;
 import org.primefaces.model.UploadedFile;
 import org.primefaces.model.chart.Axis;
 import org.primefaces.model.chart.AxisType;
+import org.primefaces.model.chart.BarChartModel;
+import org.primefaces.model.chart.CategoryAxis;
+import org.primefaces.model.chart.ChartSeries;
 import org.primefaces.model.chart.DateAxis;
 import org.primefaces.model.chart.LineChartModel;
 import org.primefaces.model.chart.LineChartSeries;
@@ -53,7 +63,7 @@ import org.supercsv.cellprocessor.ift.CellProcessor;
  * @author Jorge Yago
  */
 @Entity
-@Table(name = "person", uniqueConstraints = @UniqueConstraint(columnNames={"username"}))
+@Table(name = "person", uniqueConstraints = @UniqueConstraint(columnNames = {"username"}))
 @XmlRootElement
 @NamedQueries({
     @NamedQuery(name = "Person.findAll", query = "SELECT p FROM Person p"),
@@ -69,6 +79,13 @@ import org.supercsv.cellprocessor.ift.CellProcessor;
     @NamedQuery(name = "Person.findByUsernamePassword", query = "SELECT p FROM Person p WHERE p.username = :username AND p.password = :password"),
     @NamedQuery(name = "Person.findByUsername", query = "SELECT p FROM Person p WHERE p.username = :username")})
 public class Person implements Serializable, CSVBeanInterface, LineChartInterface {
+
+    private static final Logger log = Logger.getLogger(Person.class.getName());
+
+    public static enum PersonOptions {
+
+        StepsGoal, MinimumSessionMinutes, EndSessionStoppedMinutes, RestStepsThreshold, SessionsPerWeek
+    }
 
     private static final long serialVersionUID = 1L;
     @Id
@@ -128,18 +145,37 @@ public class Person implements Serializable, CSVBeanInterface, LineChartInterfac
     @Size(min = 1, max = 20)
     @Column(name = "password")
     private String password;
-    @Column(name = "steps_goal")
-    private int stepsGoal;
-    @Column(name = "min_session_minutes")
-    private int minSessionMinutes;
-    @Column(name = "end_session_stopped_minutes")
-    private int endSessionStoppedMinutes;
-    @Column(name = "rest_steps_threshold")
-    private int restStepsThreshold;
+    @OneToMany(cascade = CascadeType.ALL, mappedBy = "person", orphanRemoval = true)
+    private List<PersonConfiguration> configurationCollection;
+    @Transient
+    private HashMap<String, PersonConfiguration> configurationCollectionHashMap;
+    @Transient
+    private int thisWeekSessions;
 
     public Person() {
+    }
+
+    public Person(List<Configuration> configList) {
         // Por defecto, la persona tendrá un rol de usuario.
         this.role = new Role(Constants.USER_ROLE);
+    }
+
+    // JYFR: Método que será invocado automáticamente tras cargar los datos de la base de datos y de ser inyectados en los atributos correspondientes.
+    @PostLoad
+    private void init() {
+        prepareConfigurationCollectionHashMap();
+        calculateSessions();
+    }
+
+    private void addConfiguration(Configuration c) {
+        PersonConfiguration pc;
+        if (c != null) {
+            pc = new PersonConfiguration();
+            pc.setPerson(this);
+            pc.setOption(c);
+            pc.setValue(c.getOptionValue());
+            configurationCollection.add(pc);
+        }
     }
 
     public Integer getPersonId() {
@@ -204,7 +240,7 @@ public class Person implements Serializable, CSVBeanInterface, LineChartInterfac
         try {
             photo = IOUtils.toByteArray(file.getInputstream());
         } catch (IOException ex) {
-            Logger.getLogger(Person.class.getName()).log(Level.SEVERE, "Error al subir la foto", ex);
+            Logger.getLogger(Person.class.getName()).log(Level.SEVERE, "uploadPhoto() - Error al subir la foto", ex);
         }
     }
 
@@ -250,6 +286,46 @@ public class Person implements Serializable, CSVBeanInterface, LineChartInterfac
 
     public List<ActivityLog> getActivityLogCollection() {
         return activityLogCollection;
+    }
+
+    public boolean isAdmin() {
+        return this.role.getRoleId().equals(Constants.ADMINISTRATOR_ROLE);
+    }
+
+    public boolean isDoctor() {
+        return this.role.getRoleId().equals(Constants.DOCTOR_ROLE);
+    }
+
+    public String getFullName() {
+        StringBuilder sb = new StringBuilder();
+
+        sb.append(this.firstName).append(" ").append(this.surname1).append(" ").append(this.surname2);
+
+        return sb.toString();
+    }
+
+    private void calculateSessions() {
+        thisWeekSessions = 0;
+
+        Calendar cal = Calendar.getInstance();
+        int currentWeek = cal.get(Calendar.WEEK_OF_YEAR);
+
+        for (ActivityLog al : activityLogCollection) {
+            cal.setTime(al.getDate());
+            int week = cal.get(Calendar.WEEK_OF_YEAR);
+            if (week == currentWeek) {
+                // Vamos sumando las sesiones de cada día de la semana.
+                thisWeekSessions += al.getSessionsTotal();
+            } else {
+                // Como la colección de actividades viene ordenada por fecha descendentemente,
+                // cuando sea otra semana podemos salir del bucle.
+                break;
+            }
+        }
+    }
+
+    public int getThisWeekSessions() {
+        return thisWeekSessions;
     }
 
     /**
@@ -306,42 +382,49 @@ public class Person implements Serializable, CSVBeanInterface, LineChartInterfac
         this.password = password;
     }
 
-    public int getStepsGoal() {
-        return stepsGoal;
+    public List<PersonConfiguration> getConfigurationCollection() {
+        return configurationCollection;
     }
 
-    public void setStepsGoal(int stepsGoal) {
-        this.stepsGoal = stepsGoal;
+    public HashMap<String, PersonConfiguration> getConfigurationHashMap() {
+        return configurationCollectionHashMap;
     }
 
-    public int getMinSessionMinutes() {
-        return minSessionMinutes;
+    public int getConfigurationIntValue(String key) {
+        int value = 0;
+        String stringValue = "";
+
+        try {
+            stringValue = configurationCollectionHashMap.get(key).getValue();
+            value = Integer.parseInt(stringValue);
+        } catch (NumberFormatException e) {
+            log.log(Level.WARNING, "getConfigurationIntValue() - El valor [{0}] de la clave [{1}] no es un entero. Se devolverá un '0'", new Object[]{stringValue, key});
+        }
+
+        return value;
     }
 
-    public void setMinSessionMinutes(int minSessionMinutes) {
-        this.minSessionMinutes = minSessionMinutes;
+    public void setConfigurationCollection(List<PersonConfiguration> configurationCollection) {
+        this.configurationCollection = configurationCollection;
+        prepareConfigurationCollectionHashMap();
     }
 
-    public int getEndSessionStoppedMinutes() {
-        return endSessionStoppedMinutes;
-    }
+    public void prepareConfigurationCollectionHashMap() {
+        this.configurationCollectionHashMap = new HashMap<>();
 
-    public void setEndSessionStoppedMinutes(int endSessionStoppedMinutes) {
-        this.endSessionStoppedMinutes = endSessionStoppedMinutes;
-    }
-
-    public int getRestStepsThreshold() {
-        return restStepsThreshold;
-    }
-
-    public void setRestStepsThreshold(int restStepsThreshold) {
-        this.restStepsThreshold = restStepsThreshold;
+        if (configurationCollection != null) {
+            for (PersonConfiguration c : configurationCollection) {
+                if (c.getOption() != null) {
+                    configurationCollectionHashMap.put(c.getOption().getOptionKey(), c);
+                }
+            }
+        }
     }
 
     public Date getLastSynchronization() {
         if (activityLogCollection != null && !activityLogCollection.isEmpty()) {
-            List<ActivityLog> listActivityLog = new ArrayList(activityLogCollection);
-            return listActivityLog.get(listActivityLog.size() - 1).getDate();
+            // Al tener la colección de actividades una ordenación ascendente, la actividad más reciente será la que esté en última posición.
+            return activityLogCollection.get(activityLogCollection.size()-1).getDate();
         } else {
             return null;
         }
@@ -383,14 +466,149 @@ public class Person implements Serializable, CSVBeanInterface, LineChartInterfac
         DateAxis xAxis = new DateAxis(ResourceBundle.getBundle("/Bundle").getString("Days"));
         xAxis.setTickAngle(-45);
         xAxis.setTickFormat("%d/%m/%Y");
-        xAxis.setTickAngle(-45);
         model.getAxes().put(AxisType.X, xAxis);
-        
+
         Axis yAxis = model.getAxis(AxisType.Y);
         yAxis.setLabel(ResourceBundle.getBundle("/Bundle").getString("Steps"));
         yAxis.setMin(0);
 
-        model.addSeries(series);
+        if (!series.getData().isEmpty()) {
+            model.addSeries(series);
+        }
+
+        return model;
+    }
+
+//    public BarChartModel getSessionsBarChartModel(LinkedHashMap<Date, Integer> steps, LinkedHashMap<Date, Integer> continuousSteps, LinkedHashMap<Date, Integer> sessions, String title) {
+//        BarChartModel model = new BarChartModel();
+//        ChartSeries stepsSeries = new ChartSeries();
+//        ChartSeries continuousStepsSeries = new ChartSeries();
+//        ChartSeries sessionsSeries = new ChartSeries();
+//
+//        // TODO: Ver si quitamos los parámetros para coger los datos directamente de la clase.
+//        // TODO: Poner/quitar 'interface' para gráficos de barras.
+//        // TODO: Si pasamos los 'hashmaps', que tengan el formato necesario para representarlos y así no hay que hacer estos 3 bucles for.
+//        // Rellenamos la serie con las fechas y los totales de pasos.
+//        for (Map.Entry<Date, Integer> entry : steps.entrySet()) {
+//            // FIXME: Cuando arreglen el bug en Primefaces
+////            stepsSeries.set(entry.getKey().getTime(), entry.getValue());
+//            stepsSeries.set(Constants.df.format(entry.getKey()), entry.getValue());
+//        }
+//
+//        // Rellenamos la serie con las fechas y las sesiones.
+//        for (Map.Entry<Date, Integer> entry : sessions.entrySet()) {
+//            // FIXME: Cuando arreglen el bug en Primefaces
+////            sessionsSeries.set(entry.getKey().getTime(), entry.getValue());
+//            sessionsSeries.set(Constants.df.format(entry.getKey()), entry.getValue());
+//        }
+//
+//        // Rellenamos la serie con las fechas y los pasos en continuo de las sesiones.
+//        for (Map.Entry<Date, Integer> entry : continuousSteps.entrySet()) {
+//            // FIXME: Cuando arreglen el bug en Primefaces
+////            continuousStepsSeries.set(entry.getKey().getTime(), entry.getValue());
+//            continuousStepsSeries.set(Constants.df.format(entry.getKey()), entry.getValue());
+//        }
+//
+//        // Indicamos el texto de la leyenda.
+//        stepsSeries.setLabel(ResourceBundle.getBundle("/Bundle").getString("Steps"));
+//        continuousStepsSeries.setLabel(ResourceBundle.getBundle("/Bundle").getString("ContinuousSteps"));
+//        sessionsSeries.setLabel(ResourceBundle.getBundle("/Bundle").getString("Sessions"));
+//
+//        model.setTitle(title);
+//        model.setLegendPosition("ne");
+//        model.setShowPointLabels(true);
+//        model.setShowDatatip(true);
+//        model.setMouseoverHighlight(false);
+////        model.setDatatipFormat("%1$s -> %2$d");
+//        model.setSeriesColors("AEC6CF, AAEEAA, FFB347");
+//        model.setAnimate(true);
+//        model.setZoom(false);
+////        model.setStacked(true);
+//
+//        // FIXME: No funciona por un bug de Primefaces. Está marcado como registrado el 16 de abril de 2015.
+////        DateAxis xAxis = new DateAxis(ResourceBundle.getBundle("/Bundle").getString("Days"));
+////        xAxis.setTickAngle(-45);
+////        xAxis.setTickFormat("%d/%m/%Y");
+////        model.getAxes().put(AxisType.X, xAxis);
+//        CategoryAxis xAxis = new CategoryAxis(ResourceBundle.getBundle("/Bundle").getString("Days"));
+//        xAxis.setTickAngle(-45);
+////        xAxis.setTickFormat("%d/%m/%Y");
+//        model.getAxes().put(AxisType.X, xAxis);
+//
+//        Axis yAxis = model.getAxis(AxisType.Y);
+//        yAxis.setLabel(ResourceBundle.getBundle("/Bundle").getString("Steps"));
+//        yAxis.setMin(0);
+//
+//        if (!stepsSeries.getData().isEmpty()) {
+//            model.addSeries(stepsSeries);
+//        }
+//        if (!continuousStepsSeries.getData().isEmpty()) {
+//            model.addSeries(continuousStepsSeries);
+//        }
+//        if (!sessionsSeries.getData().isEmpty()) {
+//            model.addSeries(sessionsSeries);
+//        }
+//
+//        return model;
+//    }
+    
+    public BarChartModel getSessionsBarChartModel(LinkedHashMap<String, Integer> activeSessionsSteps, LinkedHashMap<String, Integer> continuousSteps, String title) {
+        BarChartModel model = new BarChartModel();
+        ChartSeries sessionsStepsSeries = new ChartSeries();
+        ChartSeries continuousStepsSeries = new ChartSeries();
+
+        // TODO: Ver si quitamos los parámetros para coger los datos directamente de la clase.
+        // TODO: Poner/quitar 'interface' para gráficos de barras.
+        // TODO: Si pasamos los 'hashmaps', que tengan el formato necesario para representarlos y así no hay que hacer estos 3 bucles for.
+        // Rellenamos la serie con las fechas y los totales de pasos de la sesión.
+        for (Map.Entry<String, Integer> entry : activeSessionsSteps.entrySet()) {
+            // FIXME: Cuando arreglen el bug en Primefaces
+//            stepsSeries.set(entry.getKey().getTime(), entry.getValue());
+            sessionsStepsSeries.set(entry.getKey(), entry.getValue());
+        }
+
+        // Rellenamos la serie con las fechas y los pasos en continuo de las sesiones.
+        for (Map.Entry<String, Integer> entry : continuousSteps.entrySet()) {
+            // FIXME: Cuando arreglen el bug en Primefaces
+//            continuousStepsSeries.set(entry.getKey().getTime(), entry.getValue());
+            continuousStepsSeries.set(entry.getKey(), entry.getValue());
+        }
+
+        // Indicamos el texto de la leyenda.
+        sessionsStepsSeries.setLabel(ResourceBundle.getBundle("/Bundle").getString("StepsPerSession"));
+        continuousStepsSeries.setLabel(ResourceBundle.getBundle("/Bundle").getString("ContinuousSteps"));
+
+        model.setTitle(title);
+        model.setLegendPosition("ne");
+        model.setShowPointLabels(true);
+        model.setShowDatatip(true);
+        model.setMouseoverHighlight(false);
+//        model.setDatatipFormat("%1$s -> %2$d");
+        model.setSeriesColors("AEC6CF, FFB347");
+        model.setAnimate(true);
+        model.setZoom(false);
+//        model.setStacked(true);
+
+        // FIXME: No funciona por un bug de Primefaces. Está marcado como registrado el 16 de abril de 2015.
+//        DateAxis xAxis = new DateAxis(ResourceBundle.getBundle("/Bundle").getString("Days"));
+//        xAxis.setTickAngle(-45);
+//        xAxis.setTickFormat("%d/%m/%Y");
+//        model.getAxes().put(AxisType.X, xAxis);
+        CategoryAxis xAxis = new CategoryAxis(ResourceBundle.getBundle("/Bundle").getString("Days"));
+        xAxis.setTickAngle(90);
+//        xAxis.setTickFormat("%d/%m/%Y");
+        model.getAxes().put(AxisType.X, xAxis);
+
+        Axis yAxis = model.getAxis(AxisType.Y);
+        yAxis.setLabel(ResourceBundle.getBundle("/Bundle").getString("Steps"));
+        yAxis.setMin(0);
+
+        if (!sessionsStepsSeries.getData().isEmpty()) {
+            model.addSeries(sessionsStepsSeries);
+        }
+        if (!continuousStepsSeries.getData().isEmpty()) {
+            model.addSeries(continuousStepsSeries);
+        }
 
         return model;
     }
@@ -415,11 +633,7 @@ public class Person implements Serializable, CSVBeanInterface, LineChartInterfac
 
     @Override
     public String toString() {
-        StringBuilder sb = new StringBuilder();
-
-        sb.append(this.firstName).append(" ").append(this.surname1).append(" ").append(this.surname2);
-
-        return sb.toString();
+        return getFullName();
     }
 
     @Override

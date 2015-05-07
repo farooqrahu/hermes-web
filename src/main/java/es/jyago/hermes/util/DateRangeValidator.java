@@ -31,24 +31,37 @@ public class DateRangeValidator implements Validator {
      *
      * @param context
      * @param component
-     * @param endDateValue
+     * @param dateValue
      * @throws ValidatorException
      */
     @Override
-    public void validate(FacesContext context, UIComponent component, Object endDateValue) throws ValidatorException {
-        // Si la fecha de fin no tiene valor, la validación es correcta.
-        if (endDateValue == null) {
+    public void validate(FacesContext context, UIComponent component, Object dateValue) throws ValidatorException {
+        // Si la fecha es nula, la validación es correcta porque no hay nada que validar.
+        if (dateValue == null) {
             return;
         }
 
-        // Si la fecha de fin tiene valor, pero la fecha de inicio no tiene valor, la validación es correcta.
+        // Comprobamos si el componente que solicita la validación es el de fecha de inicio o el de fecha de fin.
+        Object endDateValue = component.getAttributes().get("endDate");
         Object startDateValue = component.getAttributes().get("startDate");
-        if (startDateValue == null) {
+
+        if (endDateValue == null && startDateValue == null) {
             return;
         }
 
-        LocalDate startDate = new LocalDate(startDateValue);
-        LocalDate endDate = new LocalDate(endDateValue);
+        LocalDate startDate = null;
+        LocalDate endDate = null;
+
+        if (startDateValue != null) {
+            startDate = new LocalDate(startDateValue);
+            endDate = new LocalDate(dateValue);
+        } else if (endDateValue != null) {
+            startDate = new LocalDate(dateValue);
+            endDate = new LocalDate(endDateValue);
+        } else {
+            return;
+        }
+
         // Si la fecha de inicio es anterior a la fecha de fin, la validación es correcta.
         // En otro caso, se lanza la excepción.
         if (endDate.isBefore(startDate)) {

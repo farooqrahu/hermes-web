@@ -10,23 +10,26 @@ import java.util.logging.Level;
 import java.util.logging.Logger;
 import javax.ejb.EJB;
 import javax.ejb.EJBException;
-import javax.inject.Named;
 import javax.enterprise.context.SessionScoped;
 import javax.faces.component.UIComponent;
 import javax.faces.context.FacesContext;
 import javax.faces.convert.Converter;
 import javax.faces.convert.FacesConverter;
+import javax.inject.Named;
+import javax.persistence.NoResultException;
 
 @Named("configurationController")
 @SessionScoped
 public class ConfigurationController implements Serializable {
 
+    private static final Logger log = Logger.getLogger(ConfigurationController.class.getName());
     @EJB
     private es.jyago.hermes.configuration.ConfigurationFacade ejbFacade;
     private List<Configuration> items = null;
     private Configuration selected;
 
     public ConfigurationController() {
+        log.log(Level.INFO, "ConfigurationController() - Inicialización del controlador de configuración");
     }
 
     public Configuration getSelected() {
@@ -89,6 +92,9 @@ public class ConfigurationController implements Serializable {
                     getFacade().remove(selected);
                 }
                 JsfUtil.addSuccessMessage(successMessage);
+                
+                // Mostramos el mensaje 
+                JsfUtil.showHelpMessage(ResourceBundle.getBundle("/Bundle").getString("ApplyNextLoginInfo"));
             } catch (EJBException ex) {
                 String msg = "";
                 Throwable cause = ex.getCause();
@@ -105,6 +111,46 @@ public class ConfigurationController implements Serializable {
                 JsfUtil.addErrorMessage(ex, ResourceBundle.getBundle("/Bundle").getString("PersistenceErrorOccured"));
             }
         }
+    }
+
+    public Configuration getItemByKey(String key) {
+        Configuration result = null;
+
+        try {
+            result = (Configuration) ejbFacade.getEntityManager().createNamedQuery("Configuration.findByOptionKey")
+                    .setParameter("optionKey", key)
+                    .getSingleResult();
+        } catch (NoResultException ex) {
+            FacesContext.getCurrentInstance().validationFailed();
+            log.log(Level.INFO, "getItemByKey() - No existe la configuración con clave: {0}", key);
+        }
+
+        return result;
+    }
+
+    public String getValueFromItemByKey(String key) {
+        Configuration option = getItemByKey(key);
+        String value = null;
+
+        if (option != null) {
+            value = option.getOptionValue();
+        }
+
+        return value;
+    }
+
+    public int getIntValueFromItemByKey(String key) {
+        int value = 0;
+        String stringValue = "";
+
+        try {
+            stringValue = getValueFromItemByKey(key);
+            value = Integer.parseInt(stringValue);
+        } catch (NumberFormatException e) {
+            log.log(Level.WARNING, "getIntValueFromItemByKey() - El valor [{0}] de la clave [{1}] no es un entero. Se devolverá un '0'", new Object[]{stringValue, key});
+        }
+
+        return value;
     }
 
     public Configuration getOption(java.lang.String id) {

@@ -5,9 +5,7 @@ import es.jyago.hermes.util.Constants;
 import es.jyago.hermes.util.JsfUtil;
 
 import java.io.Serializable;
-import java.util.Date;
 import java.util.HashMap;
-import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.MissingResourceException;
@@ -30,12 +28,15 @@ import org.primefaces.model.chart.LineChartModel;
 @SessionScoped
 public class ActivityLogController implements Serializable {
 
+    private static final Logger log = Logger.getLogger(ActivityLogController.class.getName());
+
     @EJB
     private es.jyago.hermes.activityLog.ActivityLogFacade ejbFacade;
     private List<ActivityLog> items = null;
     private ActivityLog selected;
 
     public ActivityLogController() {
+        log.log(Level.INFO, "ActivityLogController() - Inicialización del controlador de actividades");
     }
 
     public ActivityLog getSelected() {
@@ -88,11 +89,9 @@ public class ActivityLogController implements Serializable {
         return items;
     }
 
-    public String initListFromPerson(int personId) {
+    public void initListFromPerson(int personId) {
         items = ejbFacade.getEntityManager().createNamedQuery("ActivityLog.findAllFromPerson")
                 .setParameter("personId", personId).getResultList();
-
-        return "/faces/secured/activityLog/List.xhtml";
     }
 
     private void persist(JsfUtil.PersistAction persistAction, String successMessage) {
@@ -145,7 +144,7 @@ public class ActivityLogController implements Serializable {
 
             if (values == null) {
                 values = new HashMap();
-                values.put("Remaining", selected.getPerson().getStepsGoal());
+                values.put("Remaining", selected.getPerson().getConfigurationIntValue(Person.PersonOptions.StepsGoal.name()));
             }
 
             Map<String, Integer> localizedValues = new HashMap();
@@ -169,25 +168,15 @@ public class ActivityLogController implements Serializable {
 
     public LineChartModel getLineChartModel() {
         if (selected != null) {
-            LinkedHashMap<Date, Integer> values = selected.getValues();
-            if (values == null) {
-                values = new LinkedHashMap();
-            }
-
-            return selected.getLineModel(values, Constants.df.format(selected.getDate()));
+            return selected.getLineModel(selected.getValues(), Constants.df.format(selected.getDate()));
         }
 
         return null;
     }
 
-    public LineChartModel getAnalyzedChartModel() {
+    public LineChartModel getSessionsChartModel() {
         if (selected != null) {
-            LinkedHashMap<Date, Integer> values = selected.getValues();
-            if (values == null) {
-                values = new LinkedHashMap();
-            }
-
-            return selected.getAreaModel(values, Constants.df.format(selected.getDate()));
+            return selected.getAreaModel(Constants.df.format(selected.getDate()));
         }
 
         return null;

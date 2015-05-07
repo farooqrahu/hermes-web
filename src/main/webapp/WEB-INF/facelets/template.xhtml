@@ -13,11 +13,11 @@
             <ui:include src="sessionTimeOut.xhtml" />
 
             <!-- Mensajes informativos -->
-            <p:growl id="messages" showDetail="true"/>
+            <p:growl id="messages" for="messages" showDetail="true"/>
 
             <p:layout widgetVar="allLayouts" fullPage="true">
                 <!-- JYFR: Ventana emergente de 'Cargando...' -->
-                <p:ajaxStatus onstart="PF('statusDialog').show()" onsuccess="PF('statusDialog').hide()" />
+                <p:ajaxStatus onstart="PF('statusDialog').show()" oncomplete="PF('statusDialog').hide()" onerror="PF('statusDialog').hide()"/>
 
                 <p:dialog modal="true" widgetVar="statusDialog" header="#{bundle.Processing}" draggable="false" closable="false" resizable="false">
                     <p:graphicImage value="/resources/img/ajax_loading_bar.gif" />
@@ -35,7 +35,7 @@
                     <ui:insert name="content"/>
                 </p:layoutUnit>
                 <!-- PIE -->
-                <p:layoutUnit position="south" id="footer" resizable="false" size="40">
+                <p:layoutUnit position="south" id="footer" resizable="false" size="45" collapsed="#{!userLogin.loggedIn}">
                     <ui:include src="footer.xhtml"/>
                 </p:layoutUnit>
                 <p:log id="log" rendered="#{constants.debug}" />

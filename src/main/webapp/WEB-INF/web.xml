@@ -1,5 +1,12 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <web-app version="3.1" xmlns="http://xmlns.jcp.org/xml/ns/javaee" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://xmlns.jcp.org/xml/ns/javaee http://xmlns.jcp.org/xml/ns/javaee/web-app_3_1.xsd">
+    <!-- JYFR: Para llevar la cuenta de las sesiones activas -->
+    <listener>
+        <listener-class>
+            es.jyago.hermes.util.SessionCounter
+        </listener-class>
+    </listener>
+    
     <!-- CONTEXT PARAM -->
     <!-- JYFR: Para que no se muestren los comentarios en el HTML que se genera al usuario -->
     <context-param>
@@ -76,6 +83,8 @@
         <location>/WEB-INF/errorpages/404.xhtml</location>
     </error-page>
     -->
+    
+    <!-- JYFR: Filtro de acceso a las páginas -->
     <filter>
         <filter-name>LoginFilter</filter-name>
         <filter-class>es.jyago.hermes.login.LoginFilter</filter-class>
@@ -83,5 +92,16 @@
     <filter-mapping>
         <filter-name>LoginFilter</filter-name>
         <url-pattern>/faces/secured/*</url-pattern>
+    </filter-mapping>
+    
+    <!-- JYFR: Filtro de rol de ADMINISTRADOR -->
+    <filter>
+        <filter-name>AdminRoleFilter</filter-name>
+        <filter-class>es.jyago.hermes.login.AdminRoleFilter</filter-class>
+    </filter>
+    <filter-mapping>
+        <filter-name>AdminRoleFilter</filter-name>
+        <url-pattern>/faces/secured/option/*</url-pattern>
+        <url-pattern>/faces/secured/role/*</url-pattern>
     </filter-mapping>
 </web-app>

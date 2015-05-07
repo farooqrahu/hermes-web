@@ -1,8 +1,13 @@
 package es.jyago.hermes.util;
 
+import java.util.Date;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
+import java.util.ResourceBundle;
 import javax.faces.application.FacesMessage;
 import javax.faces.component.UIComponent;
+import javax.faces.context.ExternalContext;
 import javax.faces.context.FacesContext;
 import javax.faces.convert.Converter;
 import javax.faces.model.SelectItem;
@@ -44,22 +49,22 @@ public class JsfUtil {
 
     public static void addErrorMessage(String msg) {
         FacesMessage facesMsg = new FacesMessage(FacesMessage.SEVERITY_ERROR, msg, null);
-        FacesContext.getCurrentInstance().addMessage(null, facesMsg);
+        FacesContext.getCurrentInstance().addMessage("messages", facesMsg);
     }
-    
+
     public static void addErrorMessage(String msg, String dtl) {
         FacesMessage facesMsg = new FacesMessage(FacesMessage.SEVERITY_ERROR, msg, dtl);
-        FacesContext.getCurrentInstance().addMessage(null, facesMsg);
+        FacesContext.getCurrentInstance().addMessage("messages", facesMsg);
     }
 
     public static void addSuccessMessage(String msg) {
         FacesMessage facesMsg = new FacesMessage(FacesMessage.SEVERITY_INFO, msg, null);
-        FacesContext.getCurrentInstance().addMessage("successInfo", facesMsg);
+        FacesContext.getCurrentInstance().addMessage("messages", facesMsg);
     }
-    
+
     public static void addSuccessMessage(String msg, String dtl) {
         FacesMessage facesMsg = new FacesMessage(FacesMessage.SEVERITY_INFO, msg, dtl);
-        FacesContext.getCurrentInstance().addMessage("successInfo", facesMsg);
+        FacesContext.getCurrentInstance().addMessage("messages", facesMsg);
     }
 
     public static String getRequestParameter(String key) {
@@ -76,5 +81,37 @@ public class JsfUtil {
         CREATE,
         DELETE,
         UPDATE
+    }
+
+    /**
+     * Método para mostrar un pequeño mensaje de ayuda, siempre que exista en el
+     * XHTML la etiqueta '<p:message>' con el identificador 'helpMessage'.
+     * Se creará una 'cookie' con vigencia de 10 años para que no se muestre el
+     * mensaje más de una vez, a menos que limpie las 'cookies' ;)
+     *
+     * @param nameOfCookie Nombre de la 'cookie'
+     * @param message Mensaje que se mostrará en la zona de mensajes.
+     */
+    public static void showHelpMessage(String nameOfCookie, String message) {
+        ExternalContext externalContext = FacesContext.getCurrentInstance().getExternalContext();
+        Map<String, Object> requestCookieMap = externalContext.getRequestCookieMap();
+
+        // El mensaje de ayuda se mostrará si no existe la cookie.
+        if (!requestCookieMap.containsKey(nameOfCookie)) {
+            Map<String, Object> properties = new HashMap<>();
+            properties.put("maxAge", 315360000); // 10 años ;)
+            externalContext.addResponseCookie(nameOfCookie, Long.toString(new Date().getTime()), properties);
+            FacesContext.getCurrentInstance().addMessage("helpMessage", new FacesMessage(FacesMessage.SEVERITY_INFO, ResourceBundle.getBundle("/Bundle").getString("Info"), message));
+        }
+    }
+    
+     /**
+     * Método para mostrar un pequeño mensaje de ayuda, siempre que exista en el
+     * XHTML la etiqueta '<p:message>' con el identificador 'helpMessage'.
+     *
+     * @param message Mensaje que se mostrará en la zona de mensajes.
+     */
+    public static void showHelpMessage(String message) {
+        FacesContext.getCurrentInstance().addMessage("helpMessage", new FacesMessage(FacesMessage.SEVERITY_INFO, ResourceBundle.getBundle("/Bundle").getString("Info"), message));
     }
 }

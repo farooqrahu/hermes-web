@@ -64,15 +64,18 @@
                             <p:inputText id="fitbitAccessTokenSecret" value="#{personController.selected.fitbitAccessTokenSecret}" title="#{bundle.EditPersonTitle_fitbitAccessTokenSecret}" />
                         </p:panelGrid>
                     </p:tab>
-                    <p:tab title="#{bundle.PersonalParameters}">
+                    <p:tab title="#{bundle.PersonalParameters}" rendered="#{userLogin.user.admin or userLogin.user.doctor}">
                         <p:panelGrid columns="2">
-                            <p:outputLabel value="#{bundle.EditPersonLabel_stepsGoal}" for="stepsGoal" />
-                            <p:inputText id="stepsGoal" value="#{personController.selected.stepsGoal}" title="#{bundle.EditPersonLabel_stepsGoal}" />
-                            <p:outputLabel value="#{bundle.EditPersonLabel_minimumSessionMinutes}" for="minSessionMinutes" />
-                            <p:inputText id="minSessionMinutes" value="#{personController.selected.minSessionMinutes}" title="#{bundle.EditPersonLabel_minimumSessionMinutes}" />
-                            <p:outputLabel value="#{bundle.EditPersonLabel_restStepsThreshold}" for="restStepsThreshold" />
-                            <p:inputText id="restStepsThreshold" value="#{personController.selected.restStepsThreshold}" title="#{bundle.EditPersonLabel_restStepsThreshold}" />
-
+                            <p:outputLabel value="#{bundle.StepsGoal}" for="stepsGoal" />
+                            <p:inputText id="stepsGoal" value="#{personController.selected.configurationHashMap.StepsGoal.value}" title="#{bundle.StepsGoal}" required="true" />
+                            <p:outputLabel value="#{bundle.MinimumSessionMinutes}" for="minSessionMinutes" />
+                            <p:inputText id="minSessionMinutes" value="#{personController.selected.configurationHashMap.MinimumSessionMinutes.value}" title="#{bundle.MinimumSessionMinutes}" required="true" />
+                            <p:outputLabel value="#{bundle.RestStepsThreshold}" for="restStepsThreshold" />
+                            <p:inputText id="restStepsThreshold" value="#{personController.selected.configurationHashMap.RestStepsThreshold.value}" title="#{bundle.RestStepsThreshold}" required="true" />
+                            <p:outputLabel value="#{bundle.EndSessionStoppedMinutes}" for="endSessionStoppedMinutes" />
+                            <p:inputText id="endSessionStoppedMinutes" value="#{personController.selected.configurationHashMap.EndSessionStoppedMinutes.value}" title="#{bundle.EndSessionStoppedMinutes}" required="true" />
+                            <p:outputLabel value="#{bundle.SessionsPerWeek}" for="sessionsPerWeek" />
+                            <p:inputText id="sessionsPerWeek" value="#{personController.selected.configurationHashMap.SessionsPerWeek.value}" title="#{bundle.SessionsPerWeek}" required="true" />
                         </p:panelGrid>
                     </p:tab>
                     <p:tab title="#{bundle.AccessData}">

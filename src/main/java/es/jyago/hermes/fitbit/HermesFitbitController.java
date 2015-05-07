@@ -52,21 +52,12 @@ public class HermesFitbitController {
     public static final String OAUTH_TOKEN = "oauth_token";
     public static final String OAUTH_VERIFIER = "oauth_verifier";
 
-    // JYFR: PRUEBA Le damos una validez de un mes a la cookie.
-    private static final int APP_USER_COOKIE_TTL = 2592000;
-    // JYFR: PRUEBA
-    private static final String APP_USER_COOKIE_NAME = "fitbitClientUid";
-    // JYFR: PRUEBA
-    private static final String NOTIFICATION_UPDATES_SUBSCRIBER_ID = "1";
-
     private static final ResourceBundle hermesFitbit = ResourceBundle.getBundle("HermesFitbit");
 
     private Person person;
     private LocalUserDetail localUserDetail;
 
-//    private FitbitAPIEntityCache entityCache;
     private FitbitApiCredentialsCache credentialsCache;
-//    private FitbitApiSubscriptionStorage subscriptionStore;
     private FitbitAPIClientService<FitbitApiClientAgent> apiClientService;
     private APIResourceCredentials resourceCredentials;
 

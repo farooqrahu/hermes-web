@@ -21,12 +21,15 @@ import javax.faces.convert.FacesConverter;
 @SessionScoped
 public class RoleController implements Serializable {
 
+    private static final Logger log = Logger.getLogger(RoleController.class.getName());
+
     @EJB
     private es.jyago.hermes.role.RoleFacade ejbFacade;
     private List<Role> items = null;
     private Role selected;
 
     public RoleController() {
+        log.log(Level.INFO, "RoleController() - Inicialización del controlador de roles");
     }
 
     public Role getSelected() {
@@ -122,9 +125,9 @@ public class RoleController implements Serializable {
     public List<Role> getItemsAvailableSelectOne() {
         return getFacade().findAll();
     }
-    
+
     public List<Role> getItemsAvailableSelectOneLessThanMine(Role myRole) {
-        return  ejbFacade.getEntityManager().createNamedQuery("Role.findAllLessThan")
+        return ejbFacade.getEntityManager().createNamedQuery("Role.findAllLessThan")
                 .setParameter("roleId", myRole.getRoleId()).getResultList();
     }
 

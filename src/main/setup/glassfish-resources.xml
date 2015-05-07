@@ -10,5 +10,5 @@
         <property name="URL" value="jdbc:mysql://localhost:3306/hermes_web?zeroDateTimeBehavior=convertToNull"/>
         <property name="driverClass" value="com.mysql.jdbc.Driver"/>
     </jdbc-connection-pool>
-    <jdbc-resource enabled="true" jndi-name="HermesWeb_JNDI" object-type="user" pool-name="mysql_hermes_web_hermesPool"/>
+    <jdbc-resource enabled="true" jndi-name="HermesWeb_JNDI" object-type="user" pool-name="HermesWeb_Pool"/>
 </resources>

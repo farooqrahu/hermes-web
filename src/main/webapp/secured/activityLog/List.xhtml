@@ -4,7 +4,8 @@
       xmlns:ui="http://xmlns.jcp.org/jsf/facelets"
       xmlns:h="http://xmlns.jcp.org/jsf/html"
       xmlns:f="http://xmlns.jcp.org/jsf/core"
-      xmlns:p="http://primefaces.org/ui">
+      xmlns:p="http://primefaces.org/ui"
+      xmlns:pe="http://primefaces.org/ui/extensions">
 
     <ui:composition template="/WEB-INF/facelets/template.xhtml">
         <ui:define name="title">
@@ -21,20 +22,23 @@
                                  rows="10"
                                  rowsPerPageTemplate="10,20,30,40,50"
                                  resizableColumns="true"
+                                 emptyMessage="#{bundle.NoRows}"
+                                 sortBy="#{item.date}"
+                                 sortOrder="descending"
                                  >
 
                         <p:ajax process="datalist" event="rowSelect" update=":ActivityLogListForm:contextMenu"/>
 
                         <!--
-                        <p:ajax event="rowSelect"   update="createButton viewButton editButton deleteButton pieChartButton lineChartButton analyzedChartButton"/>
-                        <p:ajax event="rowUnselect" update="createButton viewButton editButton deleteButton pieChartButton lineChartButton analyzedChartButton"/>
+                        <p:ajax event="rowSelect"   update="createButton viewButton editButton deleteButton pieChartButton lineChartButton sessionsChartButton"/>
+                        <p:ajax event="rowUnselect" update="createButton viewButton editButton deleteButton pieChartButton lineChartButton sessionsChartButton"/>
                         -->
 
                         <f:facet name="header">
                             <p:commandButton icon="ui-icon-calculator" id="toggler" style="float: right; margin-top: 7px !important" type="button" value="#{bundle.Column}"/>
                             <p:columnToggler datasource="datalist" trigger="toggler"/>
                         </f:facet>
-                        <p:column sortBy="#{item.date}" filterBy="#{item.date}">
+                        <p:column sortBy="#{item.date}" filterBy="#{item.date}" style="width:20%">
                             <f:facet name="header">
                                 <h:outputText value="#{bundle.ListActivityLogTitle_date}"/>
                             </f:facet>
@@ -42,34 +46,60 @@
                                 <f:convertDateTime pattern="dd/MM/yyyy" />
                             </h:outputText>
                         </p:column>
-                        <p:column sortBy="#{item.total}" filterBy="#{item.total}">
+                        <p:column sortBy="#{item.total}" filterBy="#{item.total}" style="width:10%">
                             <f:facet name="header">
                                 <h:outputText value="#{bundle.TotalSteps}"/>
                             </f:facet>
-                            <h:outputText value="#{item.total}"/>
+                            <h:outputText style="font-weight: bold; color : #{item.total gt item.person.configurationHashMap.StepsGoal.value ? 'green' : 'red'};" value="#{item.total}"/>/<h:outputText style="font-weight: bold;" value="#{item.person.configurationHashMap.StepsGoal.value}"/>
                         </p:column>
-                        <p:column>
+                        <p:column sortBy="#{item.sessionsTotal}" filterBy="#{item.sessionsTotal}" style="width:10%">
+                            <f:facet name="header">
+                                <h:outputText value="#{bundle.Sessions}"/>
+                            </f:facet>
+                            <h:outputText style="font-weight: bold;" value="#{item.sessionsTotal}"/>
+                        </p:column>
+                        <p:column style="width:10%">
                             <f:facet name="header">
                                 <h:outputText value="#{bundle.Graphic}"/>
                             </f:facet>
                             <h:panelGroup>
-                                <p:commandButton id="pieChartButton"  icon="pieChart-icon" title="#{bundle.PieGraphic}" update=":ActivityLogPieChartForm" oncomplete="PF('ActivityLogPieChartDialog').show()">
+                                <!--
+                                <p:commandButton id="pieChartButton" icon="pieChart-icon" title="#{bundle.PieGraphic}" update=":ActivityLogPieChartForm" oncomplete="PF('ActivityLogPieChartDialog').show()">
                                     <f:setPropertyActionListener value="#{item}" target="#{activityLogController.selected}" />
                                 </p:commandButton>
-                                <p:commandButton id="lineChartButton"  icon="lineChart-icon" title="#{bundle.LineGraphic}" update=":ActivityLogLineChartForm" oncomplete="PF('ActivityLogLineChartDialog').show()">
+                                -->
+                                <p:commandButton id="lineChartButton" icon="lineChart-icon" title="#{bundle.LineGraphic}" update=":ActivityLogLineChartForm" oncomplete="PF('ActivityLogLineChartDialog').show()">
                                     <f:setPropertyActionListener value="#{item}" target="#{activityLogController.selected}" />
                                 </p:commandButton>
-                                <p:commandButton id="analyzedChartButton"  icon="barChart-icon" title="#{bundle.AnalyzedGraphic}" update=":ActivityLogAnalyzedChartForm" oncomplete="PF('ActivityLogAnalyzedChartDialog').show()">
+                                <p:commandButton id="sessionsChartButton" icon="barChart-icon" title="#{bundle.SessionsGraphic}" update=":ActivityLogSessionsChartForm" oncomplete="PF('ActivityLogSessionsChartDialog').show()">
                                     <f:setPropertyActionListener value="#{item}" target="#{activityLogController.selected}" />
                                 </p:commandButton>
                             </h:panelGroup>
                         </p:column>
+                        <!-- 
                         <p:column style="padding: 0; margin: 0">
                             <f:facet name="header">
                                 <h:outputText value="#{bundle.Summary}"/>
                             </f:facet>
-                            <p:chart type="metergauge" model="#{item.gaugeModel}" style="width:180px; height:100px;" />
+                            <p:panelGrid columns="2" style="">
+                                <p:column style="width:50px">
+                                    <pe:knob value="#{item.aggregatedValues.Achieved}" min="0" max="#{item.person.stepsGoal}" foregroundColor="#458B00" disabled="true" width="80px;" height="80px;"/>  
+                                    <pe:knob value="#{item.aggregatedValues.Remaining}" min="0" max="#{item.person.stepsGoal}" foregroundColor="#458B00" backgroundColor="#FF1515" disabled="true" width="80px;" height="80px;"/>  
+                                    <p:chart type="metergauge" model="#{item.gaugeModel}" style="width:180px; height:100px;" />
+                                </p:column>
+                                <p:column>
+                                    <p:panelGrid columns="2">
+                                        <h:outputText value="#{bundle.Target}"/>
+                                        <h:outputText value="#{item.person.configurationHashMap.StepsGoal.value}" title="#{bundle.Target}"/>
+                                        <h:outputText value="#{bundle.Achieved}"/>
+                                        <h:outputText value="#{item.aggregatedValues.Achieved}" title="#{bundle.Achieved}"/>
+                                        <h:outputText value="#{bundle.Remaining}"/>
+                                        <h:outputText value="#{item.aggregatedValues.Remaining}" title="#{bundle.Remaining}"/>
+                                    </p:panelGrid>
+                                </p:column>
+                            </p:panelGrid>
                         </p:column>
+                        -->
                         <!--
                         <f:facet name="footer">
                             <p:commandButton id="createButton" icon="ui-icon-plus"   value="#{bundle.Create}" actionListener="#{activityLogController.prepareCreate}" update=":ActivityLogCreateForm" oncomplete="PF('ActivityLogCreateDialog').show()"/>
@@ -81,7 +111,7 @@
                             </p:commandButton>
                             <p:commandButton id="pieChartButton"  icon="ui-icon-signal" value="#{bundle.PieGraphic}" update=":ActivityLogPieChartForm" oncomplete="PF('ActivityLogPieChartDialog').show()" disabled="#{empty activityLogController.selected}"/>
                             <p:commandButton id="lineChartButton"  icon="ui-icon-signal" value="#{bundle.LineGraphic}" update=":ActivityLogLineChartForm" oncomplete="PF('ActivityLogLineChartDialog').show()" disabled="#{empty activityLogController.selected}"/>
-                            <p:commandButton id="analyzedChartButton"  icon="ui-icon-signal" value="#{bundle.AnalyzedGraphic}" update=":ActivityLogAnalyzedChartForm" oncomplete="PF('ActivityLogAnalyzedChartDialog').show()" disabled="#{empty activityLogController.selected}"/>
+                            <p:commandButton id="sessionsChartButton"  icon="ui-icon-signal" value="#{bundle.AnalyzedGraphic}" update=":ActivityLogSessionsChartForm" oncomplete="PF('ActivityLogSessionsChartDialog').show()" disabled="#{empty activityLogController.selected}"/>
                         </f:facet>
                         -->
                     </p:dataTable>
@@ -104,7 +134,7 @@
             <ui:include src="View.xhtml"/>
             <ui:include src="PieChart.xhtml"/>
             <ui:include src="LineChart.xhtml"/>
-            <ui:include src="AnalyzedChart.xhtml"/>
+            <ui:include src="SessionsChart.xhtml"/>
         </ui:define>
     </ui:composition>
 

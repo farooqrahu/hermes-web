@@ -50,24 +50,30 @@ public class LoginBean {
                 .getSingleResult();
     }
 
-    public void login(ActionEvent event) {
-        FacesMessage message;
+    public boolean login(ActionEvent event) {
+        FacesMessage message = new FacesMessage(FacesMessage.SEVERITY_ERROR, bundle.getString("InvalidCredentials"), "");
+        boolean ok = false;
 
         try {
             user = getUser(username, password);
 
             if (user != null) {
                 message = new FacesMessage(FacesMessage.SEVERITY_INFO, bundle.getString("Welcome"), user.toString());
+                ok = true;
             } else {
-                message = new FacesMessage(FacesMessage.SEVERITY_WARN, bundle.getString("InvalidCredentials"), "");
+                FacesContext.getCurrentInstance().validationFailed();
             }
-
-            FacesContext.getCurrentInstance().addMessage(null, message);
         } catch (NoResultException ex) {
-            log.log(Level.SEVERE, "login() - No existe el usuario: " + username, ex);
+            FacesContext.getCurrentInstance().validationFailed();
+            log.log(Level.INFO, "login() - No existe el usuario: {0}", username);
         } catch (Exception ex) {
+            FacesContext.getCurrentInstance().validationFailed();
             log.log(Level.SEVERE, "login() - Error al acceder al sistema", ex);
         }
+
+        FacesContext.getCurrentInstance().addMessage("messages", message);
+
+        return ok;
     }
 
     public String logout() {

@@ -5,17 +5,22 @@
  */
 package es.jyago.hermes.configuration;
 
+import es.jyago.hermes.person.configuration.PersonConfiguration;
 import java.io.Serializable;
+import java.util.Collection;
 import javax.persistence.Basic;
+import javax.persistence.CascadeType;
 import javax.persistence.Column;
 import javax.persistence.Entity;
 import javax.persistence.Id;
 import javax.persistence.NamedQueries;
 import javax.persistence.NamedQuery;
+import javax.persistence.OneToMany;
 import javax.persistence.Table;
 import javax.validation.constraints.NotNull;
 import javax.validation.constraints.Size;
 import javax.xml.bind.annotation.XmlRootElement;
+import javax.xml.bind.annotation.XmlTransient;
 
 /**
  *
@@ -26,38 +31,21 @@ import javax.xml.bind.annotation.XmlRootElement;
 @XmlRootElement
 @NamedQueries({
     @NamedQuery(name = "Configuration.findAll", query = "SELECT c FROM Configuration c"),
-    @NamedQuery(name = "Configuration.findByOptionKey", query = "SELECT c FROM Configuration c WHERE c.optionKey = :optionKey"),
-    @NamedQuery(name = "Configuration.findByOptionLabel", query = "SELECT c FROM Configuration c WHERE c.optionLabel = :optionLabel"),
-    @NamedQuery(name = "Configuration.findByOptionDescription", query = "SELECT c FROM Configuration c WHERE c.optionDescription = :optionDescription"),
-    @NamedQuery(name = "Configuration.findByOptionRolesAllowed", query = "SELECT c FROM Configuration c WHERE c.optionRolesAllowed = :optionRolesAllowed"),
-    @NamedQuery(name = "Configuration.findByPersonId", query = "SELECT c FROM Configuration c WHERE c.optionPersonId = :optionPersonId")})
+    @NamedQuery(name = "Configuration.findByOptionKey", query = "SELECT c FROM Configuration c WHERE c.optionKey = :optionKey")})
 public class Configuration implements Serializable {
     private static final long serialVersionUID = 1L;
     @Id
     @Basic(optional = false)
     @NotNull
-    @Size(min = 1, max = 20)
+    @Size(min = 1, max = 50)
     @Column(name = "option_key")
     private String optionKey;
     @Size(max = 100)
     @Column(name = "option_value")
     private String optionValue;
-    @Basic(optional = false)
-    @NotNull
-    @Size(min = 1, max = 50)
-    @Column(name = "option_label")
-    private String optionLabel;
-    @Size(max = 200)
-    @Column(name = "option_description")
-    private String optionDescription;
-    @Size(max = 20)
-    @Column(name = "option_roles_allowed")
-    private String optionRolesAllowed;
-    @Size(max = 5)
-    @Column(name = "option_person_id")
-    @Basic(optional = true)
-    private String optionPersonId;
-
+    @OneToMany(cascade = CascadeType.ALL, mappedBy = "option")
+    private Collection<PersonConfiguration> personConfigurationCollection;
+    
 
     public Configuration() {
     }
@@ -66,9 +54,9 @@ public class Configuration implements Serializable {
         this.optionKey = optionKey;
     }
 
-    public Configuration(String optionKey, String optionLabel) {
+    public Configuration(String optionKey, String optionValue) {
         this.optionKey = optionKey;
-        this.optionLabel = optionLabel;
+        this.optionValue = optionValue;
     }
 
     public String getOptionKey() {
@@ -85,38 +73,6 @@ public class Configuration implements Serializable {
 
     public void setOptionValue(String optionValue) {
         this.optionValue = optionValue;
-    }
-
-    public String getOptionLabel() {
-        return optionLabel;
-    }
-
-    public void setOptionLabel(String optionLabel) {
-        this.optionLabel = optionLabel;
-    }
-
-    public String getOptionDescription() {
-        return optionDescription;
-    }
-
-    public void setOptionDescription(String optionDescription) {
-        this.optionDescription = optionDescription;
-    }
-
-    public String getOptionRolesAllowed() {
-        return optionRolesAllowed;
-    }
-
-    public void setOptionRolesAllowed(String optionRolesAllowed) {
-        this.optionRolesAllowed = optionRolesAllowed;
-    }
-
-    public String getOptionPersonId() {
-        return optionPersonId;
-    }
-
-    public void setOptionPersonId(String optionPersonId) {
-        this.optionPersonId = optionPersonId;
     }
     
     @Override
@@ -142,6 +98,15 @@ public class Configuration implements Serializable {
     @Override
     public String toString() {
         return "es.jyago.hermes.configuration.Configuration[ optionKey=" + optionKey + " ]";
+    }
+
+    @XmlTransient
+    public Collection<PersonConfiguration> getPersonConfigurationCollection() {
+        return personConfigurationCollection;
+    }
+
+    public void setPersonConfigurationCollection(Collection<PersonConfiguration> personConfigurationCollection) {
+        this.personConfigurationCollection = personConfigurationCollection;
     }
     
 }

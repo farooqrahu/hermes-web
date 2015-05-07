@@ -22,6 +22,9 @@
                                  rows="10"
                                  rowsPerPageTemplate="10,20,30,40,50"
                                  resizableColumns="true"
+                                 emptyMessage="#{bundle.NoRows}"
+                                 sortBy="#{item.name}"
+                                 sortOrder="ascending"
                                  >
 
                         <p:ajax event="rowSelect"   update="createButton viewButton editButton deleteButton"/>

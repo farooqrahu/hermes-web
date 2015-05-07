@@ -119,31 +119,11 @@
     width: 16px !important;
 }
 
-.footerInfoPanel {
-    border: none !important;
-    position: absolute;
-    left: 2px;
-    top: -6px;
+.ui-messages-info, .ui-messages-warn, .ui-messages-error, .ui-messages-fatal {
+    margin: 0px !important;
+    padding: 8px !important;
 }
 
-.footerSeparator {
-    margin-left: 5px;
-    margin-right: 5px;
-    border-left: 1px solid;
-}
-
-/* JYFR - Inicio PRUEBA */
-.jqplot-meterGauge-tick {
-    font-size: 0.75em;
+.bold {
     font-weight: bold;
 }
-
-.jqplot-meterGauge-label {
-    font-size: 1em;
-    color: #000000;
-}
-
-.jqplot-meterGauge-ring {
-    color: #000000;
-}
-/* JYFR - Fin PRUEBA */

@@ -50,7 +50,7 @@ public class FitbitScheduledTask {
 
     @PostConstruct
     public void onStartup() {
-        log.log(Level.INFO, "Inicialización del temporizador programado de sincronización con Fitbit");
+        log.log(Level.INFO, "onStartup() - Inicialización del temporizador programado de sincronización con Fitbit");
     }
 
     // La hora de sincronización automática será las 08:00.
@@ -71,7 +71,7 @@ public class FitbitScheduledTask {
                 int minutes = 60 - tillOClock.get(Calendar.MINUTE);
                 waitTime = minutes * 60000;
 
-                log.log(Level.INFO, "Sincronización con Fitbit aplazada hasta dentro de {0} minutos", minutes);
+                log.log(Level.INFO, "run() - Sincronización con Fitbit aplazada hasta dentro de {0} minutos", minutes);
             }
             // Hasta que la sincronización esté completa, se crea una tarea programada que se repetirá cada hora
             // (es el intervalo de renovación de peticiones de Fitbit) para seguir solicitando los datos.
@@ -161,7 +161,10 @@ public class FitbitScheduledTask {
             hashSetActivityLog.add(activityLog);
         }
         person.getActivityLogCollection().clear();
-        updatePerson(person);
+        // JYFR - PRUEBA
+//        updatePerson(person);
+        ejbFacade.getEntityManager().persist(person);
+        ejbFacade.getEntityManager().flush();
         person.getActivityLogCollection().addAll(hashSetActivityLog);
         updatePerson(person);
 

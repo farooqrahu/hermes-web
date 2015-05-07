@@ -3,32 +3,37 @@
 <html xmlns="http://www.w3.org/1999/xhtml"
       xmlns:ui="http://xmlns.jcp.org/jsf/facelets"
       xmlns:h="http://xmlns.jcp.org/jsf/html"
-      xmlns:f="http://xmlns.jcp.org/jsf/core"
       xmlns:p="http://primefaces.org/ui">
 
     <ui:composition>
 
-        <p:dialog id="ActivityLogLineChartDlg" widgetVar="ActivityLogLineChartDialog" modal="true" resizable="false" appendTo="@(body)" header="#{bundle.Graphic}" closeOnEscape="true">
+        <p:dialog id="ActivityLogLineChartDlg" widgetVar="ActivityLogLineChartDialog" modal="true" resizable="false" appendTo="@(body)" header="#{bundle.GraphicSteps}" closeOnEscape="true">
 
             <h:form id="ActivityLogLineChartForm">
-                <h:panelGroup id="display">
-                    <p:chart type="line" widgetVar="chart" model="#{activityLogController.lineChartModel}" style="width:1024px;height:500px" rendered="#{activityLogController.selected != null}"/>
+                <h:panelGrid id="display">
+                    <h:panelGroup rendered="#{activityLogController.selected == null or empty activityLogController.lineChartModel.series}">
+                        <h:outputText value="#{bundle.NoData}"/>
+                    </h:panelGroup>
+                    <h:panelGroup rendered="#{activityLogController.selected != null and not empty activityLogController.lineChartModel.series}">
+                        <p:chart type="line" widgetVar="chart" model="#{activityLogController.lineChartModel}" style="width:1024px;height:500px" rendered="#{activityLogController.selected != null and not empty activityLogController.lineChartModel.series}"/>
 
-                    <p:panelGrid columns="2" rendered="#{activityLogController.selected != null}">
-                        <p:panelGrid columns="4">
-                            <h:outputText value="#{bundle.ViewActivityLogLabel_personId}"/>
-                            <h:outputText value="#{activityLogController.selected.person.toString()}" title="#{bundle.ViewActivityLogTitle_personId}"/>
-                            <h:outputText value="#{bundle.Achieved}"/>
-                            <h:outputText value="#{activityLogController.selected.aggregatedValues.Achieved}" title="#{bundle.Achieved}"/>
-                            <h:outputText value="#{bundle.Target}"/>
-                            <h:outputText value="#{activityLogController.selected.person.stepsGoal}" title="#{bundle.Target}"/>
-                            <h:outputText value="#{bundle.Remaining}"/>
-                            <h:outputText value="#{activityLogController.selected.aggregatedValues.Remaining}" title="#{bundle.Remaining}"/>
+                        <p:panelGrid columns="2" rendered="#{activityLogController.selected != null}">
+                            <p:panelGrid columns="4">
+                                <h:outputText value="#{bundle.ViewActivityLogLabel_personId}"/>
+                                <h:outputText value="#{activityLogController.selected.person.toString()}" title="#{bundle.ViewActivityLogTitle_personId}"/>
+                                <h:outputText value="#{bundle.Achieved}"/>
+                                <h:outputText value="#{activityLogController.selected.aggregatedValues.Achieved}" title="#{bundle.Achieved}"/>
+                                <h:outputText value="#{bundle.Target}"/>
+                                <h:outputText value="#{activityLogController.selected.person.configurationHashMap.StepsGoal.value}" title="#{bundle.Target}"/>
+                                <h:outputText value="#{bundle.Remaining}"/>
+                                <h:outputText value="#{activityLogController.selected.aggregatedValues.Remaining}" title="#{bundle.Remaining}"/>
+                            </p:panelGrid>
+                            <p:commandButton value="#{bundle.ZoomReset}" type="button" onclick="PF('chart').resetZoom()" icon="ui-icon-cancel" />
                         </p:panelGrid>
-                        <p:commandButton value="#{bundle.ZoomReset}" type="button" onclick="PF('chart').resetZoom()" icon="ui-icon-cancel" />
-                    </p:panelGrid>
+                    </h:panelGroup>
+                    
                     <p:commandButton value="#{bundle.Close}" onclick="PF('ActivityLogLineChartDialog').hide()"/>
-                </h:panelGroup>
+                </h:panelGrid>
             </h:form>
         </p:dialog>
     </ui:composition>

@@ -4,7 +4,9 @@
       xmlns:ui="http://xmlns.jcp.org/jsf/facelets"
       xmlns:h="http://xmlns.jcp.org/jsf/html"
       xmlns:f="http://xmlns.jcp.org/jsf/core"
-      xmlns:p="http://primefaces.org/ui">
+      xmlns:p="http://primefaces.org/ui"
+      xmlns:c="http://xmlns.jcp.org/jsp/jstl/core">
+
 
     <ui:composition template="/WEB-INF/facelets/template.xhtml">
 
@@ -13,15 +15,30 @@
         </ui:define>
 
         <ui:define name="content">
+            <script type="text/javascript">
+                function handleDialogSynchronize(xhr, status, args) {
+                    if (!args.validationFailed) {
+                        PF('PersonSynchronizeDialog').show();
+                    } else {
+                        PF('PersonSynchronizeDialog').hide();
+                    }
+                }
+            </script>
+
+            <p:confirmDialog header="#{bundle.Confirmation}" message="#{bundle.DeleteElementConfirm}" global="false" severity="alert" widgetVar="DeleteDialog" appendTo="@(body)">
+                <!-- JYFR: El confirmDialog necesita su propio formulario porque al usar appendTo="@(body)" para evitar que salga el 'dialog' por debajo del fondo, se añade al final del HTML, fuera del formulario principal -->
+                <h:form id="DeletePersonForm">
+                    <p:commandButton value="#{bundle.Yes}" styleClass="ui-confirmdialog-yes" icon="ui-icon-check" oncomplete="PF('DeleteDialog').hide()" update=":PersonListForm:datalist" action="#{personController.destroy()}"/>
+                    <p:commandButton value="#{bundle.No}" type="button" styleClass="ui-confirmdialog-no" icon="ui-icon-close" onclick="PF('DeleteDialog').hide()" />
+                </h:form>
+            </p:confirmDialog>
+
+
             <!-- JYFR: Es necesario especificar 'enctype="multipart/form-data"' para poder subir archivos con la etiqueta 'p:fileUpload' -->
             <h:form id="PersonListForm" enctype="multipart/form-data">
 
-                <p:confirmDialog global="true" showEffect="fade" hideEffect="explode">
-                    <p:commandButton value="#{bundle.Yes}" type="button" styleClass="ui-confirmdialog-yes" icon="ui-icon-check" />
-                    <p:commandButton value="#{bundle.No}" type="button" styleClass="ui-confirmdialog-no" icon="ui-icon-close" />
-                </p:confirmDialog>
-
                 <p:panel header="#{bundle.ListPersonTitle}">
+
                     <p:dataTable id="datalist" value="#{personController.items}" var="item"
                                  selectionMode="single" 
                                  selection="#{personController.selected}"
@@ -30,29 +47,39 @@
                                  rows="10"
                                  rowsPerPageTemplate="10,20,30,40,50"
                                  resizableColumns="true"
+                                 emptyMessage="#{bundle.NoRows}"
+                                 sortBy="#{item.fullName}"
+                                 sortOrder="ascending"
                                  >
 
+                        <!-- FIXME: Hay un bug en PrimeFaces que no selecciona la fila ANTES de mostrar el menú,
+                            con lo que no se pueden poner habilitadas o deshabilitadas las opciones en función del elemento seleccionado...
+                            Por ese motivo, como alternativa, todas las opciones están habilitadas y si no cumple las condiciones, se mostrará un mensaje informativo. -->
                         <!--<p:ajax process="datalist" event="rowSelect" update=":PersonListForm:contextMenu" />-->
                         <!--<p:ajax event="contextMenu" update=":PersonListForm:datalist" />-->
                         <!--<p:ajax event="contextMenu" oncomplete="PF('ctxMenu').show(currentEvent);"/>-->
-                        <p:ajax event="contextMenu" update=":PersonListForm:datalist"/>
+                        <!--<p:ajax event="contextMenu" update=":PersonListForm:datalist"/>-->
+
+                        <p:ajax event="rowSelect" listener="#{personController.onRowSelect}" />
 
                         <f:facet name="header">
-                            <p:commandButton icon="ui-icon-plus" id="createButton"  style="float: left; margin-top: 7px !important" value="#{bundle.Create}" actionListener="#{personController.prepareCreate}" update=":PersonCreateForm" oncomplete="PF('PersonCreateDialog').show()"/>
+                            <p:commandButton icon="ui-icon-plus" id="createButton"  style="float: left; margin-top: 7px !important" value="#{bundle.Create}" actionListener="#{personController.prepareCreate}" update=":PersonCreateForm, :messages" oncomplete="PF('PersonCreateDialog').show()"/>
                             <p:commandButton icon="ui-icon-calculator" id="toggler" style="float: right; margin-top: 7px !important" type="button" value="#{bundle.Column}"/>
                             <p:columnToggler datasource="datalist" trigger="toggler"/>
                         </f:facet>
 
-                        <p:column style="text-align: center">
+                        <p:column style="text-align: center; width:7%">
                             <f:facet name="header">
-                                <h:outputText value="#{bundle.Steps}"/>	
+                                <h:outputText value="#{bundle.Graphic}"/>	
                             </f:facet>
-                            <p:commandButton action="#{activityLogController.initListFromPerson(item.personId)}" image="steps-icon" title="#{bundle.Steps}"/>
-                            <p:commandButton id="lineChartButton" image="lineChart-icon" title="#{bundle.LineGraphicMonth}" update=":PersonActivityLineChartForm" oncomplete="PF('PersonActivityLineChartDialog').show()" action="#{personController.initChartDates()}">
+                            <p:commandButton icon="lineChart-icon" title="#{bundle.LineGraphicMonth}" update=":PersonActivityMonthLineChartForm" oncomplete="PF('PersonActivityMonthLineChartDialog').show()" action="#{personController.initChartDates()}">
+                                <f:setPropertyActionListener value="#{item}" target="#{personController.selected}" />
+                            </p:commandButton>
+                            <p:commandButton icon="barChart-icon" title="#{bundle.SessionsGraphic}" update=":PersonSessionsWeekBarChartForm" oncomplete="PF('PersonSessionsWeekBarChartDialog').show()" action="#{personController.initChartDates()}">
                                 <f:setPropertyActionListener value="#{item}" target="#{personController.selected}" />
                             </p:commandButton>
                         </p:column>
-                        <p:column style="text-align: center">
+                        <p:column style="text-align: center; width:5%">
                             <f:facet name="header">
                                 <h:outputText value="#{bundle.ListPersonTitle_photo}"/>	
                             </f:facet>
@@ -60,53 +87,124 @@
                                 <f:param name="personId" value="#{item.personId}" />
                             </p:graphicImage>
                         </p:column>
-                        <p:column sortBy="#{item.firstName}" filterBy="#{item.firstName}">
-                            <f:facet name="header">
-                                <h:outputText value="#{bundle.ListPersonTitle_firstName}"/>
-                            </f:facet>
-                            <h:outputText value="#{item.firstName}"/>
-                        </p:column>
-                        <p:column sortBy="#{item.surname1}" filterBy="#{item.surname1}">
-                            <f:facet name="header">
-                                <h:outputText value="#{bundle.ListPersonTitle_surname1}"/>
-                            </f:facet>
-                            <h:outputText value="#{item.surname1}"/>
-                        </p:column>
-                        <p:column sortBy="#{item.surname2}" filterBy="#{item.surname2}">
-                            <f:facet name="header">
-                                <h:outputText value="#{bundle.ListPersonTitle_surname2}"/>
-                            </f:facet>
-                            <h:outputText value="#{item.surname2}"/>
-                        </p:column>
-                        <p:column sortBy="#{item.email}" filterBy="#{item.email}">
-                            <f:facet name="header">
-                                <h:outputText value="#{bundle.ListPersonTitle_email}"/>
-                            </f:facet>
-                            <h:outputText value="#{item.email}"/>
-                        </p:column>
-                        <p:column sortBy="#{item.phone}" filterBy="#{item.phone}">
-                            <f:facet name="header">
-                                <h:outputText value="#{bundle.ListPersonTitle_phone}"/>
-                            </f:facet>
-                            <h:outputText value="#{item.phone}"/>
-                        </p:column>
-
-                        <p:column sortBy="#{item.lastSynchronization}" style="text-align: center">
-                            <f:facet name="header">
-                                <h:outputText escape="false" value="#{bundle.FitbitLastSynch}"/>
-                            </f:facet>
-                            <h:outputText value="#{item.lastSynchronization}">
-                                <f:convertDateTime pattern="dd-MM-yyyy"/>
-                            </h:outputText>
-                        </p:column>
-
-                        <p:column sortBy="#{item.hasFitbitCredentials()}" style="text-align: center">
-                            <f:facet name="header">
-                                <h:outputText escape="false" value="#{bundle.HasFitbitCredentials}"/>
-                            </f:facet>
-                            <p:graphicImage value="/resources/img/yes.png" alt="#{bundle.Yes}" rendered="#{item.hasFitbitCredentials()}"/>
-                            <p:graphicImage value="/resources/img/no.png" alt="#{bundle.No}" rendered="#{!item.hasFitbitCredentials()}"/>
-                        </p:column>
+                        <c:choose>
+                            <c:when test='#{userLogin.user.admin or userLogin.user.doctor}'>
+                                <p:column sortBy="#{item.fullName}" filterBy="#{item.fullName}" style="width:30%">
+                                    <f:facet name="header">
+                                        <h:outputText value="#{bundle.FullName}"/>
+                                    </f:facet>
+                                    <h:outputText value="#{item.fullName}"/>
+                                </p:column>
+                            </c:when>
+                            <c:otherwise>
+                                <p:column style="width:30%">
+                                    <f:facet name="header">
+                                        <h:outputText value="#{bundle.FullName}"/>
+                                    </f:facet>
+                                    <h:outputText value="#{item.fullName}"/>
+                                </p:column>
+                            </c:otherwise>
+                        </c:choose>
+                        <c:choose>
+                            <c:when test='#{userLogin.user.admin or userLogin.user.doctor}'>
+                                <p:column sortBy="#{item.email}" filterBy="#{item.email}" style="width:25%">
+                                    <f:facet name="header">
+                                        <h:outputText value="#{bundle.ListPersonTitle_email}"/>
+                                    </f:facet>
+                                    <h:outputText value="#{item.email}"/>
+                                </p:column>
+                            </c:when>
+                            <c:otherwise>
+                                <p:column style="width:25%">
+                                    <f:facet name="header">
+                                        <h:outputText value="#{bundle.ListPersonTitle_email}"/>
+                                    </f:facet>
+                                    <h:outputText value="#{item.email}"/>
+                                </p:column>
+                            </c:otherwise>
+                        </c:choose>
+                        <c:choose>
+                            <c:when test='#{userLogin.user.admin or userLogin.user.doctor}'>
+                                <p:column sortBy="#{item.phone}" filterBy="#{item.phone}" style="text-align: center; width:12%">
+                                    <f:facet name="header">
+                                        <h:outputText value="#{bundle.ListPersonTitle_phone}"/>
+                                    </f:facet>
+                                    <h:outputText value="#{item.phone}"/>
+                                </p:column>
+                            </c:when>
+                            <c:otherwise>
+                                <p:column style="text-align: center; width:12%">
+                                    <f:facet name="header">
+                                        <h:outputText value="#{bundle.ListPersonTitle_phone}"/>
+                                    </f:facet>
+                                    <h:outputText value="#{item.phone}"/>
+                                </p:column>
+                            </c:otherwise>
+                        </c:choose>
+                        <c:choose>
+                            <c:when test='#{userLogin.user.admin or userLogin.user.doctor}'>
+                                <p:column sortBy="#{item.thisWeekSessions}" style="text-align: right; width:10%">
+                                    <f:facet name="header">
+                                        <h:outputText escape="false" value="#{bundle.SessionsThisWeek}"/>
+                                    </f:facet>
+                                    <h:panelGroup rendered="#{item.configurationHashMap.SessionsPerWeek.value != null}">
+                                        <h:outputText style="font-weight: bold; color : #{item.thisWeekSessions gt item.configurationHashMap.SessionsPerWeek.value ? 'green' : 'red'};" value="#{item.thisWeekSessions}"/>/<h:outputText style="font-weight: bold;" value="#{item.configurationHashMap.SessionsPerWeek.value}"/>
+                                    </h:panelGroup>
+                                </p:column>
+                            </c:when>
+                            <c:otherwise>
+                                <p:column style="text-align: right; width:10%">
+                                    <f:facet name="header">
+                                        <h:outputText escape="false" value="#{bundle.SessionsThisWeek}"/>
+                                    </f:facet>
+                                    <h:panelGroup rendered="#{item.configurationHashMap.SessionsPerWeek.value != null}">
+                                        <h:outputText style="font-weight: bold; color : #{item.thisWeekSessions gt item.configurationHashMap.SessionsPerWeek.value ? 'green' : 'red'};" value="#{item.thisWeekSessions}"/>/<h:outputText style="font-weight: bold;" value="#{item.configurationHashMap.SessionsPerWeek.value}"/>
+                                    </h:panelGroup>
+                                </p:column>
+                            </c:otherwise>
+                        </c:choose>
+                        <c:choose>
+                            <c:when test='#{userLogin.user.admin or userLogin.user.doctor}'>
+                                <p:column sortBy="#{item.lastSynchronization}" style="text-align: center; width:10%">
+                                    <f:facet name="header">
+                                        <h:outputText escape="false" value="#{bundle.FitbitLastSynch}"/>
+                                    </f:facet>
+                                    <h:outputText value="#{item.lastSynchronization}">
+                                        <f:convertDateTime pattern="dd-MM-yyyy"/>
+                                    </h:outputText>
+                                </p:column>
+                            </c:when>
+                            <c:otherwise>
+                                <p:column style="text-align: center; width:10%">
+                                    <f:facet name="header">
+                                        <h:outputText escape="false" value="#{bundle.FitbitLastSynch}"/>
+                                    </f:facet>
+                                    <h:outputText value="#{item.lastSynchronization}">
+                                        <f:convertDateTime pattern="dd-MM-yyyy"/>
+                                    </h:outputText>
+                                </p:column>
+                            </c:otherwise>
+                        </c:choose>
+                        <c:choose>
+                            <c:when test='#{userLogin.user.admin or userLogin.user.doctor}'>
+                                <p:column sortBy="#{item.hasFitbitCredentials()}" style="text-align: center; width:10%">
+                                    <f:facet name="header">
+                                        <h:outputText escape="false" value="#{bundle.HasFitbitCredentials}"/>
+                                    </f:facet>
+                                    <p:graphicImage value="/resources/img/yes.png" alt="#{bundle.Yes}" rendered="#{item.hasFitbitCredentials()}"/>
+                                    <p:graphicImage value="/resources/img/no.png" alt="#{bundle.No}" rendered="#{!item.hasFitbitCredentials()}"/>
+                                </p:column>
+                            </c:when>
+                            <c:otherwise>
+                                <p:column style="text-align: center; width:10%">
+                                    <f:facet name="header">
+                                        <h:outputText escape="false" value="#{bundle.HasFitbitCredentials}"/>
+                                    </f:facet>
+                                    <p:graphicImage value="/resources/img/yes.png" alt="#{bundle.Yes}" rendered="#{item.hasFitbitCredentials()}"/>
+                                    <p:graphicImage value="/resources/img/no.png" alt="#{bundle.No}" rendered="#{!item.hasFitbitCredentials()}"/>
+                                </p:column>
+                            </c:otherwise>
+                        </c:choose>
 
                         <!--
                         <p:column>
@@ -117,18 +215,16 @@
                         </p:column>-->
 
                     </p:dataTable>
-                    
+
                     <!-- JYFR: Menú contextual -->
-                    <p:contextMenu id="contextMenu" widgetVar="ctxMenu" for="datalist" beforeShow="" selectionMode="single">
+                    <p:contextMenu id="contextMenu" widgetVar="ctxMenu" for="datalist" selectionMode="single">
                         <p:menuitem id="viewButton"        icon="ui-icon-search"      value="#{bundle.View}"        update=":PersonViewForm"        oncomplete="PF('PersonViewDialog').show()"/>
-                        <p:menuitem id="editButton"        icon="ui-icon-pencil"      value="#{bundle.Edit}"        update=":PersonEditForm"        oncomplete="PF('PersonEditDialog').show()"/>
-                        <p:menuitem id="deleteButton"      icon="ui-icon-trash"       value="#{bundle.Delete}"      update=":messages,datalist" actionListener="#{personController.destroy}">
-                            <p:confirmDialog header="#{bundle.Confirmation}" message="#{bundle.DeleteElementConfirm}" appendTo="@(body)"/>
-                        </p:menuitem>
+                        <p:menuitem id="editButton"        icon="ui-icon-pencil"      value="#{bundle.Edit}"        update=":PersonEditForm"     actionListener="#{personController.prepareEdit}" oncomplete="PF('PersonEditDialog').show()"/>
+                        <p:menuitem id="deleteButton"      icon="ui-icon-trash"       value="#{bundle.Delete}"      oncomplete="PF('DeleteDialog').show()"/>
                         <p:menuitem id="authorizeButton"   icon="ui-icon-key"         value="#{bundle.Authorize}"   update="openWindowAuthorize" actionListener="#{personController.authorize('/faces/secured/person/List.xhtml')}">
                             <f:param name="nextPage" value="/faces/secured/person/List.xhtml" />
                         </p:menuitem>
-                        <p:menuitem id="synchronizeButton" icon="ui-icon-clock"       value="#{bundle.Synchronize}" update=":PersonSynchronizeForm" oncomplete="PF('PersonSynchronizeDialog').show()" disabled="#{!personController.selected.hasFitbitCredentials()}" actionListener="#{personController.initSynchronizationDates}"/>
+                        <p:menuitem id="synchronizeButton" icon="ui-icon-clock"       value="#{bundle.Synchronize}" update=":PersonListForm:datalist, :PersonSynchronizeForm" oncomplete="handleDialogSynchronize(xhr, status, args)" actionListener="#{personController.initSynchronizationDates}" />
                         <p:menuitem id="sendButton"        icon="ui-icon-mail-closed" value="#{bundle.ZtreamySend}" update=":PersonSendForm"        oncomplete="PF('PersonSendDialog').show()"/>
                     </p:contextMenu>
                     <h:panelGroup id="openWindowAuthorize">
@@ -144,7 +240,8 @@
             <ui:include src="View.xhtml"/>
             <ui:include src="Synchronize.xhtml"/>
             <ui:include src="Send.xhtml"/>
-            <ui:include src="LineChart.xhtml"/>
+            <ui:include src="ActivityLogMonthLineChart.xhtml"/>
+            <ui:include src="SessionsWeekBarChart.xhtml"/>
         </ui:define>
     </ui:composition>
 

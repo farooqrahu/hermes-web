@@ -6,10 +6,13 @@
 package es.jyago.hermes.ztreamy;
 
 import es.jyago.hermes.person.Person;
+import es.jyago.hermes.util.Constants;
 import java.io.IOException;
 import java.net.MalformedURLException;
 import java.net.URL;
+import java.util.ArrayList;
 import java.util.Collection;
+import java.util.List;
 import java.util.Map;
 import java.util.logging.Level;
 import java.util.logging.Logger;
@@ -24,29 +27,25 @@ import ztreamy.Serializer;
  */
 public abstract class AbstractHermesZtreamyFacade<T> {
 
-    // TODO: Meter en la tabla de configuraci√≥n y recuperar al logarse el usuario.
-    private String url = "http://hermes1.gast.it.uc3m.es:9100/collector/publish";
-    // TODO: Meter en la tabla de configuraci√≥n y recuperar al logarse el usuario.
-    private String sourceId = "DraftSourceIDHermes-Citizen";
-    // TODO: Meter en la tabla de configuraci√≥n y recuperar al logarse el usuario.
-    private String applicationId = "Hermes-Citizen-Fitbit";
-
-    private final Publisher publisher;
-    private final Event event;
+    private Publisher publisher;
+    private Event event;
 
     public AbstractHermesZtreamyFacade(T element) throws MalformedURLException {
-        Serializer serializer = new JSONSerializer();
-        publisher = new Publisher(new URL(url), serializer);
-        event = new Event(sourceId,
-                "application/json", applicationId);
-        setBody(element);
+        List<T> collection = new ArrayList();
+        collection.add(element);
+        init(collection);
     }
 
     public AbstractHermesZtreamyFacade(Collection<T> collection) throws MalformedURLException {
+        init(collection);
+    }
+
+    private void init(Collection<T> collection) throws MalformedURLException {
         Serializer serializer = new JSONSerializer();
-        publisher = new Publisher(new URL(url), serializer);
-        event = new Event(sourceId,
-                "application/json", applicationId);
+        // Los par·metros de configuraciÛn de Ztreamy estar·n en la tabla de configuraciÛn.
+        publisher = new Publisher(new URL(Constants.getConfigurationValueByKey("ZtreamyURL")), serializer);
+        event = new Event(Constants.getConfigurationValueByKey("ZtreamyStepsSourceId"),
+                "application/json", Constants.getConfigurationValueByKey("ZtreamyApplicationId"));
         setBody(collection);
     }
 

@@ -4,21 +4,34 @@
                 xmlns:ui="http://java.sun.com/jsf/facelets"
                 xmlns:h="http://java.sun.com/jsf/html"
                 xmlns:p="http://primefaces.org/ui"
-                xmlns:f="http://java.sun.com/jsf/core"
-                xmlns:c="http://xmlns.jcp.org/jsp/jstl/core">
+                xmlns:f="http://xmlns.jcp.org/jsf/core">
 
-
-    <p:outputPanel id="logoutPanel" class="footerInfoPanel">
+    <p:outputPanel id="footerPanel">
         <h:form rendered="#{userLogin.loggedIn}">
-            <p:commandButton id="logout" type="submit" value="#{bundle.Logout}"
-                             image="logout-icon" action="#{userLogin.logout()}" ajax="false"
-                             title="#{bundle.Logout}" />
-            <h:outputText value="#{userLogin.user.toString()}" style="margin-left: 5px;"/>
+            <h:panelGrid columns="3" style="width: 100%">
+                <p:column>
+                    <div style="text-align: left">
+                        <p:commandButton id="logout" type="submit" value="#{bundle.Logout}"
+                                         icon="logout-icon" action="#{userLogin.logout()}" ajax="false"
+                                         title="#{bundle.Logout}" style="margin-top: 0px !important"/>
+                        <h:outputText value="#{userLogin.user.toString()}" style="margin-left: 5px;"/>
+                        <h:outputText value="(#{userLogin.user.role.name})" style="margin-left: 5px;"/>
+                        <h:outputFormat value=" - #{bundle.UsersConnected}" rendered="#{userLogin.user.admin}">
+                            <f:param value="#{session.getAttribute('sessionsCounter').getActiveSessionNumber()}"/>
+                        </h:outputFormat>
+                    </div>
+                </p:column>
+                <p:column>
+                    <!-- JYFR: Mensaje de ayuda -->
+                    <p:messages for="helpMessage" showDetail="true" autoUpdate="true" closable="true" />
+                </p:column>
+                <p:column>
+                    <div style="text-align: right">
+                        <p:clock pattern="HH:mm:ss - dd/MM/yyyy" mode="server"/>
+                    </div>
+                </p:column>
+            </h:panelGrid>
         </h:form>
     </p:outputPanel>
-
-    <div style="position:absolute; right: 10px; bottom: 10px;">
-        <p:clock pattern="HH:mm:ss - dd/MM/yyyy" mode="server" />
-    </div>
 
 </ui:composition>

@@ -1,7 +1,7 @@
 package es.jyago.hermes;
 
-import es.jyago.hermes.person.Person;
 import es.jyago.hermes.util.Constants;
+import es.jyago.hermes.person.Person;
 import java.io.IOException;
 import java.io.Serializable;
 import java.util.ArrayList;

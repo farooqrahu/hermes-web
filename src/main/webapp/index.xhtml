@@ -15,13 +15,14 @@
                     else {
                         // Ocultamos la ventana de 'login'.
                         PF('dlg').hide();
-                        // Cargamos el menú lateral con las opciones.
+                        // Cargamos el menú lateral con las opciones y el pie de la página.
                         PF('allLayouts').toggle('west');
+                        PF('allLayouts').toggle('south');
                     }
                 }
 
                 // Sólo mostramos la ventana de 'login' si el usuario no tiene iniciada la sesión.
-                <c:if test='${empty sessionScope.userLogin.user}'>
+                <c:if test='#{empty sessionScope.userLogin.user}'>
                     window.onload = function() {
                         PF('dlg').show();
                     };
@@ -56,7 +57,7 @@
                                         </h:panelGroup>
                                     </p:outputPanel>
                                     <p:outputPanel style="float: right"> 
-                                        <p:commandButton id="loginButton" value="#{bundle.Login}" update=":messages,:welcomePanel,:logoutPanel,:menuPanel,:timeoutForm" actionListener="#{userLogin.login}"
+                                        <p:commandButton id="loginButton" value="#{bundle.Login}" update=":messages,:welcomePanel,:footerPanel,:menuPanel,:timeoutForm" actionListener="#{userLogin.login}"
                                                          oncomplete="handleLoginRequest(xhr, status, args)" />
                                         <p:defaultCommand target="loginButton"/>
                                     </p:outputPanel>

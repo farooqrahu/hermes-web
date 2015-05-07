@@ -11,21 +11,26 @@
         <p:dialog id="ActivityLogPieChartDlg" widgetVar="ActivityLogPieChartDialog" modal="true" resizable="false" appendTo="@(body)" header="#{bundle.Graphic}" closeOnEscape="true">
 
             <h:form id="ActivityLogPieChartForm">
-                <h:panelGroup id="display">
-                    <p:chart type="pie" model="#{activityLogController.pieChartModel}" style="width:500px;height:500px" rendered="#{activityLogController.selected != null}"/>
+                <h:panelGrid id="display">
+                    <h:panelGroup rendered="#{activityLogController.selected == null or activityLogController.pieChartModel.legendRows > 0}">
+                        <h:outputText value="#{bundle.NoData}"/>
+                    </h:panelGroup>
+                    <h:panelGroup rendered="#{activityLogController.selected != null and activityLogController.pieChartModel.legendRows > 0}">
+                        <p:chart type="pie" model="#{activityLogController.pieChartModel}" style="width:500px;height:500px" rendered="#{activityLogController.selected != null and activityLogController.pieChartModel.legendRows > 0}"/>
 
-                    <p:panelGrid columns="4" rendered="#{activityLogController.selected != null}">
-                        <h:outputText value="#{bundle.ViewActivityLogLabel_personId}"/>
-                        <h:outputText value="#{activityLogController.selected.person.toString()}" title="#{bundle.ViewActivityLogTitle_personId}"/>
-                        <h:outputText value="#{bundle.Achieved}"/>
-                        <h:outputText value="#{activityLogController.selected.aggregatedValues.Achieved}" title="#{bundle.Achieved}"/>
-                        <h:outputText value="#{bundle.Target}"/>
-                        <h:outputText value="#{activityLogController.selected.person.stepsGoal}" title="#{bundle.Target}"/>
-                        <h:outputText value="#{bundle.Remaining}"/>
-                        <h:outputText value="#{activityLogController.selected.aggregatedValues.Remaining}" title="#{bundle.Remaining}"/>
-                    </p:panelGrid>
+                        <p:panelGrid columns="4" rendered="#{activityLogController.selected != null}">
+                            <h:outputText value="#{bundle.ViewActivityLogLabel_personId}"/>
+                            <h:outputText value="#{activityLogController.selected.person.toString()}" title="#{bundle.ViewActivityLogTitle_personId}"/>
+                            <h:outputText value="#{bundle.Achieved}"/>
+                            <h:outputText value="#{activityLogController.selected.aggregatedValues.Achieved}" title="#{bundle.Achieved}"/>
+                            <h:outputText value="#{bundle.Target}"/>
+                            <h:outputText value="#{activityLogController.selected.person.configurationHashMap.StepsGoal.value}" title="#{bundle.Target}"/>
+                            <h:outputText value="#{bundle.Remaining}"/>
+                            <h:outputText value="#{activityLogController.selected.aggregatedValues.Remaining}" title="#{bundle.Remaining}"/>
+                        </p:panelGrid>
+                    </h:panelGroup>
                     <p:commandButton value="#{bundle.Close}" onclick="PF('ActivityLogPieChartDialog').hide()"/>
-                </h:panelGroup>
+                </h:panelGrid>
             </h:form>
         </p:dialog>
     </ui:composition>

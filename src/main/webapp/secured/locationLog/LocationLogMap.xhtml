@@ -68,12 +68,12 @@
                                     <h:outputText value="&nbsp;#{bundle.HeartRate}"/>
                                 </h:panelGroup>
                                 <h:panelGrid id="heartFilter" columns="1" style="margin-bottom: 10px">
-                                    <h:outputText id="displayHeartRateRange" value="#{bundle.Range} (#{locationLogController.selectedLocationLog.minHeartRate} - #{locationLogController.selectedLocationLog.maxHeartRate})" />
+                                    <h:outputText id="displayHeartRateRange" value="#{bundle.Range} (#{locationLogController.selectedLocationLog.minimumHeartRateLocation.heartRate} - #{locationLogController.selectedLocationLog.maximumHeartRateLocation.heartRate})" />
                                     <p:slider for="minHeartRate,maxHeartRate" display="displayHeartRateRange" range="true" displayTemplate="#{bundle.Range} ({min} - {max})" minValue="0" maxValue="200" style="width: 100px;">
                                         <p:ajax event="slideEnd" listener="#{locationLogController.onHeartRateSlideEnd}" process="heartFilter" update="@form:gmap" />
                                     </p:slider>
-                                    <h:inputHidden id="minHeartRate" value="#{locationLogController.selectedLocationLog.minHeartRate}" />
-                                    <h:inputHidden id="maxHeartRate" value="#{locationLogController.selectedLocationLog.maxHeartRate}" />
+                                    <h:inputHidden id="minHeartRate" value="#{locationLogController.selectedLocationLog.minimumHeartRateLocation.heartRate}" />
+                                    <h:inputHidden id="maxHeartRate" value="#{locationLogController.selectedLocationLog.maximumHeartRateLocation.heartRate}" />
                                 </h:panelGrid>
 
                                 <h:panelGroup>
@@ -83,12 +83,12 @@
                                     <h:outputText value="&nbsp;#{bundle.Speed}"/>
                                 </h:panelGroup>
                                 <h:panelGrid id="speedFilter" columns="1" style="margin-bottom: 10px">
-                                    <h:outputText id="displaySpeedRange" value="#{bundle.Range} (#{locationLogController.selectedLocationLog.minSpeed} - #{locationLogController.selectedLocationLog.maxSpeed})" />
+                                    <h:outputText id="displaySpeedRange" value="#{bundle.Range} (0 - #{locationLogController.selectedLocationLog.maximumSpeedLocation.speed})" />
                                     <p:slider for="minSpeed,maxSpeed" display="displaySpeedRange" range="true" displayTemplate="#{bundle.Range} ({min} - {max})" minValue="0" maxValue="200" style="width: 100px;">
                                         <p:ajax event="slideEnd" listener="#{locationLogController.onSpeedSlideEnd}" process="speedFilter" update="@form:gmap" />
                                     </p:slider>
-                                    <h:inputHidden id="minSpeed" value="#{locationLogController.selectedLocationLog.minSpeed}" />
-                                    <h:inputHidden id="maxSpeed" value="#{locationLogController.selectedLocationLog.maxSpeed}" />
+                                    <h:inputHidden id="minSpeed" value="0" />
+                                    <h:inputHidden id="maxSpeed" value="#{locationLogController.selectedLocationLog.maximumSpeedLocation.speed}" />
                                 </h:panelGrid>
 
                                 <h:panelGrid columns="3">

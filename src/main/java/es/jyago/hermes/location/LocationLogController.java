@@ -85,6 +85,8 @@ public class LocationLogController implements Serializable {
     @EJB
     private LocationLogFacade ejbFacade;
     private Person person;
+    
+    private int stressPercentThreshold;
 
     public LocationLogController() {
         showMaximumSpeedLocation = false;
@@ -108,6 +110,7 @@ public class LocationLogController implements Serializable {
         intervalDataList = null;
         selectedInterval = null;
         selectedIntervalDataList = null;
+        stressPercentThreshold = 20;
     }
 
     public void setPerson(Person person) {
@@ -356,6 +359,9 @@ public class LocationLogController implements Serializable {
                         intervalData.setStandardDeviationHeartRate(heartRateStats.getStandardDeviation());
                         intervalData.setHeartRateAtStart(heartRateAtStart);
                         intervalData.setHeartRateAtEnd(lld.getHeartRate());
+                        
+                        // Nivel de estrés
+                        intervalData.setStress(getHeartRateAverageDeviation(intervalData.getAverageHeartRate()));
 
                         intervalDataList.add(intervalData);
                         newInterval = true;
@@ -681,10 +687,10 @@ public class LocationLogController implements Serializable {
             LocationLogDetail locationLogDetail = (LocationLogDetail) m.getData();
             // Pondremos una marca en aquellos puntos en los que el pulso y la velocidad estén entre los márgenes definidos por el usuario.
             if (filterByHeartRate) {
-                show = checkIfInRange(locationLogDetail.getHeartRate(), selectedLocationLog.getMinHeartRate(), selectedLocationLog.getMaxHeartRate());
+                show = checkIfInRange(locationLogDetail.getHeartRate(), selectedLocationLog.getMinimumHeartRateLocation().getHeartRate(), selectedLocationLog.getMaximumHeartRateLocation().getHeartRate());
             }
             if (show && filterBySpeed) {
-                show = checkIfInRange(locationLogDetail.getSpeed(), selectedLocationLog.getMinSpeed(), selectedLocationLog.getMaxSpeed());
+                show = checkIfInRange(locationLogDetail.getSpeed(), 0.0d, selectedLocationLog.getMaximumSpeedLocation().getSpeed());
             }
             if (show) {
                 m.setVisible(true);
@@ -969,5 +975,31 @@ public class LocationLogController implements Serializable {
         whitePushpin = createMarker(selectedLocationLog.getLocationLogDetailList().get(event.getItemIndex()), true, "https://maps.google.com/mapfiles/kml/pal5/icon14.png");
         mapModel.addOverlay(whitePushpin);
         marker = whitePushpin;
+    }
+
+    public int getStressPercentThreshold() {
+        return stressPercentThreshold;
+    }
+
+    public void setStressPercentThreshold(int stressPercentThreshold) {
+        this.stressPercentThreshold = stressPercentThreshold;
+    }
+    
+    private double getHeartRateAverageDeviation(double intervalAverageHeartRate)
+    {
+        if (selectedLocationLog.getAvgHeartRate() == 0.0d)
+            return Double.NaN;
+        
+        return 100.0d - (intervalAverageHeartRate*100.0d/this.selectedLocationLog.getAvgHeartRate());
+    }
+    
+    public String getStressColor(double value)
+    {
+        if (value >= stressPercentThreshold)
+            return "red";
+        else if (value <= -stressPercentThreshold)
+            return "green";
+        
+        return "black";
     }
 }

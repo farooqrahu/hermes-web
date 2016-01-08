@@ -36,6 +36,7 @@ import javax.xml.bind.annotation.XmlRootElement;
 import javax.xml.bind.annotation.XmlTransient;
 import org.apache.commons.lang.builder.EqualsBuilder;
 import org.apache.commons.lang.builder.HashCodeBuilder;
+import org.apache.commons.math3.stat.descriptive.DescriptiveStatistics;
 
 /**
  *
@@ -81,13 +82,7 @@ public class LocationLog implements Serializable {
     private LocationLogDetail maximumHeartRateLocation;
 
     @Transient
-    private int minHeartRate;
-    @Transient
-    private int maxHeartRate;
-    @Transient
-    private double minSpeed;
-    @Transient
-    private double maxSpeed;
+    private double avgHeartRate;
 
     public LocationLog() {
         locationLogDetailList = new ArrayList<>();
@@ -99,7 +94,8 @@ public class LocationLog implements Serializable {
     // JYFR: Método que será invocado automáticamente tras cargar los datos de la base de datos y de ser inyectados en los atributos correspondientes.
     @PostLoad
     private void init() {
-        findMaxMinValues();
+        // Calculamos el máximo, mínimo y media aritmética.
+        findMaxMinAvgValues();
     }
 
     public Integer getLocationLogId() {
@@ -126,36 +122,8 @@ public class LocationLog implements Serializable {
         this.person = person;
     }
 
-    public int getMinHeartRate() {
-        return minHeartRate;
-    }
-
-    public void setMinHeartRate(int minHeartRate) {
-        this.minHeartRate = minHeartRate;
-    }
-
-    public int getMaxHeartRate() {
-        return maxHeartRate;
-    }
-
-    public void setMaxHeartRate(int maxHeartRate) {
-        this.maxHeartRate = maxHeartRate;
-    }
-
-    public double getMinSpeed() {
-        return minSpeed;
-    }
-
-    public void setMinSpeed(double minSpeed) {
-        this.minSpeed = minSpeed;
-    }
-
-    public double getMaxSpeed() {
-        return maxSpeed;
-    }
-
-    public void setMaxSpeed(double maxSpeed) {
-        this.maxSpeed = maxSpeed;
+    public double getAvgHeartRate() {
+        return avgHeartRate;
     }
 
     public String getFilename() {
@@ -187,62 +155,24 @@ public class LocationLog implements Serializable {
         return maximumSpeedLocation;
     }
 
-//    public boolean isShowMaximumSpeedLocation() {
-//        return showMaximumSpeedLocation;
-//    }
-//
-//    public void setShowMaximumSpeedLocation(boolean showMaximumSpeedLocation) {
-//        this.showMaximumSpeedLocation = showMaximumSpeedLocation;
-//        marker = maximumSpeedMarker;
-//        maximumSpeedMarker.setVisible(showMaximumSpeedLocation);
-//    }
-//
-//    public boolean isShowMinimumHeartRateLocation() {
-//        return showMinimumHeartRateLocation;
-//    }
-//
-//    public void setShowMinimumHeartRateLocation(boolean showMinimumHeartRateLocation) {
-//        this.showMinimumHeartRateLocation = showMinimumHeartRateLocation;
-//        marker = minimumHeartRateMarker;
-//        minimumHeartRateMarker.setVisible(showMinimumHeartRateLocation);
-//    }
-//
-//    public boolean isShowMaximumHeartRateLocation() {
-//        return showMaximumHeartRateLocation;
-//    }
-//
-//    public void setShowMaximumHeartRateLocation(boolean showMaximumHeartRateLocation) {
-//        this.showMaximumHeartRateLocation = showMaximumHeartRateLocation;
-//        marker = maximumHeartRateMarker;
-//        maximumHeartRateMarker.setVisible(showMaximumHeartRateLocation);
-//    }
-//
-//    public Marker getMaximumSpeedMarker() {
-//        return maximumSpeedMarker;
-//    }
-//
-//    public Marker getMinimumHeartRateMarker() {
-//        return minimumHeartRateMarker;
-//    }
-//
-//    public Marker getMaximumHeartRateMarker() {
-//        return maximumHeartRateMarker;
-//    }
-    private void findMaxMinValues() {
+    private void findMaxMinAvgValues() {
+
+        DescriptiveStatistics hearRateStats = new DescriptiveStatistics();
 
         if (locationLogDetailList != null && !locationLogDetailList.isEmpty()) {
             // Para descartar los valores 0 en el ritmo cardíaco que llegan de la aplicación de SmartDriver,
             // establecemos unas pulsaciones mínimas imposibles para un ser humano.
             minimumHeartRateLocation = locationLogDetailList.get(0);
-            // FIXME: No vale esto si no usamos un clone().
-//            minimumHeartRateLocation.setHeartRate(500);
             maximumHeartRateLocation = locationLogDetailList.get(0);
             maximumSpeedLocation = locationLogDetailList.get(0);
 
             for (LocationLogDetail detail : locationLogDetailList) {
                 // Debemos descartar los valores 0 en el ritmo cardíaco que llegan de la aplicación de SmartDriver.
-                if (detail.getHeartRate() > 0 && detail.getHeartRate() < minimumHeartRateLocation.getHeartRate()) {
-                    minimumHeartRateLocation = detail;
+                if (detail.getHeartRate() > 0) {
+                    hearRateStats.addValue(detail.getHeartRate());
+                    if (detail.getHeartRate() < minimumHeartRateLocation.getHeartRate()) {
+                        minimumHeartRateLocation = detail;
+                    }
                 }
                 if (detail.getHeartRate() > maximumHeartRateLocation.getHeartRate()) {
                     maximumHeartRateLocation = detail;
@@ -251,6 +181,8 @@ public class LocationLog implements Serializable {
                     maximumSpeedLocation = detail;
                 }
             }
+            
+            avgHeartRate = hearRateStats.getMean();
         }
     }
 

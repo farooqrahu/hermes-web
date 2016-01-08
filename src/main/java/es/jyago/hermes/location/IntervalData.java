@@ -47,6 +47,7 @@ public class IntervalData {
     private double standardDeviationHeartRate;
     private int heartRateAtStart;
     private int heartRateAtEnd;
+    private double stress;
     
     // Tramo previo. Servirá para analizar la tendencia.
     private IntervalData previousIntervalData;
@@ -78,6 +79,8 @@ public class IntervalData {
         standardDeviationHeartRate = 0.0d;
         heartRateAtStart = 0;
         heartRateAtEnd = 0;
+        
+        stress = 0.0d;
         
         previousIntervalData = null;
     }
@@ -309,5 +312,13 @@ public class IntervalData {
 
     public void setPreviousIntervalData(IntervalData previousIntervalData) {
         this.previousIntervalData = previousIntervalData;
+    }
+
+    public double getStress() {
+        return stress;
+    }
+
+    public void setStress(double stress) {
+        this.stress = stress;
     }
 }

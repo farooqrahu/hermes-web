@@ -4,13 +4,30 @@
       xmlns:ui="http://xmlns.jcp.org/jsf/facelets"
       xmlns:h="http://xmlns.jcp.org/jsf/html"
       xmlns:p="http://primefaces.org/ui"
-      xmlns:f="http://xmlns.jcp.org/jsf/core">
+      xmlns:f="http://xmlns.jcp.org/jsf/core"
+      xmlns:c="http://xmlns.jcp.org/jsp/jstl/core">
     <ui:composition>
         <h:head>
         </h:head>
         <h:body>
             <p:dialog widgetVar="IntervalDataDialog" modal="true" resizable="true" appendTo="@(body)" header="#{bundle.IntervalData}" maximizable="true" closeOnEscape="true" height="auto" width="auto">
                 <h:form id="IntervalDataForm">
+                    <p:panelGrid columns="2">
+                        <p:column>
+                            <p:outputLabel for="avgHeartRate" value="#{bundle.TrackAverageHeartRate}: "/>
+                            <strong>
+                                <h:outputText id="avgHeartRate" value="#{locationLogController.selectedLocationLog.avgHeartRate}">
+                                    <f:convertNumber pattern="#0.00"/>
+                                </h:outputText>                            
+                            </strong>                            
+                        </p:column>
+                        <p:column>
+                            <p:outputLabel value="#{bundle.StressThreshold}" for="stressThreshold" style="padding-right: 5px;"/>
+                            <p:spinner id="stressThreshold" value="#{locationLogController.stressPercentThreshold}" title="#{bundle.StressThreshold}" min="1" max="100" size="4">
+                                <p:ajax update="datalist" process="@this" />
+                            </p:spinner>
+                        </p:column>
+                    </p:panelGrid>
                     <p:dataTable id="datalist" value="#{locationLogController.intervalDataList}" var="item"
                                  selectionMode="single" 
                                  selection="#{locationLogController.selectedInterval}"
@@ -118,7 +135,7 @@
                                 <f:convertNumber pattern="#0.00"/>
                             </h:outputText>
                         </p:column>
-                        <p:column sortBy="#{item.pke}" filterBy="#{item.pke}" filterStyle="width: 30px;" filterMatchMode="contains">
+                        <p:column sortBy="#{item.pke}" filterBy="#{item.pke}" filterStyle="width: 20px;" filterMatchMode="contains">
                             <f:facet name="header">
                                 <h:outputText value="PKE" title="PKE" escape="false" style="white-space:pre-line;"/>
                             </f:facet>
@@ -171,6 +188,14 @@
                                 <h:outputText value="StdDevHR" title="#{bundle.StandardDeviationHeartRate}" escape="false" style="white-space:pre-line;"/>
                             </f:facet>
                             <h:outputText value="#{item.standardDeviationHeartRate}" style="float:right">
+                                <f:convertNumber pattern="#0.00"/>
+                            </h:outputText>
+                        </p:column>
+                        <p:column sortBy="#{item.stress}" filterBy="#{item.stress}" filterStyle="width: 30px;" filterMatchMode="contains">
+                            <f:facet name="header">
+                                <h:outputText value="Stress" title="#{bundle.Stress}" escape="false" style="white-space:pre-line;"/>
+                            </f:facet>
+                            <h:outputText style="color : #{locationLogController.getStressColor(item.stress)}; float: right;" value="#{item.stress}">
                                 <f:convertNumber pattern="#0.00"/>
                             </h:outputText>
                         </p:column>

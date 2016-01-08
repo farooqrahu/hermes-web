@@ -1,0 +1,177 @@
+/*
+ * To change this license header, choose License Headers in Project Properties.
+ * To change this template file, choose Tools | Templates
+ * and open the template in the editor.
+ */
+package es.jyago.hermes.healthLog;
+
+import es.jyago.hermes.heartLog.HeartLog;
+import es.jyago.hermes.person.Person;
+import es.jyago.hermes.util.Constants;
+import es.jyago.hermes.util.HermesException;
+import es.jyago.hermes.ztreamy.AbstractHermesZtreamyFacade;
+import java.io.Serializable;
+import java.net.MalformedURLException;
+import java.util.ArrayList;
+import java.util.Collection;
+import java.util.Date;
+import java.util.HashMap;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Map;
+import java.util.logging.Level;
+import java.util.logging.Logger;
+import javax.ws.rs.core.MediaType;
+import org.apache.commons.codec.binary.Hex;
+import org.apache.commons.codec.digest.DigestUtils;
+import ztreamy.Event;
+
+/**
+ * Clase para transmitir los registros de ritmo cardíaco por Ztreamy.
+ *
+ * @author Jorge Yago
+ */
+public class HealthLogHermesZtreamyFacade extends AbstractHermesZtreamyFacade<HealthLog> {
+
+    private static final String HEART_RATE_DATA = "Heart Rate Data";
+    private static final Logger log = Logger.getLogger(HealthLogHermesZtreamyFacade.class.getName());
+
+    public HealthLogHermesZtreamyFacade(HealthLog healthLog, Person person, String url) throws MalformedURLException, HermesException {
+        super(healthLog, person, url);
+    }
+
+    public HealthLogHermesZtreamyFacade(Collection<HealthLog> collectionHealthLog, Person person, String url) throws MalformedURLException, HermesException {
+        super(collectionHealthLog, person, url, false);
+    }
+
+    @Override
+    public Map<String, Object> getBodyObject(Collection<HealthLog> collectionHealthLog) {
+        Map<String, Object> bodyObject = null;
+
+        if (collectionHealthLog != null && !collectionHealthLog.isEmpty()) {
+            List<ZtreamyHealthLog> listZtreamyHealthLog = new ArrayList<>();
+
+            for (HealthLog healthLog : collectionHealthLog) {
+                List<ZtreamyHeartLog> listZtreanyHeartLog = new ArrayList<>();
+
+                for (HeartLog heartLog : healthLog.getHeartLogList()) {
+                    // JYFR: 17-11-2015: Por petición de Miguel R. Luaces, se cambia el modo de envío, de un evento con una lista de datos, a una
+                    //                   lista de eventos con un único dato cada uno.
+                    //                   También se limita el envío a únicamente los que tengan información distinta de cero.
+                    if (heartLog.getRate() > 0) {
+                        ZtreamyHeartLog ztreamyHeartLog = new ZtreamyHeartLog(heartLog.getTimeLog(), heartLog.getRate());
+                        listZtreanyHeartLog.add(ztreamyHeartLog);
+                    }
+                }
+
+                ZtreamyHealthLog ztreanyHealthLog = new ZtreamyHealthLog(healthLog.getDateLog(), listZtreanyHeartLog);
+                listZtreamyHealthLog.add(ztreanyHealthLog);
+            }
+            bodyObject = new HashMap<>();
+            if (listZtreamyHealthLog.size() == 1) {
+                bodyObject.put(HEART_RATE_DATA, listZtreamyHealthLog.get(0));
+            } else {
+                bodyObject.put(HEART_RATE_DATA, listZtreamyHealthLog);
+            }
+        }
+
+        return bodyObject;
+    }
+
+    @Override
+    public Map<String, Object> getBodyObject(HealthLog healthLog) {
+        HashSet<HealthLog> collectionHealthLog = new HashSet();
+
+        collectionHealthLog.add(healthLog);
+
+        return getBodyObject(collectionHealthLog);
+    }
+
+    @Override
+    public Event prepareEvent() {
+        log.log(Level.INFO, "init() - Preparando el envío de datos de ritmo cardíaco por Ztreamy de: {0}", getPerson().getFullName());
+        String sha = getPerson().getSha();
+        if (sha == null || sha.length() == 0) {
+            sha = new String(Hex.encodeHex(DigestUtils.sha256(getPerson().getEmail())));
+        }
+        return new Event(sha, MediaType.APPLICATION_JSON, Constants.getConfigurationValueByKey("ZtreamyHeartRateApplicationId"), HEART_RATE_DATA);
+    }
+
+    @Override
+    public String getType() {
+        return HEART_RATE_DATA;
+    }
+
+    @Override
+    public Collection<Object> getBodyObjects(Collection<HealthLog> collection) {
+        List<Object> listZtreamyHealthLog = new ArrayList<>();
+
+        if (collection != null && !collection.isEmpty()) {
+
+            for (HealthLog healthLog : collection) {
+                List<ZtreamyHeartLog> listZtreanyHeartLog = new ArrayList<>();
+
+                for (HeartLog heartLog : healthLog.getHeartLogList()) {
+                    // JYFR: 17-11-2015: Por petición de Miguel R. Luaces, se cambia el modo de envío, de un evento con una lista de datos, a una
+                    //                   lista de eventos con un único dato cada uno.
+                    //                   También se limita el envío a únicamente los que tengan información distinta de cero.
+                    if (heartLog.getRate() > 0) {
+                        ZtreamyHeartLog ztreamyHeartLog = new ZtreamyHeartLog(heartLog.getTimeLog(), heartLog.getRate());
+                        listZtreanyHeartLog.add(ztreamyHeartLog);
+                    }
+                }
+
+                ZtreamyHealthLog ztreanyHealthLog = new ZtreamyHealthLog(healthLog.getDateLog(), listZtreanyHeartLog);
+                listZtreamyHealthLog.add(ztreanyHealthLog);
+            }
+        }
+
+        return listZtreamyHealthLog;
+    }
+
+    /**
+     * Clase con los atributos mínimos en el registro de ritmo cardíaco, para
+     * enviar por Ztreamy.
+     */
+    class ZtreamyHealthLog implements Serializable {
+
+        private final String dateTime;
+        private final List<ZtreamyHeartLog> heartRateList;
+
+        public ZtreamyHealthLog(Date dateTime, List heartRateList) {
+            this.dateTime = Constants.df.format(dateTime);
+            this.heartRateList = heartRateList;
+        }
+
+        public String getDateTime() {
+            return dateTime;
+        }
+
+        public List<ZtreamyHeartLog> getHeartRateList() {
+            return heartRateList;
+        }
+    }
+
+    /**
+     * Clase con los atributos mínimos en el registro de ritmo cardíaco, para
+     * enviar a Ztreamy.
+     */
+    class ZtreamyHeartLog implements Serializable {
+
+        private final String timeLog;
+        private final int heartRate;
+
+        public ZtreamyHeartLog(Date timeLog, int heartRate) {
+            this.timeLog = timeLog != null ? Constants.dfTime.format(timeLog) : "";
+            this.heartRate = heartRate;
+        }
+
+        public String getTimeLog() {
+            return timeLog;
+        }
+
+        public int getHearRate() {
+            return heartRate;
+        }
+    }
+}

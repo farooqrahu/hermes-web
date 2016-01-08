@@ -1,5 +1,5 @@
 <?xml version="1.0" encoding="UTF-8" ?>
-<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.1 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
 <html xmlns="http://www.w3.org/1999/xhtml"
       xmlns:ui="http://xmlns.jcp.org/jsf/facelets"
       xmlns:h="http://xmlns.jcp.org/jsf/html"
@@ -9,38 +9,41 @@
     <ui:composition template="/WEB-INF/facelets/template.xhtml">
 
         <ui:define name="title">
-            <h:outputText value="#{bundle.ListInformeTitle}"></h:outputText>
+            <h:outputText value="#{bundle.ListReportTitle}"></h:outputText>
         </ui:define>
 
         <ui:define name="content">
             <h:form id="InformeListForm">
-                <p:panel header="#{bundle.ListInformeTitle}">
+                <p:panel header="#{bundle.ListReportTitle}">
                     <p:dataTable id="datalist" value="#{reportController.items}" var="item"
-                                 selectionMode="single" selection="#{reportController.selected}"
+                                 selectionMode="single"
+                                 selection="#{reportController.selected}"
                                  paginator="true"
                                  rowKey="#{item.url}"
                                  rows="10"
                                  rowsPerPageTemplate="10,20,30,40,50"
                                  resizableColumns="true"
                                  emptyMessage="#{bundle.NoRows}"
+                                 sortBy="#{item.description}"
+                                 sortOrder="ascending"
                                  >
 
-                        <p:ajax event="rowSelect"   update="viewButton"/>
-                        <p:ajax event="rowUnselect" update="viewButton"/>
-                        
-                        <f:facet name="header">
-                            <p:commandButton icon="ui-icon-calculator" id="toggler" style="float: right; margin-top: 7px !important" type="button" value="#{bundle.columna}"/>
-                            <p:columnToggler datasource="datalist" trigger="toggler"/>
+                        <f:facet name="header">                           
                         </f:facet>
-                        <p:column sortBy="#{item.descripcion}" filterBy="#{item.descripcion}">
+
+                        <p:column sortBy="#{item.description}" filterBy="#{item.description}">
                             <f:facet name="header">
-                                <h:outputText value="#{bundle.ListInformeTitle_descripcion}"/>
+                                <h:outputText value="#{bundle.ListReportTitle_description}"/>
                             </f:facet>
-                            <h:outputText value="#{item.descripcion}"/>
+                            <h:outputText value="#{item.description}"/>
                         </p:column>
-                        <f:facet name="footer">
-                            <p:commandButton id="viewButton" icon="ui-icon-search" value="#{bundle.View}" action="#{reportController.PDF()}" disabled="#{empty reportController.selected}" accesskey="v" ajax="false" />
-                        </f:facet>
+                        <p:column style="text-align: center; width:10%;">
+                            <h:commandButton action="#{reportController.generatePDF(item)}"
+                                             styleClass="pdf-icon"
+                                             style="border-width: 0; background: none; padding-bottom: 8px;"
+                                             title="#{bundle.GeneratePDF}">
+                            </h:commandButton>
+                        </p:column>
                     </p:dataTable>
                 </p:panel>
             </h:form>

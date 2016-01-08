@@ -59,12 +59,21 @@ public class ConfigurationController implements Serializable {
     public void create() {
         persist(PersistAction.CREATE, ResourceBundle.getBundle("/Bundle").getString("OptionCreated"));
         if (!JsfUtil.isValidationFailed()) {
+            selected = null; // Remove selection
             items = null;    // Invalidate list of items to trigger re-query.
         }
     }
 
     public void update() {
-        persist(PersistAction.UPDATE, ResourceBundle.getBundle("/Bundle").getString("OptionUpdated"));
+        update(true);
+    }
+
+    public void update(boolean showMessage) {
+        String message = null;
+        if (showMessage) {
+            message = ResourceBundle.getBundle("/Bundle").getString("OptionUpdated");
+        }
+        persist(PersistAction.UPDATE, message);
     }
 
     public void destroy() {
@@ -91,10 +100,11 @@ public class ConfigurationController implements Serializable {
                 } else {
                     getFacade().remove(selected);
                 }
-                JsfUtil.addSuccessMessage(successMessage);
-                
-                // Mostramos el mensaje 
-                JsfUtil.showHelpMessage(ResourceBundle.getBundle("/Bundle").getString("ApplyNextLoginInfo"));
+                if (successMessage != null) {
+                    JsfUtil.addSuccessMessage(successMessage);
+                    // Mostramos el mensaje 
+                    JsfUtil.showHelpMessage(ResourceBundle.getBundle("/Bundle").getString("ApplyNextLoginInfo"));
+                }
             } catch (EJBException ex) {
                 String msg = "";
                 Throwable cause = ex.getCause();

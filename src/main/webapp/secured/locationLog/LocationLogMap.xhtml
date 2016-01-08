@@ -1,0 +1,135 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.1//EN" "http://www.w3.org/TR/xhtml11/DTD/xhtml11.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml"
+      xmlns:ui="http://xmlns.jcp.org/jsf/facelets"
+      xmlns:h="http://xmlns.jcp.org/jsf/html"
+      xmlns:p="http://primefaces.org/ui"
+      xmlns:f="http://xmlns.jcp.org/jsf/core"
+      xmlns:c="http://xmlns.jcp.org/jsp/jstl/core">
+
+
+    <ui:define name="title">
+        <h:outputText value="#{bundle.Map}"/>
+    </ui:define>
+    <h:head>
+        <script>
+            var enabledDays = #{locationLogController.enabledDays};
+        </script>
+        <h:outputScript name="charts/charts.js" library="primefaces" target="head" />
+        <h:outputStylesheet name="charts/charts.css" library="primefaces" />
+        <h:outputScript name="locationLogMap.js" library="js"/>
+    </h:head>
+    <h:body>
+        <h:form id="PersonMapForm">
+            <c:choose>
+                <c:when test='#{personController.selected == null or personController.selected.locationLogList == null or empty personController.selected.locationLogList}'>
+                    <h:panelGrid>
+                        <h:outputText value="#{bundle.NoData}"/>
+                    </h:panelGrid>
+                </c:when>
+
+                <c:otherwise>
+                    <!-- FIXME: Poner 'fitBounds' cuando se corrija el 'bug' que tiene Primefaces con Google Maps -->
+                    <p:gmap id="gmap" widgetVar="gmap" center="#{locationLogController.markerLatitudeLongitude}" zoom="13" type="ROADMAP" model="#{locationLogController.mapModel}" style="height:400px">
+                        <p:ajax event="overlaySelect" listener="#{locationLogController.onMarkerSelect}"/>
+                        <p:gmapInfoWindow id="infoWindow">
+                            <p:outputPanel style="text-align: center; display: block; margin: auto">
+                                <h:outputText value="#{locationLogController.marker.title}" />
+                            </p:outputPanel>
+                        </p:gmapInfoWindow>
+                    </p:gmap>
+                    <div style="width: 100%; display: flex;">
+                        <h:panelGrid columns="2" style="width: 300px;">
+                            <h:panelGroup>
+                                <!--<p:calendar id="mapDate" value="#{locationLogController.mapDate}" mindate="#{locationLogController.locationLogList[0].dateLog}" maxdate="#{locationLogController.locationLogList[locationLogController.locationLogList.size()-1].dateLog}" mode="inline" title="#{bundle.Date}">-->
+                                <p:calendar id="mapDate" value="#{locationLogController.mapDate}" mode="inline" title="#{bundle.Date}" beforeShowDay="enableAllTheseDays">
+                                    <p:ajax event="dateSelect" update="gmap, tracks, markers, speedLineChart, heartRateLineChart"/>
+                                </p:calendar>
+
+                                <p:selectOneMenu id="tracks" value="#{locationLogController.selectedLocationLog}">
+                                    <!-- FIXME Pasar los datos del personController al locationLogController -->
+                                    <p:ajax event="valueChange" immediate="true" process="@this" listener="#{locationLogController.trackSelectionChanged}" update="gmap, tracks, markers, speedLineChart, heartRateLineChart" />
+                                    <f:selectItems value="#{locationLogController.tracks}" var="tks" itemLabel="#{tks.dateTimeStart}" itemValue="#{tks.filename}"/>
+                                </p:selectOneMenu>
+
+                                <p:panel id="analysis" header="#{bundle.Analysis}">
+                                    <h:outputText value="#{bundle.IntervalsOf}"/>
+                                    <p:spinner value="#{locationLogController.intervalLength}" title="#{bundle.IntervalLength}" min="100" max="20000" size="4" stepFactor="10"/>
+                                    <h:outputText value=" m"/>
+                                    <p:commandButton process="@this PersonMapForm:analysis" value="#{bundle.IntervalData}" title="#{bundle.IntervalData}" actionListener="#{locationLogController.generateIntervalData()}" update=":IntervalDataForm" oncomplete="PF('IntervalDataDialog').show()"/>
+                                </p:panel>
+                            </h:panelGroup>
+
+                            <p:panel id="markers" header="#{bundle.Markers}" style="width: 220px">
+                                <h:panelGroup>
+                                    <p:selectBooleanCheckbox value="#{locationLogController.filterByHeartRate}" >
+                                        <p:ajax update="gmap" />
+                                    </p:selectBooleanCheckbox>
+                                    <h:outputText value="&nbsp;#{bundle.HeartRate}"/>
+                                </h:panelGroup>
+                                <h:panelGrid id="heartFilter" columns="1" style="margin-bottom: 10px">
+                                    <h:outputText id="displayHeartRateRange" value="#{bundle.Range} (#{locationLogController.selectedLocationLog.minHeartRate} - #{locationLogController.selectedLocationLog.maxHeartRate})" />
+                                    <p:slider for="minHeartRate,maxHeartRate" display="displayHeartRateRange" range="true" displayTemplate="#{bundle.Range} ({min} - {max})" minValue="0" maxValue="200" style="width: 100px;">
+                                        <p:ajax event="slideEnd" listener="#{locationLogController.onHeartRateSlideEnd}" process="heartFilter" update="@form:gmap" />
+                                    </p:slider>
+                                    <h:inputHidden id="minHeartRate" value="#{locationLogController.selectedLocationLog.minHeartRate}" />
+                                    <h:inputHidden id="maxHeartRate" value="#{locationLogController.selectedLocationLog.maxHeartRate}" />
+                                </h:panelGrid>
+
+                                <h:panelGroup>
+                                    <p:selectBooleanCheckbox value="#{locationLogController.filterBySpeed}">
+                                        <p:ajax update="gmap" />
+                                    </p:selectBooleanCheckbox>
+                                    <h:outputText value="&nbsp;#{bundle.Speed}"/>
+                                </h:panelGroup>
+                                <h:panelGrid id="speedFilter" columns="1" style="margin-bottom: 10px">
+                                    <h:outputText id="displaySpeedRange" value="#{bundle.Range} (#{locationLogController.selectedLocationLog.minSpeed} - #{locationLogController.selectedLocationLog.maxSpeed})" />
+                                    <p:slider for="minSpeed,maxSpeed" display="displaySpeedRange" range="true" displayTemplate="#{bundle.Range} ({min} - {max})" minValue="0" maxValue="200" style="width: 100px;">
+                                        <p:ajax event="slideEnd" listener="#{locationLogController.onSpeedSlideEnd}" process="speedFilter" update="@form:gmap" />
+                                    </p:slider>
+                                    <h:inputHidden id="minSpeed" value="#{locationLogController.selectedLocationLog.minSpeed}" />
+                                    <h:inputHidden id="maxSpeed" value="#{locationLogController.selectedLocationLog.maxSpeed}" />
+                                </h:panelGrid>
+
+                                <h:panelGrid columns="3">
+                                    <p:selectBooleanCheckbox value="#{locationLogController.showMaximumSpeedLocation}" >
+                                        <p:ajax update="gmap" />
+                                    </p:selectBooleanCheckbox>
+                                    <p:outputLabel for="maximumSpeed" value="#{bundle.MaximumSpeed}:"/>
+                                    <h:outputText id="maximumSpeed" value="#{locationLogController.selectedLocationLog.maximumSpeedLocation.speed}">
+                                        <f:convertNumber pattern="#0.00"/>
+                                    </h:outputText>
+                                </h:panelGrid>
+                                <h:panelGrid columns="3">
+                                    <p:selectBooleanCheckbox value="#{locationLogController.showMinimumHeartRateLocation}" >
+                                        <p:ajax update="gmap" />
+                                    </p:selectBooleanCheckbox>
+                                    <p:outputLabel for="minimumHeartRate" value="#{bundle.MinimumHeartRate}:"/>
+                                    <h:outputText id="minimumHeartRate" value="#{locationLogController.selectedLocationLog.minimumHeartRateLocation.heartRate}"/>
+                                </h:panelGrid>
+                                <h:panelGrid columns="3">
+                                    <p:selectBooleanCheckbox value="#{locationLogController.showMaximumHeartRateLocation}" >
+                                        <p:ajax update="gmap" />
+                                    </p:selectBooleanCheckbox>
+                                    <p:outputLabel for="maximumHeartRate" value="#{bundle.MaximumHeartRate}:"/>
+                                    <h:outputText id="maximumHeartRate" value="#{locationLogController.selectedLocationLog.maximumHeartRateLocation.heartRate}"/>
+                                </h:panelGrid>
+                            </p:panel>
+                        </h:panelGrid>
+
+                        <div style="width: 100%">
+                            <p:chart type="line" id="speedLineChart" widgetVar="speedLineChart" model="#{locationLogController.speedLineChartModel}" style="height:150px" responsive="true">
+                                 <p:ajax event="itemSelect" listener="#{locationLogController.speedItemSelect}" update="gmap" />
+                            </p:chart>
+                            <p:chart type="line" id="heartRateLineChart" widgetVar="heartRateLineChart" model="#{locationLogController.heartRateLineChartModel}" style="height:150px" responsive="true">
+                                <p:ajax event="itemSelect" listener="#{locationLogController.heartRateItemSelect}" update="gmap" />
+                            </p:chart>
+                        </div>
+                    </div>
+                </c:otherwise>
+            </c:choose>
+        </h:form>
+    </h:body>
+
+    <ui:include src="IntervalData.xhtml"/>
+</html>

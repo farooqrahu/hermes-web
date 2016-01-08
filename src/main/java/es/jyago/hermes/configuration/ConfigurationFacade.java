@@ -16,6 +16,7 @@ import javax.persistence.PersistenceContext;
  */
 @Stateless
 public class ConfigurationFacade extends AbstractFacade<Configuration> {
+
     @PersistenceContext(unitName = "HermesWeb_PU")
     private EntityManager em;
 
@@ -27,5 +28,5 @@ public class ConfigurationFacade extends AbstractFacade<Configuration> {
     public ConfigurationFacade() {
         super(Configuration.class);
     }
-    
+
 }

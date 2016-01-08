@@ -1,0 +1,69 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.1//EN" "http://www.w3.org/TR/xhtml11/DTD/xhtml11.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml"
+      xmlns:ui="http://xmlns.jcp.org/jsf/facelets"
+      xmlns:h="http://xmlns.jcp.org/jsf/html"
+      xmlns:p="http://primefaces.org/ui"
+      xmlns:c="http://xmlns.jcp.org/jsp/jstl/core">
+
+    <ui:composition>
+        <h:head>
+            <h:outputScript name="charts/charts.js" library="primefaces" target="head" />
+            <h:outputStylesheet name="charts/charts.css" library="primefaces" />
+        </h:head>
+        <script type="text/javascript">
+            function customExtender() {
+                this.cfg.axes.yaxis = {
+                    showTicks: false,
+                    showTickMarks: false,
+                };
+                // PRUEBA
+                //                $(".jqplot-highlighter-tooltip").html("" + plot.axes.xaxis.ticks[neighbor.pointIndex][1] + ", " + ((datapos.yaxis.toFixed(2) > 65) ? "pp" : "kk") + " Oi");
+            }
+        </script>
+
+        <p:dialog widgetVar="ActivityLogSessionsChartDialog" modal="true" resizable="true" appendTo="@(body)" header="#{bundle.GraphicSessions}" closeOnEscape="true" maximizable="true">
+
+            <h:form id="ActivityLogSessionsChartForm">
+                <h:panelGrid id="display">
+                    <c:choose>
+                        <c:when test='#{personController.selected == null or personController.activityLogSessionsChartModel == null or empty personController.activityLogSessionsChartModel.series}'>
+                            <h:panelGrid>
+                                <h:outputText value="#{bundle.NoData}"/>
+                            </h:panelGrid>
+                        </c:when>
+
+                        <c:otherwise>
+                            <h:panelGroup>
+                                <p:chart id="sessionsChart" widgetVar="sessionsChart" type="line" model="#{personController.activityLogSessionsChartModel}" style="width:1024px;height:500px" rendered="#{personController.selectedActivity != null and personController.activityLogSessionsChartModel != null and not empty personController.activityLogSessionsChartModel.series}" responsive="true"/>
+
+                                <p:panelGrid columns="3" rendered="#{personController.selected != null}">
+                                    <p:panelGrid columns="6">
+                                        <h:outputText value="#{bundle.Achieved}"/>
+                                        <h:outputText value="#{personController.selectedActivity.summary.Achieved}" title="#{bundle.Achieved}" styleClass="bold"/>
+                                        <h:outputText value="#{bundle.MinimumSessionMinutes}"/>
+                                        <h:outputText value="#{personController.selectedActivity.person.configurationHashMap.MinimumSessionMinutes.value}" title="#{bundle.MinimumSessionMinutes}" styleClass="bold"/>
+                                        <h:outputText value="#{bundle.RestStepsThreshold}"/>
+                                        <h:outputText value="#{personController.selectedActivity.person.configurationHashMap.RestStepsThreshold.value}" title="#{bundle.RestStepsThreshold}" styleClass="bold"/>
+                                        <h:outputText value="#{bundle.Target}"/>
+                                        <h:outputText value="#{personController.selectedActivity.person.configurationHashMap.StepsGoal.value}" title="#{bundle.Target}" styleClass="bold"/>
+                                        <h:outputText value="#{bundle.Remaining}"/>
+                                        <h:outputText value="#{personController.selectedActivity.summary.Remaining}" title="#{bundle.Remaining}" styleClass="bold"/>
+                                        <h:outputText value="#{bundle.EndSessionStoppedMinutes}"/>
+                                        <h:outputText value="#{personController.selectedActivity.person.configurationHashMap.EndSessionStoppedMinutes.value}" title="#{bundle.EndSessionStoppedMinutes}" styleClass="bold"/>                            
+                                    </p:panelGrid>
+                                    <p:commandButton value="#{bundle.ZoomReset}" type="button" onclick="PF('sessionsChart').resetZoom()" icon="ui-icon-cancel" />
+                                    <p:commandButton value="#{bundle.LineGraphic}" onclick="PF('ActivityLogLineChartDialog').show()" icon="lineChart-icon" update=":ActivityLogChartForm"/>
+                                </p:panelGrid>
+                            </h:panelGroup>
+                        </c:otherwise>
+                    </c:choose>
+
+                    <p:commandButton value="#{bundle.Close}" onclick="PF('ActivityLogSessionsChartDialog').hide()"/>
+                </h:panelGrid>
+            </h:form>
+        </p:dialog>
+
+        <ui:include src="ActivityLogLineChart.xhtml"/>
+    </ui:composition>
+</html>

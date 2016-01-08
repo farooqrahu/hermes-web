@@ -1,53 +1,58 @@
-<?xml version='1.0' encoding='UTF-8'?>
-<!DOCTYPE html>
-<f:view xmlns:f="http://java.sun.com/jsf/core"
-        xmlns:h="http://java.sun.com/jsf/html"
-        xmlns:p="http://primefaces.org/ui"
-        xmlns:ui="http://java.sun.com/jsf/facelets">
-    <html xmlns="http://www.w3.org/1999/xhtml">
-        <h:head>
-        </h:head>
-        <h:body>
-            <ui:composition template="WEB-INF/facelets/template.xhtml">
-                <ui:define name="content">
-                    <p:panel rendered="#{userLogin.loggedIn}">
-                        <h2>#{bundle['Body.Welcome']}</h2>
-                    </p:panel>
-                    <!--                    
-                    <h:panelGrid columns="2" columnClasses="alignTop,alignTop">
-                        <h:panelGrid columns="1">
-                            <p:panel>
-                                <p:galleria value="#{galleryBean.images}" var="image" panelWidth="400" panelHeight="220" showCaption="true">
-                                    <p:graphicImage name="img/gallery/#{image}" title="#{galleryBean.title(image)}"/>
-                                </p:galleria>
-                            </p:panel>
-                            <p:schedule value="#{scheduleBean.eventModel}" locale="#{localeBean.language}">
-                                <p:ajax event="dateSelect" listener="#{scheduleBean.onDateSelect}" update="eventDetails" oncomplete="PF('eventDialog').show();" />
-                                <p:ajax event="eventSelect" listener="#{scheduleBean.onEventSelect}" update="eventDetails" oncomplete="PF('eventDialog').show();" />
-                            </p:schedule>
-                        </h:panelGrid>
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.1//EN" "http://www.w3.org/TR/xhtml11/DTD/xhtml11.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml"
+      xmlns:f="http://java.sun.com/jsf/core"
+      xmlns:h="http://java.sun.com/jsf/html"
+      xmlns:p="http://primefaces.org/ui"
+      xmlns:c="http://xmlns.jcp.org/jsp/jstl/core"
+      xmlns:ui="http://xmlns.jcp.org/jsf/facelets">
+    
+    
+    <ui:define name="title">
+        <h:outputText value="#{bundle.Info}"/>
+    </ui:define>
+    <h:head>
+        <h:outputScript name="mainScripts.js" library="js"/>
+    </h:head>
+    <h:body>
+        <h:form id="MainForm">
+            <f:metadata>
+                <f:event type="preRenderView" listener="#{personController.checkFitbitReturnCode()}"/>
+            </f:metadata>
+            <h:panelGroup rendered="#{loginController.loggedIn}">
+                <h:panelGroup>
+                    <h:panelGrid columns="2" columnClasses="alignTop, alignTop">
+                        <c:choose>
+                            <c:when test="#{loginController.person.firstSynchronization eq null and loginController.person.lastSynchronization eq null}">
+                                <p:calendar value="#{loginController.selectedDate}" pattern="dd/MM/yyyy" mode="inline" pages="3" > 
+                                    <p:ajax event="dateSelect" update="info,:MainForm:userCharts" />
+                                </p:calendar>
+                            </c:when>
+                            <c:otherwise>
+                                <p:calendar value="#{loginController.selectedDate}" pattern="dd/MM/yyyy" mode="inline" pages="3" mindate="#{loginController.person.firstSynchronization}" maxdate="#{loginController.person.lastSynchronization}" beforeShowDay="customColor"> 
+                                    <p:ajax event="dateSelect" update="info,:MainForm:userCharts" />
+                                </p:calendar>
+                            </c:otherwise>
+                        </c:choose>
+                        <!--</p:fieldset>-->
+                        <h:panelGroup id="info">
+                            <p:fieldset legend="#{bundle.Info}" style="margin-bottom:10px" rendered="#{loginController.dateSummary != null}">
+                                <h:outputText value="#{loginController.dateSummary}" escape="false"/>
+                            </p:fieldset>
+                        </h:panelGroup>
                     </h:panelGrid>
-                    -->
-                    <!--
-                    <p:dialog widgetVar="eventDialog" header="#{bundle.ViewEventoTitle}" showEffect="clip" hideEffect="clip" closeOnEscape="true">
-                        <h:panelGrid id="eventDetails" columns="2">
-                            <h:outputText value="#{bundle.ViewEventoLabel_descripcion}"/>
-                            <h:outputText value="#{scheduleBean.event.title}"/>
+                </h:panelGroup>
 
-                            <h:outputText value="#{bundle.ViewEventoLabel_fechaInicio}"/>
-                            <h:outputText value="#{scheduleBean.event.startDate}" title="#{bundle.ViewEventoTitle_fechaInicio}">
-                                <f:convertDateTime pattern="dd/MM/yyyy HH:mm:ss" />
-                            </h:outputText>
+                <h:panelGrid id="userCharts" columns="3" columnClasses="alignTop, alignTop, alignTop">
+                    <p:chart type="line" model="#{loginController.stepsChartModel}" style="height:300px; width: 400px;" rendered="#{loginController.stepsChartModel != null and loginController.stepsChartModel != null and not empty loginController.stepsChartModel.series}"/>
+                    <p:chart type="line" model="#{loginController.heartRateChartModel}" style="height:300px; width: 400px;" rendered="#{loginController.heartRateChartModel != null and loginController.heartRateChartModel != null and not empty loginController.heartRateChartModel.series}"/>
+                    <p:chart type="bar" model="#{loginController.sleepChartModel}" style="height:300px; width: 400px;" rendered="#{loginController.sleepChartModel != null and loginController.sleepChartModel != null and not empty loginController.sleepChartModel.series}"/>
+                    <p:chart type="pie" model="#{loginController.contextChartModel}" style="height:300px; width: 400px;" rendered="#{loginController.contextChartModel != null and loginController.contextChartModel != null and not empty loginController.contextChartModel.data}"/>
+                </h:panelGrid>
+            </h:panelGroup>
+            <!-- // FIXME: ¿Actualizar los gráficos con el cambio de tamaño de la ventana del navegador? -->
+            <!--<p:remoteCommand name="updatechartpanel" update=":MainForm:userCharts" />-->
+        </h:form>
+    </h:body>
+</html>
 
-                            <h:outputText value="#{bundle.ViewEventoLabel_fechaFin}"/>
-                            <h:outputText value="#{scheduleBean.event.endDate}" title="#{bundle.ViewEventoTitle_fechaFin}">
-                                <f:convertDateTime pattern="dd/MM/yyyy HH:mm:ss" />
-                            </h:outputText>
-                        </h:panelGrid>
-                    </p:dialog>    
-                    -->
-                </ui:define>
-            </ui:composition>            
-        </h:body>
-    </html>
-</f:view>

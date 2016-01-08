@@ -5,10 +5,12 @@
  */
 package es.jyago.hermes.util;
 
+import java.util.Date;
 import java.util.ResourceBundle;
 
 import javax.faces.application.FacesMessage;
 import javax.faces.component.UIComponent;
+import javax.faces.component.UIInput;
 import javax.faces.context.FacesContext;
 import javax.faces.validator.FacesValidator;
 import javax.faces.validator.Validator;
@@ -42,8 +44,8 @@ public class DateRangeValidator implements Validator {
         }
 
         // Comprobamos si el componente que solicita la validación es el de fecha de inicio o el de fecha de fin.
-        Object endDateValue = component.getAttributes().get("endDate");
-        Object startDateValue = component.getAttributes().get("startDate");
+        Date endDateValue = (Date) component.getAttributes().get("endDate");
+        Date startDateValue = (Date) component.getAttributes().get("startDate");
 
         if (endDateValue == null && startDateValue == null) {
             return;
@@ -65,6 +67,7 @@ public class DateRangeValidator implements Validator {
         // Si la fecha de inicio es anterior a la fecha de fin, la validación es correcta.
         // En otro caso, se lanza la excepción.
         if (endDate.isBefore(startDate)) {
+            FacesContext.getCurrentInstance().validationFailed();
             throw new ValidatorException(
                     new FacesMessage(FacesMessage.SEVERITY_ERROR, ResourceBundle.getBundle("/Bundle").getString("Error"), ResourceBundle.getBundle("/Bundle").getString("EndDate.error.MustBeLaterStartDate")));
         }

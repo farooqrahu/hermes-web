@@ -16,6 +16,7 @@ import javax.persistence.PersistenceContext;
  */
 @Stateless
 public class PersonFacade extends AbstractFacade<Person> {
+
     @PersistenceContext(unitName = "HermesWeb_PU")
     private EntityManager em;
 

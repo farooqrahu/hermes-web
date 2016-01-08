@@ -6,6 +6,7 @@
 package es.jyago.hermes.stepLog;
 
 import es.jyago.hermes.activityLog.ActivityLog;
+import es.jyago.hermes.util.Constants;
 import java.io.Serializable;
 import java.util.Date;
 import javax.persistence.Basic;
@@ -23,6 +24,8 @@ import javax.persistence.Temporal;
 import javax.persistence.TemporalType;
 import javax.validation.constraints.NotNull;
 import javax.xml.bind.annotation.XmlRootElement;
+import org.apache.commons.lang.builder.EqualsBuilder;
+import org.apache.commons.lang.builder.HashCodeBuilder;
 
 /**
  *
@@ -37,6 +40,7 @@ import javax.xml.bind.annotation.XmlRootElement;
     @NamedQuery(name = "StepLog.findByTimeLog", query = "SELECT s FROM StepLog s WHERE s.timeLog = :timeLog"),
     @NamedQuery(name = "StepLog.findBySteps", query = "SELECT s FROM StepLog s WHERE s.steps = :steps")})
 public class StepLog implements Serializable {
+
     private static final long serialVersionUID = 1L;
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
@@ -103,27 +107,34 @@ public class StepLog implements Serializable {
 
     @Override
     public int hashCode() {
-        int hash = 0;
-        hash += (stepLogId != null ? stepLogId.hashCode() : 0);
-        return hash;
+        return new HashCodeBuilder(19, 29).
+                append(timeLog).
+                toHashCode();
     }
 
     @Override
     public boolean equals(Object object) {
-        // TODO: Warning - this method won't work in the case the id fields are not set
         if (!(object instanceof StepLog)) {
             return false;
         }
         StepLog other = (StepLog) object;
-        if ((this.stepLogId == null && other.stepLogId != null) || (this.stepLogId != null && !this.stepLogId.equals(other.stepLogId))) {
-            return false;
-        }
-        return true;
+
+        // Dos elementos serán iguales si tienen el mismo id.
+        return new EqualsBuilder().
+                append(this.stepLogId, other.stepLogId).
+                isEquals();
     }
 
     @Override
     public String toString() {
-        return "es.jyago.amp.StepLog[ stepLogId=" + stepLogId + " ]";
+        StringBuilder sb = new StringBuilder();
+
+        sb.append("[")
+                .append(Constants.dfTime.format(this.timeLog))
+                .append(" -> ")
+                .append(this.steps)
+                .append("]");
+
+        return sb.toString();
     }
-    
 }

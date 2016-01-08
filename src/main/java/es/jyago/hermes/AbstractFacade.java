@@ -1,13 +1,16 @@
-/*
- * To change this license header, choose License Headers in Project Properties.
- * To change this template file, choose Tools | Templates
- * and open the template in the editor.
- */
-
 package es.jyago.hermes;
 
+import es.jyago.hermes.util.JsfUtil;
+import java.util.Iterator;
 import java.util.List;
+import java.util.Set;
+import java.util.logging.Level;
+import java.util.logging.Logger;
+import javax.validation.Validator;
 import javax.persistence.EntityManager;
+import javax.validation.ConstraintViolation;
+import javax.validation.Validation;
+import javax.validation.ValidatorFactory;
 
 /**
  *
@@ -15,6 +18,9 @@ import javax.persistence.EntityManager;
  * @param <T>
  */
 public abstract class AbstractFacade<T> {
+
+    private static final Logger log = Logger.getLogger(AbstractFacade.class.getName());
+
     private final Class<T> entityClass;
 
     public AbstractFacade(Class<T> entityClass) {
@@ -23,19 +29,45 @@ public abstract class AbstractFacade<T> {
 
     // TODO: Ver si se puede poner como protected.
     // Por lo visto es un bug 'EclipseLink cannot handle overloading inherited methods in an EJB'
-//    protected abstract EntityManager getEntityManager();
+    // protected abstract EntityManager getEntityManager();
     public abstract EntityManager getEntityManager();
 
-    public void create(T entity) {
-        getEntityManager().persist(entity);
+    private boolean constraintValidationsDetected(T entity) {
+        ValidatorFactory factory = Validation.buildDefaultValidatorFactory();
+        Validator validator = factory.getValidator();
+        Set<ConstraintViolation<T>> constraintViolations = validator.validate(entity);
+        if (!constraintViolations.isEmpty()) {
+            Iterator<ConstraintViolation<T>> iterator = constraintViolations.iterator();
+            while (iterator.hasNext()) {
+                ConstraintViolation<T> cv = iterator.next();
+                log.log(Level.SEVERE, "constraintValidationsDetected() - Validación no superada: ", cv.getRootBeanClass().getName() + "." + cv.getPropertyPath() + " " + cv.getMessage());
+
+                JsfUtil.addErrorMessage(cv.getRootBeanClass().getSimpleName() + "." + cv.getPropertyPath() + " " + cv.getMessage());
+            }
+            return true;
+        } else {
+            return false;
+        }
     }
 
-    public void edit(T entity) {
-        getEntityManager().merge(entity);
+    public void create(T entity) {
+        if (!constraintValidationsDetected(entity)) {
+            getEntityManager().persist(entity);
+        }
+    }
+
+    public T edit(T entity) {
+        if (!constraintValidationsDetected(entity)) {
+            return getEntityManager().merge(entity);
+        } else {
+            return entity;
+        }
     }
 
     public void remove(T entity) {
-        getEntityManager().remove(getEntityManager().merge(entity));
+        if (!constraintValidationsDetected(entity)) {
+            getEntityManager().remove(getEntityManager().merge(entity));
+        }
     }
 
     public T find(Object id) {
@@ -64,5 +96,5 @@ public abstract class AbstractFacade<T> {
         javax.persistence.Query q = getEntityManager().createQuery(cq);
         return ((Long) q.getSingleResult()).intValue();
     }
-    
+
 }

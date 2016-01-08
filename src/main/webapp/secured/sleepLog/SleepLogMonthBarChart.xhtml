@@ -1,0 +1,106 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.1//EN" "http://www.w3.org/TR/xhtml11/DTD/xhtml11.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml"
+      xmlns:ui="http://xmlns.jcp.org/jsf/facelets"
+      xmlns:h="http://xmlns.jcp.org/jsf/html"
+      xmlns:p="http://primefaces.org/ui"
+      xmlns:f="http://xmlns.jcp.org/jsf/core"
+      xmlns:c="http://xmlns.jcp.org/jsp/jstl/core">
+
+    <ui:define name="title">
+        <h:outputText value="#{bundle.GraphicSleepPerMonth}"/>
+    </ui:define>
+    <h:head>
+        <h:outputScript name="charts/charts.js" library="primefaces" target="head" />
+        <h:outputScript name="sleepLogMonthBarChartScripts.js" library="js" />
+        <h:outputStylesheet name="charts/charts.css" library="primefaces" />
+        <h:outputStylesheet name="sleepLogMonthBarChartStyles.css" library="css"/>
+    </h:head>
+    <h:body>
+        <h:form id="PersonSleepMonthChartForm">
+            <c:choose>
+                <c:when test='#{personController.selected == null or personController.sleepLogBarChartModel == null or empty personController.sleepLogBarChartModel.series}'>
+                    <h:panelGrid>
+                        <h:outputText value="#{bundle.NoData}"/>
+                    </h:panelGrid>
+                </c:when>
+
+                <c:otherwise>
+                    <div style="width: 100%; display: flex;">
+                        <h:panelGrid columns="1" style="width: 200px;">
+                            <h:selectOneRadio id="dateRadio" value="#{personController.dateSelector}" layout="pageDirection">
+                                <f:selectItem itemValue="1" itemLabel="#{bundle.ByMonths}"/>
+                                <f:selectItem itemValue="2" itemLabel="#{bundle.ByDateRange}"/>
+                                <p:ajax update="dateType" />
+                            </h:selectOneRadio>
+
+                            <h:panelGroup id="dateType">
+                                <h:panelGrid columns="1">
+                                    <p:commandButton id="previousMonthButton" value="#{bundle.PreviousMonth}" actionListener="#{personController.previousMonthSleepLogChart()}" update="monthSleepChart, previousMonthButton, nextMonthButton" icon="ui-icon-triangle-1-w" rendered="#{personController.dateSelector != 2}" />
+                                    <p:commandButton id="nextMonthButton" value="#{bundle.NextMonth}" actionListener="#{personController.nextMonthSleepLogChart()}" update="monthSleepChart, previousMonthButton, nextMonthButton" icon="ui-icon-triangle-1-e" rendered="#{personController.dateSelector != 2}" />
+                                </h:panelGrid>
+                                <p:calendar id="minDate" value="#{personController.startDate}" mindate="#{personController.selected.sleepLogList[0].dateLog}" maxdate="#{personController.selected.sleepLogList[personController.selected.sleepLogList.size()-1].dateLog}" mode="inline" title="#{bundle.Start_date}" disabled="#{personController.dateSelector != 2}">
+                                    <p:ajax event="dateSelect" listener="#{personController.updateStartDate}" update="monthSleepChart"/>
+                                    <f:attribute name="endDate" value="#{personController.endDate}" />
+                                    <f:validator validatorId="dateRangeValidator" />
+                                </p:calendar>
+                                <p:calendar id="maxDate" value="#{personController.endDate}" mindate="#{personController.selected.sleepLogList[0].dateLog}" maxdate="#{personController.selected.sleepLogList[personController.selected.sleepLogList.size()-1].dateLog}" mode="inline" title="#{bundle.End_date}" disabled="#{personController.dateSelector != 2}">
+                                    <p:ajax event="dateSelect" listener="#{personController.updateEndDate}" update="monthSleepChart"/>
+                                    <f:attribute name="startDate" value="#{personController.startDate}" />
+                                    <f:validator validatorId="dateRangeValidator" />
+                                </p:calendar>
+                            </h:panelGroup>
+                            <!--<p:commandButton value="#{bundle.ZoomReset}" type="button" onclick="PF('monthSleepChart').resetZoom()" icon="ui-icon-cancel" />-->
+                            <h:panelGrid columns="2">
+                                <h:panelGrid columns="1">
+                                    <div>
+                                        <svg id='clock' viewBox='0 0 100 100' width='75' height='75'>
+                                            <circle id='surface' cx='50' cy='50' r='45'/>
+                                            <g id='pointers'>
+                                                <line id='sh_pointer' x1='50' y1='50' x2='50' y2='27' />
+                                                <line id='sm_pointer' x1='50' y1='50' x2='50' y2='17' />
+                                            </g>
+                                            <g id='numbers'>
+                                                <text x='43' y='18'>12</text>
+                                                <text x='85' y='54'>3</text>
+                                                <text x='47' y='91'>6</text>
+                                                <text x='9' y='54'>9</text>
+                                            </g>
+                                        </svg>
+                                    </div>
+                                    <div style="display: block; text-align: center">
+                                        <label id="stime" />
+                                    </div>
+                                </h:panelGrid>
+                                <h:panelGrid columns="1">
+                                    <div>
+                                        <svg id='clock' viewBox='0 0 100 100' width='75' height='75'>
+                                            <circle id='surface' cx='50' cy='50' r='45'/>
+                                            <g id='pointers'>
+                                                <line id='eh_pointer' x1='50' y1='50' x2='50' y2='27' />
+                                                <line id='em_pointer' x1='50' y1='50' x2='50' y2='17' />
+                                            </g>
+                                            <g id='numbers'>
+                                                <text x='43' y='18'>12</text>
+                                                <text x='85' y='54'>3</text>
+                                                <text x='47' y='91'>6</text>
+                                                <text x='9' y='54'>9</text>
+                                            </g>
+                                        </svg>               
+                                    </div>
+                                    <div style="display: block; text-align: center">
+                                        <label id="etime" />
+                                    </div>
+                                </h:panelGrid>
+                            </h:panelGrid>
+                        </h:panelGrid>
+
+                        <div style="width: 100%">
+                            <p:chart id="monthSleepChart" widgetVar="monthSleepChart" type="bar" model="#{personController.sleepLogBarChartModel}" style="height: 500px; margin-right: 20px;" responsive="true"/>
+                        </div>
+                    </div>
+                </c:otherwise>
+            </c:choose>
+        </h:form>
+    </h:body>
+</html>

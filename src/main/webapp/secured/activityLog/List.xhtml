@@ -1,19 +1,17 @@
 <?xml version="1.0" encoding="UTF-8" ?>
-<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.1//EN" "http://www.w3.org/TR/xhtml11/DTD/xhtml11.dtd">
 <html xmlns="http://www.w3.org/1999/xhtml"
       xmlns:ui="http://xmlns.jcp.org/jsf/facelets"
       xmlns:h="http://xmlns.jcp.org/jsf/html"
       xmlns:f="http://xmlns.jcp.org/jsf/core"
-      xmlns:p="http://primefaces.org/ui"
-      xmlns:pe="http://primefaces.org/ui/extensions">
+      xmlns:p="http://primefaces.org/ui">
 
     <ui:composition template="/WEB-INF/facelets/template.xhtml">
         <ui:define name="title">
             <h:outputText value="#{bundle.ListActivityLogTitle}"></h:outputText>
         </ui:define>
         <ui:define name="content">
-            <!-- JYFR: Es necesario especificar 'enctype="multipart/form-data"' para poder subir archivos con la etiqueta 'p:fileUpload' -->
-            <h:form id="ActivityLogListForm" enctype="multipart/form-data">
+            <h:form id="ActivityLogListForm">
                 <p:panel header="#{bundle.ListActivityLogTitle}">
                     <p:dataTable id="datalist" value="#{activityLogController.items}" var="item"
                                  selectionMode="single" selection="#{activityLogController.selected}"
@@ -23,26 +21,21 @@
                                  rowsPerPageTemplate="10,20,30,40,50"
                                  resizableColumns="true"
                                  emptyMessage="#{bundle.NoRows}"
-                                 sortBy="#{item.date}"
+                                 sortBy="#{item.dateLog}"
                                  sortOrder="descending"
                                  >
 
-                        <p:ajax process="datalist" event="rowSelect" update=":ActivityLogListForm:contextMenu"/>
-
-                        <!--
-                        <p:ajax event="rowSelect"   update="createButton viewButton editButton deleteButton pieChartButton lineChartButton sessionsChartButton"/>
-                        <p:ajax event="rowUnselect" update="createButton viewButton editButton deleteButton pieChartButton lineChartButton sessionsChartButton"/>
-                        -->
+                        <p:ajax process="datalist" event="rowSelect" update=":ActivityLogListForm:contextMenuActivityLog"/>
 
                         <f:facet name="header">
                             <p:commandButton icon="ui-icon-calculator" id="toggler" style="float: right; margin-top: 7px !important" type="button" value="#{bundle.Column}"/>
                             <p:columnToggler datasource="datalist" trigger="toggler"/>
                         </f:facet>
-                        <p:column sortBy="#{item.date}" filterBy="#{item.date}" style="width:20%">
+                        <p:column sortBy="#{item.dateLog}" filterBy="#{item.dateLog}" style="width:20%">
                             <f:facet name="header">
                                 <h:outputText value="#{bundle.ListActivityLogTitle_date}"/>
                             </f:facet>
-                            <h:outputText value="#{item.date}">
+                            <h:outputText value="#{item.dateLog}">
                                 <f:convertDateTime pattern="dd/MM/yyyy" />
                             </h:outputText>
                         </p:column>
@@ -63,76 +56,25 @@
                                 <h:outputText value="#{bundle.Graphic}"/>
                             </f:facet>
                             <h:panelGroup>
-                                <!--
-                                <p:commandButton id="pieChartButton" icon="pieChart-icon" title="#{bundle.PieGraphic}" update=":ActivityLogPieChartForm" oncomplete="PF('ActivityLogPieChartDialog').show()">
-                                    <f:setPropertyActionListener value="#{item}" target="#{activityLogController.selected}" />
-                                </p:commandButton>
-                                -->
                                 <p:commandButton id="lineChartButton" icon="lineChart-icon" title="#{bundle.LineGraphic}" update=":ActivityLogLineChartForm" oncomplete="PF('ActivityLogLineChartDialog').show()">
                                     <f:setPropertyActionListener value="#{item}" target="#{activityLogController.selected}" />
                                 </p:commandButton>
-                                <p:commandButton id="sessionsChartButton" icon="barChart-icon" title="#{bundle.SessionsGraphic}" update=":ActivityLogSessionsChartForm" oncomplete="PF('ActivityLogSessionsChartDialog').show()">
+                                <p:commandButton id="sessionsChartButton" icon="barChart-icon" title="#{bundle.SessionsGraphic}" update=":ActivityLogSessionsAreaChartForm" oncomplete="PF('ActivityLogSessionsChartDialog').show()">
                                     <f:setPropertyActionListener value="#{item}" target="#{activityLogController.selected}" />
                                 </p:commandButton>
                             </h:panelGroup>
                         </p:column>
-                        <!-- 
-                        <p:column style="padding: 0; margin: 0">
-                            <f:facet name="header">
-                                <h:outputText value="#{bundle.Summary}"/>
-                            </f:facet>
-                            <p:panelGrid columns="2" style="">
-                                <p:column style="width:50px">
-                                    <pe:knob value="#{item.aggregatedValues.Achieved}" min="0" max="#{item.person.stepsGoal}" foregroundColor="#458B00" disabled="true" width="80px;" height="80px;"/>  
-                                    <pe:knob value="#{item.aggregatedValues.Remaining}" min="0" max="#{item.person.stepsGoal}" foregroundColor="#458B00" backgroundColor="#FF1515" disabled="true" width="80px;" height="80px;"/>  
-                                    <p:chart type="metergauge" model="#{item.gaugeModel}" style="width:180px; height:100px;" />
-                                </p:column>
-                                <p:column>
-                                    <p:panelGrid columns="2">
-                                        <h:outputText value="#{bundle.Target}"/>
-                                        <h:outputText value="#{item.person.configurationHashMap.StepsGoal.value}" title="#{bundle.Target}"/>
-                                        <h:outputText value="#{bundle.Achieved}"/>
-                                        <h:outputText value="#{item.aggregatedValues.Achieved}" title="#{bundle.Achieved}"/>
-                                        <h:outputText value="#{bundle.Remaining}"/>
-                                        <h:outputText value="#{item.aggregatedValues.Remaining}" title="#{bundle.Remaining}"/>
-                                    </p:panelGrid>
-                                </p:column>
-                            </p:panelGrid>
-                        </p:column>
-                        -->
-                        <!--
-                        <f:facet name="footer">
-                            <p:commandButton id="createButton" icon="ui-icon-plus"   value="#{bundle.Create}" actionListener="#{activityLogController.prepareCreate}" update=":ActivityLogCreateForm" oncomplete="PF('ActivityLogCreateDialog').show()"/>
-                            <p:commandButton id="viewButton"   icon="ui-icon-search" value="#{bundle.View}" update=":ActivityLogViewForm" oncomplete="PF('ActivityLogViewDialog').show()" disabled="#{empty activityLogController.selected}"/>
-                            <p:commandButton id="editButton"   icon="ui-icon-pencil" value="#{bundle.Edit}" update=":ActivityLogEditForm" oncomplete="PF('ActivityLogEditDialog').show()" disabled="#{empty activityLogController.selected}"/>
-                            <p:commandButton id="deleteButton" icon="ui-icon-trash"  value="#{bundle.Delete}" actionListener="#{activityLogController.destroy}" update=":messages,datalist" disabled="#{empty activityLogController.selected}"/>
-                            <p:commandButton value="#{bundle.Download}" ajax="false" onclick="PrimeFaces.monitorDownload(start, stop);" icon="ui-icon-arrowthick-1-s">
-                                <p:fileDownload value="#{activityLogController.file}" />
-                            </p:commandButton>
-                            <p:commandButton id="pieChartButton"  icon="ui-icon-signal" value="#{bundle.PieGraphic}" update=":ActivityLogPieChartForm" oncomplete="PF('ActivityLogPieChartDialog').show()" disabled="#{empty activityLogController.selected}"/>
-                            <p:commandButton id="lineChartButton"  icon="ui-icon-signal" value="#{bundle.LineGraphic}" update=":ActivityLogLineChartForm" oncomplete="PF('ActivityLogLineChartDialog').show()" disabled="#{empty activityLogController.selected}"/>
-                            <p:commandButton id="sessionsChartButton"  icon="ui-icon-signal" value="#{bundle.AnalyzedGraphic}" update=":ActivityLogSessionsChartForm" oncomplete="PF('ActivityLogSessionsChartDialog').show()" disabled="#{empty activityLogController.selected}"/>
-                        </f:facet>
-                        -->
                     </p:dataTable>
 
                     <!-- JYFR: Menú contextual -->
-                    <p:contextMenu id="contextMenu" widgetVar="ctxMenu" for="datalist">
-                        <p:menuitem id="viewButton"        icon="ui-icon-search"      value="#{bundle.View}"        update=":ActivityLogViewForm"        oncomplete="PF('ActivityLogViewDialog').show()"/>
-                        <!-- <p:menuitem id="editButton"        icon="ui-icon-pencil"      value="#{bundle.Edit}"        update=":ActivityLogEditForm"        oncomplete="PF('ActivityLogEditDialog').show()"/> -->
-                        <p:menuitem id="deleteButton"      icon="ui-icon-trash"       value="#{bundle.Delete}"      update=":messages,datalist" actionListener="#{activityLogController.destroy}">
+                    <p:contextMenu id="contextMenuActivityLog" widgetVar="ctxMenuActivityLog" for="datalist" rendered="#{loginController.person.admin}">
+                        <p:menuitem id="deleteButton" icon="ui-icon-trash" value="#{bundle.Delete}" update=":messages,datalist" actionListener="#{activityLogController.destroy}">
                             <p:confirmDialog header="#{bundle.Confirmation}" message="#{bundle.DeleteElementConfirm}" appendTo="@(body)"/>
                         </p:menuitem>
                     </p:contextMenu>
                 </p:panel>
             </h:form>
 
-            <!--
-            <ui:include src="Create.xhtml"/>
-            <ui:include src="Edit.xhtml"/>
-            -->
-            <ui:include src="View.xhtml"/>
-            <ui:include src="PieChart.xhtml"/>
             <ui:include src="LineChart.xhtml"/>
             <ui:include src="SessionsChart.xhtml"/>
         </ui:define>

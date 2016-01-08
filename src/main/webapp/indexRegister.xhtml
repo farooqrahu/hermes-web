@@ -1,0 +1,71 @@
+<?xml version='1.0' encoding='UTF-8'?>
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.1//EN" "http://www.w3.org/TR/xhtml11/DTD/xhtml11.dtd">
+<f:view xmlns:f="http://java.sun.com/jsf/core"
+        xmlns:h="http://java.sun.com/jsf/html"
+        xmlns:p="http://primefaces.org/ui"
+        xmlns:ui="http://java.sun.com/jsf/facelets"
+        xmlns:c="http://xmlns.jcp.org/jsp/jstl/core">
+    <html xmlns="http://www.w3.org/1999/xhtml">
+        <h:head>
+            <script type="text/javascript">
+                function handleLoginRequest(xhr, status, args) {
+                    if (args.validationFailed) {
+                        PF('LoginDialog').jq.effect("shake", {times: 5}, 100);
+                    }
+                    else {
+                        // Ocultamos la ventana de 'login'.
+                        PF('LoginDialog').hide();
+                        // Cargamos el menú lateral con las opciones y el pie de la página.
+                        PF('allLayouts').toggle('west');
+                        PF('allLayouts').toggle('south');
+                    }
+                }
+            </script>
+            <c:if test = '#{empty sessionScope.loginController.person}'>
+                <script type="text/javascript">
+                    // Sólo mostramos la ventana de 'login' si el usuario no tiene iniciada la sesión.
+                    window.onload = function () {
+                        if (#{empty sessionScope.loginController.person})
+                            PF('LoginDialog').show();
+                    };
+                </script>
+            </c:if>
+        </h:head>
+
+        <h:body>
+            <ui:composition template="WEB-INF/facelets/template.xhtml">
+                <ui:define name="content">
+                    <p:outputPanel id="welcomePanel">
+                        <p:panel rendered="#{loginController.loggedIn}">
+                            <ui:include src="main.xhtml"/>
+                        </p:panel>
+                    </p:outputPanel>
+                    <h:form>
+                        <f:metadata>
+                            <f:event type="preRenderView" listener="#{personController.onWelcomePageLoad()}"/>
+                        </f:metadata>
+
+                        <p:dialog widgetVar="LoginDialog" resizable="false" closable="false" header="#{bundle.Title}" rendered="#{!loginController.loggedIn}" width="70%">
+                            <h:panelGrid columns="1" cellpadding="5" style="text-align: center">
+                                <h:panelGrid columns="2" cellpadding="5">
+                                    <p:graphicImage value="/resources/img/university_logo.png" alt="#{bundle.University_logo}" height="50px"/>
+                                    <h:outputText value="#{bundle.RegisterIntroMessage}" />
+                                </h:panelGrid>
+                                <h:panelGrid columns="2">
+                                    <h:outputText value="#{bundle.RegisterInfoMessage}" />
+                                    <p:graphicImage value="/resources/img/collage.png"/>
+                                </h:panelGrid>
+                                <p:commandButton value="#{bundle.Register}" update="openWindow" actionListener="#{personController.prepareRegister()}"/>
+                                <h:panelGroup id="openWindow">
+                                    <h:outputScript rendered="#{not empty personController.authorizeUrl}">
+                                        window.open('#{personController.authorizeUrlAndReset}', '_self');
+                                    </h:outputScript>
+                                </h:panelGroup>
+                            </h:panelGrid>
+                        </p:dialog>
+                    </h:form>
+                </ui:define>
+            </ui:composition>
+        </h:body>
+    </html>
+</f:view>

@@ -1,0 +1,63 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.1//EN" "http://www.w3.org/TR/xhtml11/DTD/xhtml11.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml"
+      xmlns:ui="http://xmlns.jcp.org/jsf/facelets"
+      xmlns:h="http://xmlns.jcp.org/jsf/html"
+      xmlns:p="http://primefaces.org/ui"
+      xmlns:f="http://xmlns.jcp.org/jsf/core"
+      xmlns:c="http://xmlns.jcp.org/jsp/jstl/core">
+
+    <ui:define name="title">
+        <h:outputText value="#{bundle.GraphicStepsPerMonth}"/>
+    </ui:define>
+    <h:head>
+        <h:outputScript name="charts/charts.js" library="primefaces" target="head" />
+        <h:outputStylesheet name="charts/charts.css" library="primefaces" />
+    </h:head>
+    <h:body>
+        <h:form id="PersonActivityMonthLineChartForm">
+            <c:choose>
+                <c:when test='#{personController.selected == null or personController.stepsLogLineChartModel == null or empty personController.stepsLogLineChartModel.series}'>
+                    <h:panelGrid>
+                        <h:outputText value="#{bundle.NoData}"/>
+                    </h:panelGrid>
+                </c:when>
+
+                <c:otherwise>
+                    <div style="width: 100%; display: flex;">
+                        <h:panelGrid columns="1" style="width: 200px;">
+                            <h:selectOneRadio id="dateRadio" value="#{personController.dateSelector}" layout="pageDirection">
+                                <f:selectItem itemValue="1" itemLabel="#{bundle.ByMonths}"/>
+                                <f:selectItem itemValue="2" itemLabel="#{bundle.ByDateRange}"/>
+                                <p:ajax update="dateType" />
+                            </h:selectOneRadio>
+
+                            <h:panelGroup id="dateType">
+                                <h:panelGrid columns="1">
+                                    <p:commandButton id="previousMonthButton" value="#{bundle.PreviousMonth}" actionListener="#{personController.previousMonthStepLogChart()}" update="monthLineChart, previousMonthButton, nextMonthButton" icon="ui-icon-triangle-1-w" rendered="#{personController.dateSelector != 2}" />
+                                    <p:commandButton id="nextMonthButton" value="#{bundle.NextMonth}" actionListener="#{personController.nextMonthStepLogChart()}" update="monthLineChart, previousMonthButton, nextMonthButton" icon="ui-icon-triangle-1-e" rendered="#{personController.dateSelector != 2}" />
+                                </h:panelGrid>
+                                <p:calendar id="minDate" value="#{personController.startDate}" mindate="#{personController.selected.activityLogList[0].dateLog}" maxdate="#{personController.selected.activityLogList[personController.selected.activityLogList.size()-1].dateLog}" mode="inline" title="#{bundle.Start_date}" disabled="#{personController.dateSelector != 2}">
+                                    <p:ajax event="dateSelect" listener="#{personController.updateStartDate}" update="monthLineChart"/>
+                                    <f:attribute name="endDate" value="#{personController.endDate}" />
+                                    <f:validator validatorId="dateRangeValidator" />
+                                </p:calendar>
+                                <p:calendar id="maxDate" value="#{personController.endDate}" mindate="#{personController.selected.activityLogList[0].dateLog}" maxdate="#{personController.selected.activityLogList[personController.selected.activityLogList.size()-1].dateLog}" mode="inline" title="#{bundle.End_date}" disabled="#{personController.dateSelector != 2}">
+                                    <p:ajax event="dateSelect" listener="#{personController.updateEndDate}" update="monthLineChart"/>
+                                    <f:attribute name="startDate" value="#{personController.startDate}" />
+                                    <f:validator validatorId="dateRangeValidator" />
+                                </p:calendar>
+                            </h:panelGroup>
+
+                            <p:commandButton value="#{bundle.ZoomReset}" type="button" onclick="PF('monthChart').resetZoom()" icon="ui-icon-cancel" />
+                        </h:panelGrid>
+                        
+                        <div style="width: 100%">
+                            <p:chart id="monthLineChart" widgetVar="monthChart" type="line" model="#{personController.stepsLogLineChartModel}" style="height: 500px; margin-right: 20px;" responsive="true"/>
+                        </div>
+                    </div>
+                </c:otherwise>
+            </c:choose>
+        </h:form>
+    </h:body>
+</html>

@@ -1,34 +1,52 @@
 <?xml version="1.0" encoding="UTF-8" ?>
-<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.1//EN" "http://www.w3.org/TR/xhtml11/DTD/xhtml11.dtd">
 <html xmlns="http://www.w3.org/1999/xhtml"
       xmlns:ui="http://xmlns.jcp.org/jsf/facelets"
       xmlns:h="http://xmlns.jcp.org/jsf/html"
       xmlns:p="http://primefaces.org/ui"
-      xmlns:f="http://xmlns.jcp.org/jsf/core">
+      xmlns:f="http://xmlns.jcp.org/jsf/core"
+      xmlns:c="http://xmlns.jcp.org/jsp/jstl/core">
 
     <ui:composition>
 
         <p:dialog id="PersonSendDlg" widgetVar="PersonSendDialog" modal="true" resizable="false" appendTo="@(body)" header="#{bundle.ZtreamySend}" closeOnEscape="true">
+
+            <p:messages showDetail="true" autoUpdate="true"/>
+
             <h:form id="PersonSendForm">
                 <h:panelGroup id="display">
-                    <p:panelGrid columns="2" rendered="#{personController.selected != null}">
-                        <p:outputLabel value="#{bundle.Start_date}" for="startDate" />
-                        <p:calendar id="startDate" pattern="dd/MM/yyyy" value="#{personController.startDate}" title="#{bundle.Start_date}" required="true" requiredMessage="#{bundle.Start_date}" showOn="button">
-                            <p:ajax event="dateSelect" update="endDate" />
-                        </p:calendar>
-                        <p:outputLabel value="#{bundle.End_date}" for="endDate" />
-                        <p:calendar id="endDate" pattern="dd/MM/yyyy" value="#{personController.endDate}" title="#{bundle.End_date}" required="true" requiredMessage="#{bundle.End_date}" showOn="button">
-                            <f:attribute name="startDate" value="#{personController.startDate}" />
-                            <f:validator validatorId="dateRangeValidator" />
-                        </p:calendar>
-                        <p:outputLabel for="aggregation" value="#{bundle.Aggregation}" />
-                        <h:selectOneMenu id="aggregation" value="#{personController.aggregation}" >
-                            <f:selectItems value="#{constants.timeAggregations}" var="element" itemLabel="#{bundle[element]}"/>
-                        </h:selectOneMenu>
-                    </p:panelGrid>
-                    <p:commandButton actionListener="#{personController.sendToZtreamy()}" value="#{bundle.Send}" update="display,:PersonListForm:datalist,:messages" oncomplete="handleSubmit(args, 'PersonSendDialog');"/>
-                    <!-- JYFR: Indicamos el atributo 'immediate="true"' para evitar que se hagan las validaciones AJAX al cancelar -->
-                    <p:commandButton value="#{bundle.Cancel}" onclick="PF('PersonSendDialog').hide()" immediate="true" />
+                    <c:choose>
+                        <c:when test='#{personController.selected == null or empty personController.selected.activityLogList}'>
+                            <h:panelGrid>
+                                <h:outputText value="#{bundle.NoData}"/>
+                            </h:panelGrid>
+                            <!-- JYFR: Indicamos el atributo 'immediate="true"' para evitar que se hagan las validaciones AJAX al cancelar -->
+                            <p:commandButton value="#{bundle.Close}" onclick="PF('PersonSendDialog').hide()" immediate="true" />
+                        </c:when>
+
+                        <c:otherwise>
+                            <p:panelGrid columns="2" rendered="#{personController.selected != null}">
+                                <p:outputLabel value="#{bundle.Start_date}" for="startDate" />
+                                <p:calendar id="startDate" pattern="dd/MM/yyyy" value="#{personController.startDate}" title="#{bundle.Start_date}" mindate="#{personController.selected.activityLogList[0].dateLog}" maxdate="#{personController.selected.activityLogList[personController.selected.activityLogList.size()-1].dateLog}" mode="inline" required="true" requiredMessage="#{bundle.Start_date}" showOn="button">
+                                    <p:ajax event="dateSelect" update="endDate" />
+                                </p:calendar>
+                                <p:outputLabel value="#{bundle.End_date}" for="endDate" />
+                                <p:calendar id="endDate" pattern="dd/MM/yyyy" value="#{personController.endDate}" title="#{bundle.End_date}" mindate="#{personController.selected.activityLogList[0].dateLog}" maxdate="#{personController.selected.activityLogList[personController.selected.activityLogList.size()-1].dateLog}" mode="inline" required="true" requiredMessage="#{bundle.End_date}" showOn="button">
+                                    <f:attribute name="startDate" value="#{personController.startDate}" />
+                                    <f:validator validatorId="dateRangeValidator" />
+                                </p:calendar>
+                                <p:outputLabel for="aggregation" value="#{bundle.Aggregation}" />
+                                <h:selectOneMenu id="aggregation" value="#{personController.aggregation}" >
+                                    <f:selectItems value="#{constants.timeAggregations}" var="element" itemLabel="#{bundle[element]}"/>
+                                </h:selectOneMenu>
+                            </p:panelGrid>
+
+                            <p:commandButton actionListener="#{personController.sendToZtreamy()}" value="#{bundle.Send}" update="display,:PersonListForm:datalist,:messages" oncomplete="handleSubmit(args, 'PersonSendDialog');"/>
+                            <!-- JYFR: Indicamos el atributo 'immediate="true"' para evitar que se hagan las validaciones AJAX al cancelar -->
+                            <p:commandButton value="#{bundle.Cancel}" onclick="PF('PersonSendDialog').hide()" immediate="true" />
+                        </c:otherwise>
+                    </c:choose>
+
                 </h:panelGroup>
             </h:form>
         </p:dialog>

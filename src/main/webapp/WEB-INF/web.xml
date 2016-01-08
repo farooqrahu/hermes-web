@@ -16,7 +16,7 @@
     <!-- JYFR: Para permitir cambio de apariencia -->
     <context-param>
         <param-name>primefaces.THEME</param-name>
-        <param-value>#{themeBean.theme}</param-value>
+        <param-value>#{loginController.currentTheme}</param-value>
     </context-param>
     <!-- JYFR: Para indicar las extensiones que debe considerar que usan Facelets -->
     <context-param>

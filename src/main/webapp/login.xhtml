@@ -1,0 +1,42 @@
+<?xml version='1.0' encoding='UTF-8'?>
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.1//EN" "http://www.w3.org/TR/xhtml11/DTD/xhtml11.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml"
+      xmlns:f="http://java.sun.com/jsf/core"
+      xmlns:h="http://java.sun.com/jsf/html"
+      xmlns:p="http://primefaces.org/ui">
+    <h:head>
+        <h:outputScript name="loginScripts.js" library="js"/>
+    </h:head>
+    <h:body onload="PF('LoginDialog').show()">
+        <h:form>
+            <f:metadata>
+                <f:event type="preRenderView" listener="#{loginController.onPageLoad()}"/>
+            </f:metadata>
+            <p:dialog widgetVar="LoginDialog" resizable="false" closable="false" header="#{bundle.LoginTitle}">
+                <h:panelGrid columns="2" cellpadding="5">
+                    <h:outputLabel for="username" value="#{bundle.Username}" />
+                    <p:inputText id="username" value="#{loginController.username}" label="username" />
+
+                    <h:outputLabel for="password" value="#{bundle.Password}" />
+                    <p:password id="password" value="#{loginController.password}" label="password" />
+
+                    <f:facet name="footer" >
+                        <p:outputPanel style="float: left" rendered="#{personController.allowNewUsers}">
+                            <p:commandButton value="#{bundle.Register}" update="openWindow" actionListener="#{personController.prepareRegister()}" />
+                            <h:panelGroup id="openWindow">
+                                <h:outputScript rendered="#{not empty personController.authorizeUrl}">
+                                    window.open('#{personController.authorizeUrlAndReset}', '_self');
+                                </h:outputScript>
+                            </h:panelGroup>
+                        </p:outputPanel>
+                        <p:outputPanel style="float: right"> 
+                            <p:commandButton id="loginButton" value="#{bundle.Login}" update=":messages,:headerPanel,:contentPanel,:timeoutPanel" action="#{loginController.login}"
+                                             oncomplete="handleLoginRequest(xhr, status, args)" />
+                            <p:defaultCommand target="loginButton"/>
+                        </p:outputPanel>
+                    </f:facet>  
+                </h:panelGrid>
+            </p:dialog>
+        </h:form>     
+    </h:body>
+</html>

@@ -1,20 +1,34 @@
 <?xml version="1.0" encoding="UTF-8" ?>
-<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.1//EN" "http://www.w3.org/TR/xhtml11/DTD/xhtml11.dtd">
 <html xmlns="http://www.w3.org/1999/xhtml"
       xmlns:ui="http://xmlns.jcp.org/jsf/facelets"
       xmlns:h="http://xmlns.jcp.org/jsf/html"
       xmlns:f="http://xmlns.jcp.org/jsf/core"
-      xmlns:p="http://primefaces.org/ui">
-
+      xmlns:p="http://primefaces.org/ui"
+      xmlns:pe="http://primefaces.org/ui/extensions">
     <ui:composition>
+        <script>
+            PrimeFacesExt.locales.TimePicker['es'] = {
+                hourText: 'Hora',
+                minuteText: 'Minuto',
+                amPmText: ['AM', 'PM'],
+                closeButtonText: 'Hecho',
+                nowButtonText: 'Ahora',
+                deselectButtonText: 'Deseleccionar'
+            };
+            PrimeFacesExt.locales.TimePicker['es_ES'] = PrimeFacesExt.locales.TimePicker['es'];
+        </script>
         <p:dialog id="PersonEditDlg" widgetVar="PersonEditDialog" modal="true" resizable="false" appendTo="@(body)" header="#{bundle.EditPersonTitle}" closeOnEscape="true" closable="true">
+
+            <p:messages id="editPersonMessages" showDetail="false" autoUpdate="true"/>
+
             <!-- JYFR: Es necesario especificar 'enctype="multipart/form-data"' para poder subir archivos con la etiqueta 'p:fileUpload' -->
             <h:form id="PersonEditForm" enctype="multipart/form-data">
                 <!-- JYFR: Post validación -->
                 <f:event listener="#{personController.validate()}" type="postValidate" />
 
-                <p:tabView dynamic="true" cache="true" rendered="#{personController.selected != null}" activeIndex="0">
-                    <p:tab title="#{bundle.PersonalInfo}">
+                <h:panelGrid columns="2" rendered="#{personController.selected != null}">
+                    <p:fieldset legend="#{bundle.PersonalInfo}" style="margin-bottom:10px">
                         <p:panelGrid columns="2">
                             <p:outputLabel value="#{bundle.EditPersonLabel_photo}" for="photo" />
                             <h:panelGroup>
@@ -31,70 +45,88 @@
                                               cancelLabel="#{bundle.Cancel}"
                                               update="currentPhoto"/>
                             </h:panelGroup>
-                            <p:outputLabel value="#{bundle.EditPersonLabel_firstName}" for="firstName" />
-                            <p:inputText id="firstName" value="#{personController.selected.firstName}" title="#{bundle.EditPersonTitle_firstName}" required="true" requiredMessage="#{bundle.EditPersonRequiredMessage_firstName}"/>
-                            <p:outputLabel value="#{bundle.EditPersonLabel_surname1}" for="surname1" />
-                            <p:inputText id="surname1" value="#{personController.selected.surname1}" title="#{bundle.EditPersonTitle_surname1}" required="true" requiredMessage="#{bundle.EditPersonRequiredMessage_surname1}"/>
-                            <p:outputLabel value="#{bundle.EditPersonLabel_surname2}" for="surname2" />
-                            <p:inputText id="surname2" value="#{personController.selected.surname2}" title="#{bundle.EditPersonTitle_surname2}" required="true" requiredMessage="#{bundle.EditPersonRequiredMessage_surname2}"/>
+                            <p:outputLabel value="#{bundle.FullName}" for="fullName" />
+                            <p:inputText id="fullName" value="#{personController.selected.fullName}" title="#{bundle.FullName}" required="true" requiredMessage="#{bundle.RequiredMessage_fullName}" size="60"/>
                             <p:outputLabel value="#{bundle.EditPersonLabel_email}" for="email" />
                             <p:inputText id="email" value="#{personController.selected.email}" title="#{bundle.EditPersonTitle_email}"
-                                         required="false" 
-                                         validatorMessage="#{bundle.InvalidEmail}">
-                                <!-- JYFR: Validación de e-mail que permite nulo, ya que es un campo opcional. Se ha encapsulado la expresi�n regular en '( )?' -->
+                                         required="true" 
+                                         validatorMessage="#{bundle.InvalidEmail}" size="60">
+                                <!-- JYFR: Validación de e-mail que permite nulo, ya que es un campo opcional. Se ha encapsulado la expresión regular en '( )?' -->
                                 <f:validateRegex pattern="(^[_A-Za-z0-9-\+]+(\.[_A-Za-z0-9-]+)*@[A-Za-z0-9-]+(\.[A-Za-z0-9]+)*(\.[A-Za-z]{2,})$)?" /> 
                             </p:inputText>
                             <p:outputLabel value="#{bundle.EditPersonLabel_phone}" for="phone" />
                             <p:inputText id="phone" value="#{personController.selected.phone}" title="#{bundle.EditPersonTitle_phone}" />
+                            <p:outputLabel value="#{bundle.EditPersonLabel_city}" for="city" />
+                            <p:inputText id="city" value="#{personController.selected.city}" title="#{bundle.EditPersonLabel_city}" />
+                            <p:outputLabel value="#{bundle.EditPersonLabel_region}" for="region" />
+                            <p:inputText id="region" value="#{personController.selected.region}" title="#{bundle.EditPersonLabel_region}" />
+                            <p:outputLabel value="#{bundle.EditPersonLabel_country}" for="country" />
+                            <p:inputText id="country" value="#{personController.selected.country}" title="#{bundle.EditPersonLabel_country}" />
                             <p:outputLabel value="#{bundle.EditPersonLabel_comments}" for="comments" />
                             <h:panelGroup>
-                                <p:inputTextarea  id="comments" value="#{personController.selected.comments}" title="#{bundle.EditPersonTitle_comments}" rows="5" cols="30" counter="counterDisplay" maxlength="255" counterTemplate="#{bundle.RemainingCharacters}" autoResize="false" />
+                                <p:inputTextarea  id="comments" value="#{personController.selected.comments}" title="#{bundle.EditPersonTitle_comments}" rows="5" cols="60" counter="counterDisplay" maxlength="255" counterTemplate="#{bundle.RemainingCharacters}" autoResize="false" />
                                 <br/>
                                 <h:outputText id="counterDisplay" />
                             </h:panelGroup>
                         </p:panelGrid>
-                    </p:tab>
-                    <p:tab title="#{bundle.Fitbit}">
-                        <p:panelGrid columns="2">
-                            <p:outputLabel value="#{bundle.EditPersonLabel_fitbitUserId}" for="fitbitUserId" />
-                            <p:inputText id="fitbitUserId" value="#{personController.selected.fitbitUserId}" title="#{bundle.EditPersonLabel_fitbitUserId}" />
-                            <p:outputLabel value="#{bundle.EditPersonLabel_fitbitAccessToken}" for="fitbitAccessToken" />
-                            <p:inputText id="fitbitAccessToken" value="#{personController.selected.fitbitAccessToken}" title="#{bundle.EditPersonTitle_fitbitAccessToken}" />
-                            <p:outputLabel value="#{bundle.EditPersonLabel_fitbitAccessTokenSecret}" for="fitbitAccessTokenSecret" />
-                            <p:inputText id="fitbitAccessTokenSecret" value="#{personController.selected.fitbitAccessTokenSecret}" title="#{bundle.EditPersonTitle_fitbitAccessTokenSecret}" />
-                        </p:panelGrid>
-                    </p:tab>
-                    <p:tab title="#{bundle.PersonalParameters}" rendered="#{userLogin.user.admin or userLogin.user.doctor}">
-                        <p:panelGrid columns="2">
-                            <p:outputLabel value="#{bundle.StepsGoal}" for="stepsGoal" />
-                            <p:inputText id="stepsGoal" value="#{personController.selected.configurationHashMap.StepsGoal.value}" title="#{bundle.StepsGoal}" required="true" />
-                            <p:outputLabel value="#{bundle.MinimumSessionMinutes}" for="minSessionMinutes" />
-                            <p:inputText id="minSessionMinutes" value="#{personController.selected.configurationHashMap.MinimumSessionMinutes.value}" title="#{bundle.MinimumSessionMinutes}" required="true" />
-                            <p:outputLabel value="#{bundle.RestStepsThreshold}" for="restStepsThreshold" />
-                            <p:inputText id="restStepsThreshold" value="#{personController.selected.configurationHashMap.RestStepsThreshold.value}" title="#{bundle.RestStepsThreshold}" required="true" />
-                            <p:outputLabel value="#{bundle.EndSessionStoppedMinutes}" for="endSessionStoppedMinutes" />
-                            <p:inputText id="endSessionStoppedMinutes" value="#{personController.selected.configurationHashMap.EndSessionStoppedMinutes.value}" title="#{bundle.EndSessionStoppedMinutes}" required="true" />
-                            <p:outputLabel value="#{bundle.SessionsPerWeek}" for="sessionsPerWeek" />
-                            <p:inputText id="sessionsPerWeek" value="#{personController.selected.configurationHashMap.SessionsPerWeek.value}" title="#{bundle.SessionsPerWeek}" required="true" />
-                        </p:panelGrid>
-                    </p:tab>
-                    <p:tab title="#{bundle.AccessData}">
-                        <p:panelGrid columns="2">
-                            <p:outputLabel value="#{bundle.Username}" for="username" />
-                            <p:inputText id="username" value="#{personController.selected.username}" title="#{bundle.Username}" />
-                            <p:outputLabel value="#{bundle.Password}" for="password" />
-                            <p:password id="password" value="#{personController.selected.password}" title="#{bundle.Password}" />
-                            <p:outputLabel value="#{bundle.EditPersonLabel_roleId}" for="roleId" />
-                            <p:selectOneMenu id="roleId" value="#{personController.selected.role}" required="true" requiredMessage="#{bundle.EditPersonRequiredMessage_roleId}">
-                                <f:selectItem itemLabel="#{bundle.SelectOneMessage}"/>
-                                <f:selectItems value="#{roleController.getItemsAvailableSelectOneLessThanMine(userLogin.user.role)}"
-                                               var="roleIdItem"
-                                               itemValue="#{roleIdItem}"/>
-                            </p:selectOneMenu>
-                        </p:panelGrid>
-                    </p:tab>
-                </p:tabView>
-                <p:commandButton actionListener="#{personController.update}" value="#{bundle.Save}" update=":PersonListForm:datalist,:messages" oncomplete="handleSubmit(args, 'PersonEditDialog');"/>
+                    </p:fieldset>
+                    <h:panelGroup>
+                        <p:fieldset legend="#{bundle.PersonalParameters}" style="margin-bottom:10px" rendered="#{loginController.person.admin or loginController.person.doctor}">
+                            <p:panelGrid columns="2">
+                                <p:outputLabel value="#{bundle.StepsGoal}" for="stepsGoal" />
+                                <p:spinner id="stepsGoal" value="#{personController.selected.configurationHashMap.StepsGoal.value}" title="#{bundle.StepsGoal}" required="true" min="100" max="50000" size="6"/>
+                                <p:outputLabel value="#{bundle.MinimumSessionMinutes}" for="minSessionMinutes" />
+                                <p:spinner id="minSessionMinutes" value="#{personController.selected.configurationHashMap.MinimumSessionMinutes.value}" title="#{bundle.MinimumSessionMinutes}" required="true" min="1" max="59" size="6"/>
+                                <p:outputLabel value="#{bundle.MaximumSessionMinutes}" for="maxSessionMinutes" />
+                                <p:spinner id="maxSessionMinutes" value="#{personController.selected.configurationHashMap.MaximumSessionMinutes.value}" title="#{bundle.MaximumSessionMinutes}" required="true" min="1" max="59" size="6"/>
+                                <p:outputLabel value="#{bundle.RestStepsThreshold}" for="restStepsThreshold" />
+                                <p:spinner id="restStepsThreshold" value="#{personController.selected.configurationHashMap.RestStepsThreshold.value}" title="#{bundle.RestStepsThreshold}" required="true" min="1" max="100" size="6"/>
+                                <p:outputLabel value="#{bundle.RestMinutesThreshold}" for="restMinutesThreshold" />
+                                <p:spinner id="restMinutesThreshold" value="#{personController.selected.configurationHashMap.RestMinutesThreshold.value}" title="#{bundle.RestMinutesThreshold}" required="true" min="1" max="20" size="6"/>
+                                <p:outputLabel value="#{bundle.EndSessionStoppedMinutes}" for="endSessionStoppedMinutes" />
+                                <p:spinner id="endSessionStoppedMinutes" value="#{personController.selected.configurationHashMap.EndSessionStoppedMinutes.value}" title="#{bundle.EndSessionStoppedMinutes}" required="true" min="1" max="59" size="6"/>
+                                <p:outputLabel value="#{bundle.SessionsPerWeek}" for="sessionsPerWeek" />
+                                <p:spinner id="sessionsPerWeek" value="#{personController.selected.configurationHashMap.SessionsPerWeek.value}" title="#{bundle.SessionsPerWeek}" required="true" min="1" max="500" size="6"/>
+                            </p:panelGrid>
+                        </p:fieldset>
+                        <p:fieldset legend="#{bundle.AccessData}" style="margin-bottom:10px">
+                            <p:panelGrid columns="2">
+                                <p:outputLabel value="#{bundle.Password}" for="password" />
+                                <p:password id="password" value="#{personController.selected.password}" title="#{bundle.Password}" required="true" requiredMessage="#{bundle.RegisterPersonRequiredMessage_password}" feedback="true" match="password2" validatorMessage="#{bundle.ValidatorMessage_password}" promptLabel="#{bundle.SecurePasswordMessage}" weakLabel="#{bundle.Weak}" goodLabel="#{bundle.Good}" strongLabel="#{bundle.Strong}" inline="true" redisplay="true"/>
+                                <p:outputLabel value="#{bundle.RepeatPassword}" for="password2" />
+                                <p:password id="password2" value="#{personController.selected.password}" title="#{bundle.Password}" required="true" requiredMessage="#{bundle.RegisterPersonRequiredMessage_password}" redisplay="true"/>
+                                <p:outputLabel value="#{bundle.EditPersonLabel_roleId}" for="roleId" rendered="#{loginController.person.admin}" />
+                                <p:selectOneMenu id="roleId" value="#{personController.selected.role}" required="true" requiredMessage="#{bundle.EditPersonRequiredMessage_roleId}" rendered="#{loginController.person.admin}">
+                                    <f:selectItem itemLabel="#{bundle.SelectOneMessage}"/>
+                                    <f:selectItems value="#{roleController.getItemsAvailableSelectOneLessThanMine(loginController.person.role)}"
+                                                   var="roleIdItem"
+                                                   itemValue="#{roleIdItem}"
+                                                   itemLabel="#{roleIdItem.name}"/>
+                                </p:selectOneMenu>
+                            </p:panelGrid>
+                        </p:fieldset>
+                        <p:fieldset legend="#{bundle.Notifications}" style="margin-bottom:10px;" >
+                            <h:panelGrid>
+                                <p:row>
+                                    <p:column colspan="2">
+                                        <p:selectBooleanCheckbox id="alertSync" value="#{personController.selected.alertIfUnableToSynchronize}" />
+                                        <p:outputLabel value="#{bundle.AlertIfUnableToSynchronize}" for="alertSync" style="padding-left: 5px;"/>
+                                    </p:column>
+                                </p:row>
+                                <p:row>
+                                    <p:column>
+                                        <p:outputLabel value="#{bundle.AlertsNotificationTime}" for="notificationTime" style="padding-right: 5px;"/>
+                                    </p:column>
+                                    <p:column>
+                                        <pe:timePicker id="notificationTime" value="#{personController.selected.alertNotificationsTime}" startMinutes="0" endMinutes="1" mode="popup" showOn="button"/>  
+                                    </p:column>
+                                </p:row>
+                            </h:panelGrid>
+                        </p:fieldset>
+                    </h:panelGroup>
+                </h:panelGrid>
+
+                <p:commandButton actionListener="#{personController.update}" value="#{bundle.Save}" update=":messages" oncomplete="handleSubmit(args, 'PersonEditDialog');"/>
                 <!-- JYFR: Indicamos el atributo 'immediate="true"' para evitar que se hagan las validaciones AJAX al cancelar -->
                 <p:commandButton value="#{bundle.Cancel}" onclick="PF('PersonEditDialog').hide()" immediate="true" rendered="#{(personController.selected != null) and (personController.selected.personId != null)}" />
             </h:form>

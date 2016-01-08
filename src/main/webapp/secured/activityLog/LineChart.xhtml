@@ -1,37 +1,37 @@
 <?xml version="1.0" encoding="UTF-8" ?>
-<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.1//EN" "http://www.w3.org/TR/xhtml11/DTD/xhtml11.dtd">
 <html xmlns="http://www.w3.org/1999/xhtml"
       xmlns:ui="http://xmlns.jcp.org/jsf/facelets"
       xmlns:h="http://xmlns.jcp.org/jsf/html"
       xmlns:p="http://primefaces.org/ui">
-
     <ui:composition>
-
+        <h:head>
+            <h:outputScript name="charts/charts.js" library="primefaces" target="head" />
+            <h:outputStylesheet name="charts/charts.css" library="primefaces" />
+        </h:head>
         <p:dialog id="ActivityLogLineChartDlg" widgetVar="ActivityLogLineChartDialog" modal="true" resizable="false" appendTo="@(body)" header="#{bundle.GraphicSteps}" closeOnEscape="true">
 
             <h:form id="ActivityLogLineChartForm">
                 <h:panelGrid id="display">
-                    <h:panelGroup rendered="#{activityLogController.selected == null or empty activityLogController.lineChartModel.series}">
+                    <h:panelGroup rendered="#{activityLogController.selected == null or activityLogController.lineChartModel == null or empty activityLogController.lineChartModel.series}">
                         <h:outputText value="#{bundle.NoData}"/>
                     </h:panelGroup>
-                    <h:panelGroup rendered="#{activityLogController.selected != null and not empty activityLogController.lineChartModel.series}">
-                        <p:chart type="line" widgetVar="chart" model="#{activityLogController.lineChartModel}" style="width:1024px;height:500px" rendered="#{activityLogController.selected != null and not empty activityLogController.lineChartModel.series}"/>
+                    <h:panelGroup rendered="#{activityLogController.selected != null and activityLogController.lineChartModel != null and not empty activityLogController.lineChartModel.series}">
+                        <p:chart type="line" widgetVar="chart" model="#{activityLogController.lineChartModel}" style="width:1024px;height:500px" rendered="#{activityLogController.selected != null and activityLogController.lineChartModel != null and not empty activityLogController.lineChartModel.series}" responsive="true"/>
 
                         <p:panelGrid columns="2" rendered="#{activityLogController.selected != null}">
-                            <p:panelGrid columns="4">
-                                <h:outputText value="#{bundle.ViewActivityLogLabel_personId}"/>
-                                <h:outputText value="#{activityLogController.selected.person.toString()}" title="#{bundle.ViewActivityLogTitle_personId}"/>
+                            <p:panelGrid columns="2">
                                 <h:outputText value="#{bundle.Achieved}"/>
-                                <h:outputText value="#{activityLogController.selected.aggregatedValues.Achieved}" title="#{bundle.Achieved}"/>
+                                <h:outputText value="#{activityLogController.selected.summary.Achieved}" title="#{bundle.Achieved}"/>
                                 <h:outputText value="#{bundle.Target}"/>
                                 <h:outputText value="#{activityLogController.selected.person.configurationHashMap.StepsGoal.value}" title="#{bundle.Target}"/>
                                 <h:outputText value="#{bundle.Remaining}"/>
-                                <h:outputText value="#{activityLogController.selected.aggregatedValues.Remaining}" title="#{bundle.Remaining}"/>
+                                <h:outputText value="#{activityLogController.selected.summary.Remaining}" title="#{bundle.Remaining}"/>
                             </p:panelGrid>
                             <p:commandButton value="#{bundle.ZoomReset}" type="button" onclick="PF('chart').resetZoom()" icon="ui-icon-cancel" />
                         </p:panelGrid>
                     </h:panelGroup>
-                    
+
                     <p:commandButton value="#{bundle.Close}" onclick="PF('ActivityLogLineChartDialog').hide()"/>
                 </h:panelGrid>
             </h:form>

@@ -1,25 +1,33 @@
 <?xml version="1.0" encoding="UTF-8" ?>
-<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.1//EN" "http://www.w3.org/TR/xhtml11/DTD/xhtml11.dtd">
 <html xmlns="http://www.w3.org/1999/xhtml"
       xmlns:ui="http://xmlns.jcp.org/jsf/facelets"
       xmlns:h="http://xmlns.jcp.org/jsf/html"
       xmlns:p="http://primefaces.org/ui"
-      xmlns:f="http://xmlns.jcp.org/jsf/core">
+      xmlns:f="http://xmlns.jcp.org/jsf/core"
+      xmlns:c="http://xmlns.jcp.org/jsp/jstl/core">
 
     <ui:composition>
+        <h:head>
+            <h:outputScript name="charts/charts.js" library="primefaces" target="head" />
+            <h:outputStylesheet name="charts/charts.css" library="primefaces" />
+        </h:head>
         <p:dialog id="PersonSessionsWeekBarChartDlg" widgetVar="PersonSessionsWeekBarChartDialog" modal="true" resizable="true" appendTo="@(body)" header="#{bundle.GraphicSessionsPerWeek}" closeOnEscape="true" maximizable="true">
 
             <p:messages showDetail="true" autoUpdate="true"/>
 
             <h:form id="PersonSessionsWeekBarChartForm">
                 <h:panelGrid id="display">
-                    <h:panelGroup rendered="#{personController.selected == null or empty personController.sessionsBarChartModel.series}">
-                        <h:outputText value="#{bundle.NoData}"/>
-                    </h:panelGroup>
-                    <h:panelGroup rendered="#{personController.selected != null and not empty personController.sessionsBarChartModel.series}">
-                        <p:panelGrid columns="2">
-                            <p:panelGrid columns="3" rendered="#{personController.selected != null}">
-                                <p:panelGrid>
+                    <c:choose>
+                        <c:when test='#{personController.selected == null or personController.sessionsBarChartModel == null or empty personController.sessionsBarChartModel.series}'>
+                            <h:panelGroup>
+                                <h:outputText value="#{bundle.NoData}"/>
+                            </h:panelGroup>
+                        </c:when>
+
+                        <c:otherwise>
+                            <p:panelGrid columns="2" columnClasses="alignTop,alignTop">
+                                <p:panelGrid columns="1">
                                     <h:selectOneRadio id="dateRadio" value="#{personController.dateSelector}" layout="pageDirection">
                                         <f:selectItem itemValue="1" itemLabel="#{bundle.ByWeeks}"/>
                                         <f:selectItem itemValue="2" itemLabel="#{bundle.ByDateRange}"/>
@@ -28,33 +36,28 @@
 
                                     <h:panelGroup id="dateType">
                                         <p:panelGrid columns="1">
-                                            <p:commandButton id="previousWeekButton" value="#{bundle.PreviousWeek}" actionListener="#{personController.previousWeekChart()}" update="weekBarChart, previousWeekButton, nextWeekButton" icon="ui-icon-triangle-1-w" disabled="#{personController.dateSelector != 1 or personController.hasPreviousWeek()}"/>
-                                            <p:commandButton id="nextWeekButton" value="#{bundle.NextWeek}" actionListener="#{personController.nextWeekChart()}" update="weekBarChart, previousWeekButton, nextWeekButton" icon="ui-icon-triangle-1-e" disabled="#{personController.dateSelector != 1 or personController.hasNextWeek()}"/>
+                                            <p:commandButton id="previousWeekButton" value="#{bundle.PreviousWeek}" actionListener="#{personController.previousWeekChart()}" update="weekBarChart, previousWeekButton, nextWeekButton" icon="ui-icon-triangle-1-w" rendered="#{personController.dateSelector != 2}" disabled="#{personController.hasPreviousWeek()}"/>
+                                            <p:commandButton id="nextWeekButton" value="#{bundle.NextWeek}" actionListener="#{personController.nextWeekChart()}" update="weekBarChart, previousWeekButton, nextWeekButton" icon="ui-icon-triangle-1-e" rendered="#{personController.dateSelector != 2}" disabled="#{personController.hasNextWeek()}"/>
                                         </p:panelGrid>
-                                        <p:calendar id="minDate" value="#{personController.startDate}" mindate="#{personController.selected.activityLogCollection[0].date}" maxdate="#{personController.selected.activityLogCollection[personController.selected.activityLogCollection.size()-1].date}" mode="inline" title="#{bundle.Start_date}" disabled="#{personController.dateSelector != 2}">
+                                        <p:calendar id="minDate" value="#{personController.startDate}" mindate="#{personController.selected.activityLogList[0].dateLog}" maxdate="#{personController.selected.activityLogList[personController.selected.activityLogList.size()-1].dateLog}" mode="inline" title="#{bundle.Start_date}" disabled="#{personController.dateSelector != 2}">
                                             <p:ajax event="dateSelect" listener="#{personController.updateStartDate}" update="weekBarChart"/>
                                             <f:attribute name="endDate" value="#{personController.endDate}" />
                                             <f:validator validatorId="dateRangeValidator" />
                                         </p:calendar>
-                                        <p:calendar id="maxDate" value="#{personController.endDate}" mindate="#{personController.selected.activityLogCollection[0].date}" maxdate="#{personController.selected.activityLogCollection[personController.selected.activityLogCollection.size()-1].date}" mode="inline" title="#{bundle.End_date}" disabled="#{personController.dateSelector != 2}">
+                                        <p:calendar id="maxDate" value="#{personController.endDate}" mindate="#{personController.selected.activityLogList[0].dateLog}" maxdate="#{personController.selected.activityLogList[personController.selected.activityLogList.size()-1].dateLog}" mode="inline" title="#{bundle.End_date}" disabled="#{personController.dateSelector != 2}">
                                             <p:ajax event="dateSelect" listener="#{personController.updateEndDate}" update="weekBarChart"/>
                                             <f:attribute name="startDate" value="#{personController.startDate}" />
                                             <f:validator validatorId="dateRangeValidator" />
                                         </p:calendar>
                                     </h:panelGroup>
-                                </p:panelGrid>
-                            </p:panelGrid>
-                            
-                            <p:chart id="weekBarChart" widgetVar="weekBarChart" type="bar" model="#{personController.sessionsBarChartModel}" style="width:1024px;height:400px" rendered="#{personController.selected != null and not empty personController.sessionsBarChartModel.series}"/>
-                            
-                        </p:panelGrid>
 
-                        <p:panelGrid columns="3">
-                            <h:outputText value="#{bundle.ViewActivityLogLabel_personId}"/>
-                            <h:outputText value="#{personController.selected.toString()}" title="#{bundle.ViewActivityLogTitle_personId}"/>
-                            <p:commandButton value="#{bundle.ZoomReset}" type="button" onclick="PF('weekBarChart').resetZoom()" icon="ui-icon-cancel" />
-                        </p:panelGrid>
-                    </h:panelGroup>
+                                    <p:commandButton value="#{bundle.ZoomReset}" type="button" onclick="PF('weekBarChart').resetZoom()" icon="ui-icon-cancel" />
+                                </p:panelGrid>
+
+                                <p:chart id="weekBarChart" widgetVar="weekBarChart" type="bar" model="#{personController.sessionsBarChartModel}" style="width:1024px;height:400px" rendered="#{personController.selected != null and personController.sessionsBarChartModel != null and not empty personController.sessionsBarChartModel.series}" responsive="true"/>
+                            </p:panelGrid>
+                        </c:otherwise>    
+                    </c:choose>
 
                     <p:commandButton value="#{bundle.Close}" onclick="PF('PersonSessionsWeekBarChartDialog').hide()"/>
                 </h:panelGrid>

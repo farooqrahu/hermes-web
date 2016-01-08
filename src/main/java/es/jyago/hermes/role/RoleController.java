@@ -59,6 +59,7 @@ public class RoleController implements Serializable {
     public void create() {
         persist(PersistAction.CREATE, ResourceBundle.getBundle("/Bundle").getString("RoleCreated"));
         if (!JsfUtil.isValidationFailed()) {
+            selected = null; // Remove selection
             items = null;    // Invalidate list of items to trigger re-query.
         }
     }

@@ -21,6 +21,8 @@ import javax.validation.constraints.NotNull;
 import javax.validation.constraints.Size;
 import javax.xml.bind.annotation.XmlRootElement;
 import javax.xml.bind.annotation.XmlTransient;
+import org.apache.commons.lang.builder.EqualsBuilder;
+import org.apache.commons.lang.builder.HashCodeBuilder;
 
 /**
  *
@@ -33,6 +35,7 @@ import javax.xml.bind.annotation.XmlTransient;
     @NamedQuery(name = "Configuration.findAll", query = "SELECT c FROM Configuration c"),
     @NamedQuery(name = "Configuration.findByOptionKey", query = "SELECT c FROM Configuration c WHERE c.optionKey = :optionKey")})
 public class Configuration implements Serializable {
+
     private static final long serialVersionUID = 1L;
     @Id
     @Basic(optional = false)
@@ -45,7 +48,6 @@ public class Configuration implements Serializable {
     private String optionValue;
     @OneToMany(cascade = CascadeType.ALL, mappedBy = "option")
     private Collection<PersonConfiguration> personConfigurationCollection;
-    
 
     public Configuration() {
     }
@@ -74,32 +76,41 @@ public class Configuration implements Serializable {
     public void setOptionValue(String optionValue) {
         this.optionValue = optionValue;
     }
-    
+
     @Override
     public int hashCode() {
-        int hash = 0;
-        hash += (optionKey != null ? optionKey.hashCode() : 0);
-        return hash;
+        return new HashCodeBuilder(19, 29).
+                append(optionKey).
+                toHashCode();
     }
 
     @Override
     public boolean equals(Object object) {
-        // TODO: Warning - this method won't work in the case the id fields are not set
         if (!(object instanceof Configuration)) {
             return false;
         }
         Configuration other = (Configuration) object;
-        if ((this.optionKey == null && other.optionKey != null) || (this.optionKey != null && !this.optionKey.equals(other.optionKey))) {
-            return false;
-        }
-        return true;
+
+        // Dos elementos serán iguales si tienen el mismo id.
+        return new EqualsBuilder().
+                append(this.optionKey, other.optionKey).
+                isEquals();
     }
 
     @Override
     public String toString() {
-        return "es.jyago.hermes.configuration.Configuration[ optionKey=" + optionKey + " ]";
+        StringBuilder sb = new StringBuilder();
+
+        sb.append("[");
+        sb.append(this.optionKey);
+        sb.append(" -> ");
+        sb.append(this.optionValue);
+        sb.append("]");
+
+        return sb.toString();
     }
 
+    // FIXME: Poner los @XmlTransient en los métodos get de las dependencias, si no los tuviera.
     @XmlTransient
     public Collection<PersonConfiguration> getPersonConfigurationCollection() {
         return personConfigurationCollection;
@@ -108,5 +119,5 @@ public class Configuration implements Serializable {
     public void setPersonConfigurationCollection(Collection<PersonConfiguration> personConfigurationCollection) {
         this.personConfigurationCollection = personConfigurationCollection;
     }
-    
+
 }

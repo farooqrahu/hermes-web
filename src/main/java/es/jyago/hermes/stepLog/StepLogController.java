@@ -19,7 +19,7 @@ import javax.faces.convert.FacesConverter;
 @Named("stepLogController")
 @SessionScoped
 public class StepLogController implements Serializable {
-    
+
     private static final Logger log = Logger.getLogger(StepLogController.class.getName());
 
     @EJB
@@ -34,11 +34,11 @@ public class StepLogController implements Serializable {
     public StepLog getSelected() {
         return selected;
     }
-    
+
     public void setSelected(StepLog selected) {
         this.selected = selected;
     }
-    
+
     protected void setEmbeddableKeys() {
     }
 
@@ -48,7 +48,7 @@ public class StepLogController implements Serializable {
     private StepLogFacade getFacade() {
         return ejbFacade;
     }
-    
+
     public StepLog prepareCreate() {
         selected = new StepLog();
         initializeEmbeddableKey();
@@ -58,6 +58,7 @@ public class StepLogController implements Serializable {
     public void create() {
         persist(JsfUtil.PersistAction.CREATE, ResourceBundle.getBundle("/Bundle").getString("StepLogCreated"));
         if (!JsfUtil.isValidationFailed()) {
+            selected = null; // Remove selection
             items = null;    // Invalidate list of items to trigger re-query.
         }
     }

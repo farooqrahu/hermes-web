@@ -1,35 +1,45 @@
 package es.jyago.hermes;
 
-import es.jyago.hermes.util.Constants;
-import es.jyago.hermes.person.Person;
+import java.io.File;
+import java.io.FileInputStream;
+import java.io.FileNotFoundException;
 import java.io.IOException;
+import java.io.InputStream;
 import java.io.Serializable;
+import java.nio.file.Files;
+import java.nio.file.Paths;
+import java.sql.Connection;
+import java.sql.SQLException;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
-import javax.ejb.EJB;
+import java.util.logging.Level;
+import java.util.logging.Logger;
 import javax.inject.Named;
 import javax.enterprise.context.SessionScoped;
+import javax.faces.context.ExternalContext;
 import javax.faces.context.FacesContext;
+import javax.naming.InitialContext;
+import javax.naming.NamingException;
 import javax.servlet.ServletOutputStream;
 import javax.servlet.http.HttpServletResponse;
+import javax.sql.DataSource;
 import net.sf.jasperreports.engine.JRException;
 import net.sf.jasperreports.engine.JasperExportManager;
 import net.sf.jasperreports.engine.JasperFillManager;
 import net.sf.jasperreports.engine.JasperPrint;
-import net.sf.jasperreports.engine.data.JRBeanCollectionDataSource;
+import net.sf.jasperreports.engine.JasperReport;
+import net.sf.jasperreports.engine.util.JRLoader;
 
 @Named("reportController")
 @SessionScoped
 public class ReportController implements Serializable {
 
-    private List<Report> items = null;
+    private static final Logger log = Logger.getLogger(ReportController.class.getName());
+
+    private List<Report> items;
     private Report selected;
     private JasperPrint jasperPrint;
-    @EJB
-    private es.jyago.hermes.person.PersonFacade personFacade;
-//    @EJB
-//    private es.jyago.amp.EventoFacade eventoFacade;
 
     public ReportController() {
     }
@@ -47,84 +57,102 @@ public class ReportController implements Serializable {
 
     public List<Report> getItems() {
         if (items == null) {
-            items = new ArrayList<Report>();
+            try {
+                items = new ArrayList();
 
-            // TODO: Leer los report del directorio.
-//            Report i1 = new Report();
-//            i1.setDescripcion("Listado para firmar de alumnos");
-//            i1.setUrl("reportAlumnos.jasper");
-//            items.add(i1);
-//
-//            Report i2 = new Report();
-//            i2.setDescripcion("Listado de eventos");
-//            i2.setUrl("reportEventos.jasper");
-//
-//            items.add(i2);
+                ExternalContext ec = FacesContext.getCurrentInstance().getExternalContext();
+                String reportsFolder = ec.getRealPath("/resources/report");
+                log.log(Level.INFO, "getItems() - Listado de informes del directorio {0}", reportsFolder);
+
+                Files.walk(Paths.get(reportsFolder)).filter(p -> p.toString().endsWith(".jasper")).forEach(filePath -> {
+                    if (Files.isRegularFile(filePath)) {
+
+                        try {
+                            // Obtenemos el archivo compilado de JasperReports, para coger el nombre del informe creado en iReport.
+                            JasperReport jasperReport = (JasperReport) JRLoader.loadObject(new File(filePath.toString()));
+
+                            Report report = new Report();
+                            report.setFileName(filePath.getFileName().toString().replaceFirst("[.][^.]+$", ""));
+                            report.setDescription(jasperReport.getName());
+                            report.setUrl(filePath.toString());
+
+                            items.add(report);
+                        } catch (JRException ex) {
+                            Logger.getLogger(ReportController.class.getName()).log(Level.SEVERE, null, ex);
+                        }
+                    }
+                });
+            } catch (IOException ex) {
+                log.log(Level.SEVERE, "getItems() - Error al obtener el listado de informes", ex);
+            }
         }
         return items;
     }
 
-    public Report getReport(String url) {
-//        return getFacade().find(id);
-        // TODO: Obtener el informe a través de la url.
-        return null;
+    public void generatePDF(Report report) {
+        selected = report;
+        try {
+            log.log(Level.INFO, "generate() - Generar el informe {0}", selected.getDescription());
+
+            InitialContext initialContext;
+            try {
+                initialContext = new InitialContext();
+                DataSource dataSource = (DataSource) initialContext.lookup("HermesWeb_JNDI");
+                Connection connection = dataSource.getConnection();
+                InputStream reportStream = new FileInputStream(selected.getUrl());
+                jasperPrint = JasperFillManager.fillReport(reportStream, new HashMap(), connection);
+                HttpServletResponse httpServletResponse = (HttpServletResponse) FacesContext.getCurrentInstance().getExternalContext().getResponse();
+                httpServletResponse.reset();
+                httpServletResponse.setContentType("application/pdf");
+                httpServletResponse.setHeader("Content-disposition", "attachment; filename=" + selected.getFileName() + ".pdf");
+                ServletOutputStream servletOutputStream = httpServletResponse.getOutputStream();
+                JasperExportManager.exportReportToPdfStream(jasperPrint, servletOutputStream);
+                FacesContext.getCurrentInstance().responseComplete();
+
+            } catch (NamingException ex) {
+                Logger.getLogger(ReportController.class.getName()).log(Level.SEVERE, null, ex);
+            } catch (SQLException ex) {
+                Logger.getLogger(ReportController.class.getName()).log(Level.SEVERE, null, ex);
+            } catch (FileNotFoundException ex) {
+                Logger.getLogger(ReportController.class.getName()).log(Level.SEVERE, null, ex);
+            } catch (IOException ex) {
+                Logger.getLogger(ReportController.class.getName()).log(Level.SEVERE, null, ex);
+            }
+
+        } catch (JRException ex) {
+            Logger.getLogger(ReportController.class.getName()).log(Level.SEVERE, null, ex);
+        }
     }
 
-//    @FacesConverter(forClass = Informe.class)
-//    public static class InformeControllerConverter implements Converter {
+//    private void initJasper() throws JRException {
 //
-//        @Override
-//        public Object getAsObject(FacesContext facesContext, UIComponent component, String value) {
-//            if (value == null || value.length() == 0) {
-//                return null;
-//            }
-//            InformeController controller = (InformeController) facesContext.getApplication().getELResolver().
-//                    getValue(facesContext.getELContext(), null, "informeController");
-//            return controller.getInforme(value);
+//        // TODO: ¡Arreglar!
+//        JRBeanCollectionDataSource beanCollectionDataSource = null;
+//        if (selected.getDescription().contains("alumno")) {
+//            List<Person> listAlumnos = personFacade.getEntityManager().createNamedQuery("Person.findByIdRole")
+//                    .setParameter("idRol", Constants.USER_ROLE)
+//                    .getResultList();
+//
+//            beanCollectionDataSource = new JRBeanCollectionDataSource(listAlumnos);
+//        } else {
+////            List<Evento> listEventos = eventoFacade.findAll();
+////            beanCollectionDataSource = new JRBeanCollectionDataSource(listEventos);
 //        }
-//
-//        @Override
-//        public String getAsString(FacesContext facesContext, UIComponent component, Object object) {
-//            if (object == null) {
-//                return null;
-//            }
-//            if (object instanceof Informe) {
-//                Informe o = (Informe) object;
-//                return o.getUrl();
-//            } else {
-//                Logger.getLogger(this.getClass().getName()).log(Level.SEVERE, "object {0} is of type {1}; expected type: {2}", new Object[]{object, object.getClass().getName(), TipoEvento.class.getName()});
-//                return null;
-//            }
-//        }
-//
+//        String reportPath = FacesContext.getCurrentInstance().getExternalContext().getRealPath("/secured/resources/reports/" + selected.getUrl());
+//        jasperPrint = JasperFillManager.fillReport(reportPath, new HashMap(), beanCollectionDataSource);
 //    }
-    private void initJasper() throws JRException {
-
-        // TODO: ¡Arreglar!
-        JRBeanCollectionDataSource beanCollectionDataSource = null;
-        if (selected.getDescripcion().contains("alumno")) {
-            List<Person> listAlumnos = personFacade.getEntityManager().createNamedQuery("Person.findByIdRole")
-                    .setParameter("idRol", Constants.USER_ROLE)
-                    .getResultList();
-
-            beanCollectionDataSource = new JRBeanCollectionDataSource(listAlumnos);
-        }
-        else
-        {
-//            List<Evento> listEventos = eventoFacade.findAll();
-//            beanCollectionDataSource = new JRBeanCollectionDataSource(listEventos);
-        }
-            
-        String reportPath = FacesContext.getCurrentInstance().getExternalContext().getRealPath("/secured/resources/reports/" + selected.getUrl());
-        jasperPrint = JasperFillManager.fillReport(reportPath, new HashMap(), beanCollectionDataSource);
-    }
-
-    public void PDF() throws JRException, IOException {
-        initJasper();
-        HttpServletResponse httpServletResponse = (HttpServletResponse) FacesContext.getCurrentInstance().getExternalContext().getResponse();
-        httpServletResponse.addHeader("Content-disposition", "attachment; filename=informe.pdf");
-        ServletOutputStream servletOutputStream = httpServletResponse.getOutputStream();
-        JasperExportManager.exportReportToPdfStream(jasperPrint, servletOutputStream);
-        FacesContext.getCurrentInstance().responseComplete();
-    }
+//    /**
+//     * Método para generar el PDF del informe generado.
+//     *
+//     * @throws JRException
+//     * @throws IOException
+//     */
+//    public void PDF() throws JRException, IOException {
+//        initJasper();
+//        HttpServletResponse httpServletResponse = (HttpServletResponse) FacesContext.getCurrentInstance().getExternalContext().getResponse();
+//        httpServletResponse.addHeader("Content-disposition", "attachment; filename=informe.pdf");
+//        ServletOutputStream servletOutputStream = httpServletResponse.getOutputStream();
+//        JasperExportManager.exportReportToPdfStream(jasperPrint, servletOutputStream);
+//        FacesContext.getCurrentInstance().responseComplete();
+//    }
 }

@@ -1,12 +1,6 @@
-/*
- * To change this license header, choose License Headers in Project Properties.
- * To change this template file, choose Tools | Templates
- * and open the template in the editor.
- */
 package es.jyago.hermes.activityLog;
 
 import es.jyago.hermes.AbstractFacade;
-import java.util.List;
 import javax.ejb.Stateless;
 import javax.persistence.EntityManager;
 import javax.persistence.PersistenceContext;
@@ -17,6 +11,7 @@ import javax.persistence.PersistenceContext;
  */
 @Stateless
 public class ActivityLogFacade extends AbstractFacade<ActivityLog> {
+
     @PersistenceContext(unitName = "HermesWeb_PU")
     private EntityManager em;
 

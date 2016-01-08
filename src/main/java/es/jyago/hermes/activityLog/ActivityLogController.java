@@ -20,7 +20,6 @@ import javax.faces.component.UIComponent;
 import javax.faces.context.FacesContext;
 import javax.faces.convert.Converter;
 import javax.faces.convert.FacesConverter;
-import org.jfree.util.Log;
 import org.primefaces.model.chart.ChartModel;
 import org.primefaces.model.chart.LineChartModel;
 
@@ -66,6 +65,7 @@ public class ActivityLogController implements Serializable {
     public void create() {
         persist(JsfUtil.PersistAction.CREATE, ResourceBundle.getBundle("/Bundle").getString("ActivityLogCreated"));
         if (!JsfUtil.isValidationFailed()) {
+            selected = null; // Remove selection
             items = null;    // Invalidate list of items to trigger re-query.
         }
     }
@@ -140,7 +140,7 @@ public class ActivityLogController implements Serializable {
 
     public ChartModel getPieChartModel() {
         if (selected != null) {
-            Map<String, Integer> values = selected.getAggregatedValues();
+            Map<String, Integer> values = selected.getSummary();
 
             if (values == null) {
                 values = new HashMap();
@@ -155,7 +155,7 @@ public class ActivityLogController implements Serializable {
                 try {
                     localizedKey = bundle.getString(key);
                 } catch (MissingResourceException ex) {
-                    Log.error("Error al obtener la clave '" + key + "' del archivo de recursos", ex);
+                    log.log(Level.SEVERE, "getPieChartModel() - Error al obtener la clave '" + key + "' del archivo de recursos", ex);
                 }
                 localizedValues.put(localizedKey, values.get(key));
             }
@@ -168,7 +168,8 @@ public class ActivityLogController implements Serializable {
 
     public LineChartModel getLineChartModel() {
         if (selected != null) {
-            return selected.getLineModel(selected.getValues(), Constants.df.format(selected.getDate()));
+            selected.setAggregation(Constants.TimeAggregations.Minutes.toString());
+            return selected.getLineModel(Constants.df.format(selected.getDateLog()));
         }
 
         return null;
@@ -176,7 +177,7 @@ public class ActivityLogController implements Serializable {
 
     public LineChartModel getSessionsChartModel() {
         if (selected != null) {
-            return selected.getAreaModel(Constants.df.format(selected.getDate()));
+            return selected.getAreaModel(Constants.df.format(selected.getDateLog()));
         }
 
         return null;

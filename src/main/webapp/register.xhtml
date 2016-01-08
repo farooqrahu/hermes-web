@@ -1,5 +1,5 @@
 <?xml version="1.0" encoding="UTF-8" ?>
-<!DOCTYPE html>
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.1//EN" "http://www.w3.org/TR/xhtml11/DTD/xhtml11.dtd">
 <f:view xmlns:f="http://java.sun.com/jsf/core"
         xmlns:h="http://java.sun.com/jsf/html"
         xmlns:p="http://primefaces.org/ui"
@@ -12,6 +12,16 @@
                 setTimeout(window.onload = function () {
                     PF('RegisterDialog').show();
                 }, 2000);
+
+                // Obtenemos la geolocalización a través de su IP
+                $(document).ready(function () {
+                    $.get("http://ipinfo.io", function (response) {
+                        document.getElementById('city').value = response.city;
+                        document.getElementById('region').value = response.region;
+                        document.getElementById('country').value = response.country;
+                        document.getElementById('ip').value = response.ip;
+                    }, "jsonp");
+                });
             </script>
         </h:head>
 
@@ -19,48 +29,55 @@
             <ui:composition template="WEB-INF/facelets/template.xhtml">
                 <ui:define name="content">
                     <p:outputPanel id="welcomePanel">
-                        <p:panel rendered="#{userLogin.loggedIn}">
-                            <h2>#{bundle['Body.Welcome']}</h2>
+                        <p:panel rendered="#{loginController.loggedIn}">
+                            <ui:include src="main.xhtml"/>
                         </p:panel>
                     </p:outputPanel>
                     <p:dialog id="RegisterDlg" widgetVar="RegisterDialog" modal="true" resizable="false" appendTo="@(body)" header="#{bundle.RegisterPersonTitle}" closeOnEscape="false" closable="false">
+
+                        <p:messages id="registerMessages" showDetail="false" autoUpdate="true"/>
+
                         <h:form id="RegisterForm">
+                            <f:metadata>
+                                <f:event type="preRenderView" listener="#{personController.onRegisterPageLoad()}"/>
+                            </f:metadata>
 
                             <!-- JYFR: Post validación -->
                             <f:event listener="#{personController.validate()}" type="postValidate" />
 
-                            <p:tabView dynamic="true" cache="true" activeIndex="0">
-                                <p:tab title="#{bundle.PersonalInfo}">
-                                    <p:panelGrid columns="2">
-                                        <p:outputLabel value="#{bundle.CreatePersonLabel_firstName}" for="firstName" />
-                                        <p:inputText id="firstName" value="#{personController.selected.firstName}" title="#{bundle.CreatePersonTitle_firstName}" required="true" requiredMessage="#{bundle.CreatePersonRequiredMessage_firstName}"/>
-                                        <p:outputLabel value="#{bundle.CreatePersonLabel_surname1}" for="surname1" />
-                                        <p:inputText id="surname1" value="#{personController.selected.surname1}" title="#{bundle.CreatePersonTitle_surname1}" required="true" requiredMessage="#{bundle.CreatePersonRequiredMessage_surname1}"/>
-                                        <p:outputLabel value="#{bundle.CreatePersonLabel_surname2}" for="surname2" />
-                                        <p:inputText id="surname2" value="#{personController.selected.surname2}" title="#{bundle.CreatePersonTitle_surname2}" required="true" requiredMessage="#{bundle.CreatePersonRequiredMessage_surname2}"/>
-                                        <p:outputLabel value="#{bundle.CreatePersonLabel_email}" for="email" />
-                                        <p:inputText id="email" value="#{personController.selected.email}" title="#{bundle.CreatePersonTitle_email}"
-                                                     required="false" 
-                                                     validatorMessage="#{bundle.InvalidEmail}">
-                                            <!-- JYFR: Validación de e-mail que permite nulo, ya que es un campo opcional. Se ha encapsulado la expresi�n regular en '( )?' -->
-                                            <f:validateRegex pattern="(^[_A-Za-z0-9-\+]+(\.[_A-Za-z0-9-]+)*@[A-Za-z0-9-]+(\.[A-Za-z0-9]+)*(\.[A-Za-z]{2,})$)?" /> 
-                                        </p:inputText>
-                                        <p:outputLabel value="#{bundle.CreatePersonLabel_phone}" for="phone" />
-                                        <p:inputText id="phone" value="#{personController.selected.phone}" title="#{bundle.CreatePersonTitle_phone}" />
-                                    </p:panelGrid>
-                                </p:tab>
-                                <p:tab title="#{bundle.AccessData}">
-                                    <p:panelGrid columns="2">
-                                        <p:outputLabel value="#{bundle.Username}" for="username" />
-                                        <p:inputText id="username" value="#{personController.selected.username}" title="#{bundle.Username}" required="true" requiredMessage="#{bundle.RegisterPersonRequiredMessage_username}"/>
-                                        <p:outputLabel value="#{bundle.Password}" for="password" />
-                                        <p:password id="password" value="#{personController.selected.password}" title="#{bundle.Password}" required="true" requiredMessage="#{bundle.RegisterPersonRequiredMessage_password}"/>
-                                    </p:panelGrid>
-                                </p:tab>
-                            </p:tabView>
-                            <p:commandButton action="#{personController.register()}" value="#{bundle.Save}" update=":messages" oncomplete="handleSubmit(args, 'RegisterDialog');"/>
+                            <p:fieldset legend="#{bundle.PersonalInfo}" style="margin-bottom:10px">
+                                <p:panelGrid columns="2">
+                                    <p:outputLabel value="#{bundle.FullName}" for="fullName" />
+                                    <p:inputText id="fullName" value="#{personController.selected.fullName}" title="#{bundle.FullName}" required="true" requiredMessage="#{bundle.RequiredMessage_fullName}" size="60" />
+                                    <p:outputLabel value="#{bundle.CreatePersonLabel_email}" for="email" />
+                                    <p:inputText id="email" value="#{personController.selected.email}" title="#{bundle.CreatePersonTitle_email}"
+                                                 required="true" 
+                                                 validatorMessage="#{bundle.InvalidEmail}" requiredMessage="#{bundle.RequiredMessage_email}" size="60">
+                                        <f:validateRegex pattern="^[_A-Za-z0-9-\+]+(\.[_A-Za-z0-9-]+)*@[A-Za-z0-9-]+(\.[A-Za-z0-9]+)*(\.[A-Za-z]{2,})$" /> 
+                                    </p:inputText>
+                                    <!--
+                                    <p:outputLabel value="#{bundle.CreatePersonLabel_phone}" for="phone" />
+                                    <p:inputText id="phone" value="#{personController.selected.phone}" title="#{bundle.CreatePersonTitle_phone}" />
+                                    -->
+                                </p:panelGrid>
+                            </p:fieldset>
+                            <p:fieldset legend="#{bundle.AccessData}" style="margin-bottom:10px">
+                                <p:panelGrid columns="2">
+                                    <p:outputLabel value="#{bundle.Username}" for="username" />
+                                    <p:inputText id="username" value="#{personController.selected.username}" title="#{bundle.Username}" required="true" requiredMessage="#{bundle.RegisterPersonRequiredMessage_username}"/>
+                                    <p:outputLabel value="#{bundle.Password}" for="password" />
+                                    <p:password id="password" value="#{personController.selected.password}" title="#{bundle.Password}" required="true" requiredMessage="#{bundle.RegisterPersonRequiredMessage_password}" feedback="true" match="password2" validatorMessage="#{bundle.ValidatorMessage_password}" promptLabel="#{bundle.SecurePasswordMessage}" weakLabel="#{bundle.Weak}" goodLabel="#{bundle.Good}" strongLabel="#{bundle.Strong}" inline="true"/>
+                                    <p:outputLabel value="#{bundle.RepeatPassword}" for="password2" />
+                                    <p:password id="password2" value="#{personController.selected.password}" title="#{bundle.Password}" required="true" requiredMessage="#{bundle.RegisterPersonRequiredMessage_password}"/>
+                                </p:panelGrid>
+                            </p:fieldset>
+                            <p:commandButton action="#{personController.createAndRedirect()}" value="#{bundle.Save}" update=":messages" oncomplete="handleSubmit(args, 'RegisterDialog');"/>
                             <input type="hidden" name="oauth_token" value="#{param['oauth_token']}"/>
                             <input type="hidden" name="oauth_verifier" value="#{param['oauth_verifier']}"/>
+                            <input type="hidden" name="city" id="city"/>
+                            <input type="hidden" name="region" id="region"/>
+                            <input type="hidden" name="country" id="country"/>
+                            <input type="hidden" name="ip" id="ip"/>
                         </h:form>
                     </p:dialog>
                 </ui:define>

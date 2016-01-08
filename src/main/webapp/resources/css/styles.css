@@ -27,10 +27,28 @@
     width: 32px !important;
 }
 
-.step-icon {
-    background: url(img/step.png) no-repeat !important;
+.editProfile-icon {
+    background: url(img/editProfile.png) no-repeat !important;
     height: 32px !important;
     width: 32px !important;
+}
+
+.people-icon {
+    background: url(img/people.png) no-repeat !important;
+    height: 32px !important;
+    width: 32px !important;
+}
+
+.steps-icon {
+    background: url(img/steps.png) no-repeat !important;
+    height: 32px !important;
+    width: 32px !important;
+}
+
+.steps-icon-16 {
+    background: url(img/steps16.png) no-repeat !important;
+    height: 16px !important;
+    width: 16px !important;
 }
 
 .report-icon {
@@ -60,14 +78,12 @@
 }
 
 .subheader {
-    font-size: 14px !important;
-    position: absolute;
-    bottom: 10px;
-    left: 240px;
+    font-size: 9px !important;
+    bottom: 0px;
 }
 
 .alignTop {
-    vertical-align: top;
+    vertical-align: top !important;
 }
 
 .ui-menuitem-text {
@@ -95,8 +111,38 @@
     width: 16px !important;
 }
 
-.steps-icon {
-    background: url(img/steps.png) no-repeat !important;
+.sleep-icon {
+    background: url(img/sleep.png) no-repeat !important;
+    height: 32px !important;
+    width: 32px !important;
+}
+
+.sleep-icon-16 {
+    background: url(img/sleep16.png) no-repeat !important;
+    height: 16px !important;
+    width: 16px !important;
+}
+
+.map-icon {
+    background: url(img/map.png) no-repeat !important;
+    height: 32px !important;
+    width: 32px !important;
+}
+
+.map-icon-16 {
+    background: url(img/map16.png) no-repeat !important;
+    height: 16px !important;
+    width: 16px !important;
+}
+
+.session-icon {
+    background: url(img/session.png) no-repeat !important;
+    height: 32px !important;
+    width: 32px !important;
+}
+
+.session-icon-16 {
+    background: url(img/sessions16.png) no-repeat !important;
     height: 16px !important;
     width: 16px !important;
 }
@@ -126,4 +172,165 @@
 
 .bold {
     font-weight: bold;
+}
+
+.buttonsGrid tr, .buttonsGrid td {
+    border-style: none !important;
+    padding: 0px !important;
+}
+
+.sentToZtreamy {
+    background-color: #536DFE;
+}
+
+.receivedFromFitbit {
+    background-color: #4CAF50;
+}
+
+.heart-icon {
+    background: url(img/heart.png) no-repeat !important;
+    height: 32px !important;
+    width: 32px !important;
+}
+
+.heart-icon-16 {
+    background: url(img/heart16.png) no-repeat !important;
+    height: 16px !important;
+    width: 16px !important;
+}
+
+.ui-panelgrid.ui-widget.buttonsGrid .ui-widget-content {
+    background: transparent;
+}
+
+.fitbit-icon {
+    background: url(img/fitbit.png) no-repeat !important;
+    height: 32px !important;
+    width: 32px !important;
+}
+
+.fitbit-sync-icon {
+    background: url(img/fitbit-sync.png) no-repeat !important;
+    height: 32px !important;
+    width: 32px !important;
+}
+
+.alert-icon {
+    background: url(img/alert.png) no-repeat !important;
+    height: 32px !important;
+    width: 32px !important;
+}
+
+.smartDriver-icon {
+    background: url(img/smartDriver.png) no-repeat !important;
+    height: 32px !important;
+    width: 32px !important;
+}
+
+.smartDriver-icon-16 {
+    background: url(img/smartDriver16.png) no-repeat !important;
+    height: 16px !important;
+    width: 16px !important;
+}
+
+.suggestion-icon {
+    background: url(img/suggestion.png) no-repeat !important;
+    height: 32px !important;
+    width: 32px !important;
+}
+
+.suggestion-icon-16 {
+    background: url(img/suggestion16.png) no-repeat !important;
+    height: 16px !important;
+    width: 16px !important;
+}
+
+.userAccess-icon {
+    background: url(img/userAccess.png) no-repeat !important;
+    height: 32px !important;
+    width: 32px !important;
+}
+
+.languages-icon {
+    background: url(img/languages.png) no-repeat !important;
+    height: 32px !important;
+    width: 32px !important;
+}
+
+.es-icon {
+    background: url(img/es.png) no-repeat !important;
+    height: 32px !important;
+    width: 32px !important;
+}
+
+.en-icon {
+    background: url(img/en.png) no-repeat !important;
+    height: 32px !important;
+    width: 32px !important;
+}
+
+.chart-icon {
+    background: url(img/chart.png) no-repeat !important;
+    height: 32px !important;
+    width: 32px !important;
+}
+
+.system-icon {
+    background: url(img/system.png) no-repeat !important;
+    height: 32px !important;
+    width: 32px !important;
+}
+
+.help-icon {
+    background: url(img/help.png) no-repeat !important;
+    height: 32px !important;
+    width: 32px !important;
+}
+
+.contact-icon {
+    background: url(img/contact.png) no-repeat !important;
+    height: 32px !important;
+    width: 32px !important;
+}
+
+.theme-icon {
+    background: url(img/theme.png) no-repeat !important;
+    height: 32px !important;
+    width: 32px !important;
+}
+
+.pdf-icon {
+    background: url(img/pdf.png) no-repeat !important;
+}
+
+.interval-icon-16 {
+    background: url(img/interval16.png) no-repeat !important;
+    height: 16px !important;
+    width: 16px !important;
+}
+
+/* JYFR - Inicio */
+/* Para que los tooltips de los gráficos jqPlot no se mezclen con los textos del gráfico */
+.jqplot-highlighter-tooltip, .jqplot-canvasOverlay-tooltip {
+    background: rgba(208, 208, 208, 0.90) none repeat scroll 0 0;
+    padding: 6px !important;
+    z-index: 10 !important;
+}
+/* JYFR- Fin */
+
+/* JYFR - Inicio */
+/* Alternativa hasta que corrijan el problema gráfico de los botones de los 'spinners' */
+.ui-spinner-button {
+    height: 10px !important;
+}
+
+.ui-button {
+    margin-top: 3px !important;
+}
+/* JYFR - Fin */
+
+/* Le damos ancho suficiente a los elementos del menú */
+ul.ui-menu-child {
+    white-space: nowrap;
+    width: 260px !important;
 }

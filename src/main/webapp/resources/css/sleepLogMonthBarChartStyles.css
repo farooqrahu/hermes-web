@@ -1,0 +1,32 @@
+#box {
+    background-color: #cc0000;
+    color: #fff;
+    font-weight: bold;
+    text-align: center;
+    padding: 3px 0 3px 0;
+}
+
+#container {
+    height: 100%;
+    vertical-align: middle;
+    width: 100%;
+}
+
+#clock {
+    fill: #FFFFFF;
+    stroke: #000;
+    stroke-linecap: round;
+}
+
+#surface, #sh_pointer, #eh_pointer {
+    stroke-width: 4px;
+}
+
+#sm_pointer, #em_pointer {
+    stroke-width: 3px;
+}
+
+#numbers {
+    font-family: sans-serif;
+    font-size: 80%;
+}

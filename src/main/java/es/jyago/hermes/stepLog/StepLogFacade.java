@@ -17,6 +17,7 @@ import javax.persistence.PersistenceContext;
  */
 @Stateless
 public class StepLogFacade extends AbstractFacade<StepLog> {
+
     @PersistenceContext(unitName = "HermesWeb_PU")
     private EntityManager em;
 
@@ -28,5 +29,5 @@ public class StepLogFacade extends AbstractFacade<StepLog> {
     public StepLogFacade() {
         super(StepLog.class);
     }
-    
+
 }

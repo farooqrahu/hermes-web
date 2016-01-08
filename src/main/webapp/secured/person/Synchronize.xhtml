@@ -1,31 +1,71 @@
 <?xml version="1.0" encoding="UTF-8" ?>
-<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
-<html xmlns="http://www.w3.org/1999/xhtml"
-      xmlns:ui="http://xmlns.jcp.org/jsf/facelets"
-      xmlns:h="http://xmlns.jcp.org/jsf/html"
-      xmlns:p="http://primefaces.org/ui"
-      xmlns:f="http://xmlns.jcp.org/jsf/core">
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.1//EN" "http://www.w3.org/TR/xhtml11/DTD/xhtml11.dtd">
+<f:view xmlns:f="http://java.sun.com/jsf/core"
+        xmlns:h="http://java.sun.com/jsf/html"
+        xmlns:p="http://primefaces.org/ui"
+        xmlns:ui="http://java.sun.com/jsf/facelets"
+        xmlns:c="http://xmlns.jcp.org/jsp/jstl/core">
+    <html xmlns="http://www.w3.org/1999/xhtml">
 
-    <ui:composition>
+        <ui:composition>
+            <p:dialog id="PersonSynchronizeDlg" widgetVar="PersonSynchronizeDialog" modal="true" resizable="false" appendTo="@(body)" header="#{bundle.Synchronize}" closeOnEscape="true">
 
-        <p:dialog id="PersonSynchronizeDlg" widgetVar="PersonSynchronizeDialog" modal="true" resizable="false" appendTo="@(body)" header="#{bundle.Synchronize}" closeOnEscape="true">
-            <h:form id="PersonSynchronizeForm">
-                <h:panelGroup id="display">
-                    <p:panelGrid columns="2" rendered="#{personController.selected != null}">
-                        <p:outputLabel value="#{bundle.Start_date}" for="startDate" />
-                        <p:calendar id="startDate" pattern="dd/MM/yyyy" value="#{personController.startDate}" title="#{bundle.Start_date}" required="true" requiredMessage="#{bundle.Start_date}" showOn="button" />
-                        <p:outputLabel value="#{bundle.End_date}" for="endDate" />
-                        <p:calendar id="endDate" pattern="dd/MM/yyyy" value="#{personController.endDate}" title="#{bundle.End_date}" required="true" requiredMessage="#{bundle.End_date}" showOn="button" maxdate="#{personController.endSyncDate}">
-                            <f:attribute name="startDate" value="#{personController.startDate}" />
-                            <f:validator validatorId="dateRangeValidator" />
-                        </p:calendar>
-                    </p:panelGrid>
-                    <p:commandButton actionListener="#{personController.synchronize}" value="#{bundle.Synchronize}" update="display,:PersonListForm:datalist,:messages" oncomplete="handleSubmit(args, 'PersonSynchronizeDialog');" />
-                    <!-- JYFR: Indicamos el atributo 'immediate="true"' para evitar que se hagan las validaciones AJAX al cancelar -->
-                    <p:commandButton value="#{bundle.Cancel}" onclick="PF('PersonSynchronizeDialog').hide()" immediate="true" />
-                </h:panelGroup>
-            </h:form>
-        </p:dialog>
+                <p:messages showDetail="true" autoUpdate="true"/>
 
-    </ui:composition>
-</html>
+                <h:form id="PersonSynchronizeForm">
+                    <h:panelGroup id="display" rendered="#{personController.selected != null}">
+                        <p:panelGrid columns="2">
+                            <p:outputLabel value="#{bundle.Start_date}" for="startDate" />
+                            <p:calendar id="startDate" pattern="dd/MM/yyyy" value="#{personController.startDate}" title="#{bundle.Start_date}" required="true" requiredMessage="#{bundle.Start_date}" showOn="button" maxdate="#{personController.fitbitEndDate}">
+                                <p:ajax event="dateSelect" update="endDate, fitbitInfo, synchronizeButton, infoSynch" />
+                                <p:ajax event="change" update="endDate, fitbitInfo, synchronizeButton, infoSynch" />
+                                <f:attribute name="endDate" value="#{personController.endDate}" />
+                                <f:validator validatorId="dateRangeValidator" />
+                            </p:calendar>
+                            <p:outputLabel value="#{bundle.End_date}" for="endDate" />
+                            <p:calendar id="endDate" pattern="dd/MM/yyyy" value="#{personController.endDate}" title="#{bundle.End_date}" required="true" requiredMessage="#{bundle.End_date}" showOn="button" maxdate="#{personController.fitbitEndDate}">
+                                <p:ajax event="dateSelect" update="startDate, fitbitInfo, synchronizeButton, infoSynch" />
+                                <p:ajax event="change" update="startDate, fitbitInfo, synchronizeButton, infoSynch" />
+                                <f:attribute name="startDate" value="#{personController.startDate}" />
+                                <f:validator validatorId="dateRangeValidator" />
+                            </p:calendar>
+                        </p:panelGrid>
+
+                        <h:panelGrid id="fitbitInfo" columns="2" rendered="#{loginController.person.admin}">
+                            <p:outputLabel value="#{bundle.FitbitNeededRequests}" for="needed"/>
+                            <h:outputText id="needed" value="#{personController.fitbitNeededRequestsBetweenDates}"/>
+                            <p:outputLabel value="#{bundle.FitbitRemainingRequests}" for="remaining"/>
+                            <h:outputText id="remaining" value="#{personController.fitbitRemainingRequests}"/>
+                        </h:panelGrid>
+
+                        <h:panelGrid id="infoSynch" rendered="#{personController.selected != null}">
+                            <c:choose>
+                                <c:when test="#{personController.fitbitNeededRequestsBetweenDates le personController.fitbitRemainingRequests}">
+                                    <h:outputText value="#{bundle['Fitbit.info.enoughRequests']}" style="color: green"/>
+                                </c:when>
+                                <c:otherwise>
+                                    <h:panelGrid>
+                                        <c:if test="#{loginController.person.admin}">
+                                            <h:outputFormat value="#{bundle['Fitbit.warning.notEnoughRequests']}" style="color: red">
+                                                <f:param value="#{personController.fitbitNeededRequestsBetweenDates}"/>
+                                                <f:param value="#{personController.fitbitRemainingRequests}"/>
+                                            </h:outputFormat>
+                                        </c:if>
+                                        <h:outputFormat value="#{bundle['Fitbit.warning.notEnoughRequestDays']}" style="color: red" escape="false">
+                                            <f:param value="#{personController.fitbitRemainingRequestsAsDays}"/>
+                                        </h:outputFormat>
+                                    </h:panelGrid>
+                                </c:otherwise>
+                            </c:choose>
+                        </h:panelGrid>
+
+                        <p:commandButton id="synchronizeButton" actionListener="#{personController.synchronize()}" value="#{bundle.Synchronize}" update="display,:messages" oncomplete="handleSubmit(args, 'PersonSynchronizeDialog');" disabled="#{personController.fitbitNeededRequestsBetweenDates gt personController.fitbitRemainingRequests}" />
+                        <!-- JYFR: Indicamos el atributo 'immediate="true"' para evitar que se hagan las validaciones AJAX al cancelar -->
+                        <p:commandButton value="#{bundle.Cancel}" onclick="PF('PersonSynchronizeDialog').hide()" immediate="true" />
+                    </h:panelGroup>
+                </h:form>
+            </p:dialog>
+
+        </ui:composition>
+    </html>
+</f:view>

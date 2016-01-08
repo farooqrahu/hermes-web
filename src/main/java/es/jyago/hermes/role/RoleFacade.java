@@ -16,6 +16,7 @@ import javax.persistence.PersistenceContext;
  */
 @Stateless
 public class RoleFacade extends AbstractFacade<Role> {
+
     @PersistenceContext(unitName = "HermesWeb_PU")
     private EntityManager em;
 
@@ -27,5 +28,5 @@ public class RoleFacade extends AbstractFacade<Role> {
     public RoleFacade() {
         super(Role.class);
     }
-    
+
 }

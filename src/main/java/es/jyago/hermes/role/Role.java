@@ -22,6 +22,8 @@ import javax.persistence.Table;
 import javax.validation.constraints.NotNull;
 import javax.validation.constraints.Size;
 import javax.xml.bind.annotation.XmlRootElement;
+import org.apache.commons.lang.builder.EqualsBuilder;
+import org.apache.commons.lang.builder.HashCodeBuilder;
 
 /**
  *
@@ -34,8 +36,9 @@ import javax.xml.bind.annotation.XmlRootElement;
     @NamedQuery(name = "Role.findAll", query = "SELECT r FROM Role r"),
     @NamedQuery(name = "Role.findByRoleId", query = "SELECT r FROM Role r WHERE r.roleId = :roleId"),
     @NamedQuery(name = "Role.findByName", query = "SELECT r FROM Role r WHERE r.name = :name"),
-    @NamedQuery(name = "Role.findAllLessThan", query = "SELECT r FROM Role r WHERE r.roleId >= :roleId")})
+    @NamedQuery(name = "Role.findAllLessThan", query = "SELECT r FROM Role r WHERE r.roleId >= :roleId ORDER BY r.name")})
 public class Role implements Serializable {
+
     private static final long serialVersionUID = 1L;
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
@@ -88,26 +91,32 @@ public class Role implements Serializable {
 
     @Override
     public int hashCode() {
-        int hash = 0;
-        hash += (roleId != null ? roleId.hashCode() : 0);
-        return hash;
+        return new HashCodeBuilder(19, 29).
+                append(name).
+                toHashCode();
     }
 
     @Override
     public boolean equals(Object object) {
-        // TODO: Warning - this method won't work in the case the id fields are not set
         if (!(object instanceof Role)) {
             return false;
         }
         Role other = (Role) object;
-        return !((this.roleId == null && other.roleId != null) ||
-                (this.roleId != null && !this.roleId.equals(other.roleId)));
+
+        // Dos elementos serán iguales si tienen el mismo id.
+        return new EqualsBuilder().
+                append(this.roleId, other.roleId).
+                isEquals();
     }
 
     @Override
     public String toString() {
         StringBuilder sb = new StringBuilder();
-        sb.append(this.name);
+
+        sb.append("[")
+                .append(this.getName())
+                .append("]");
+
         return sb.toString();
-    } 
+    }
 }

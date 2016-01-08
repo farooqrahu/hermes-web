@@ -1,37 +1,63 @@
 <?xml version='1.0' encoding='UTF-8'?>
-<!DOCTYPE html>
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.1//EN" "http://www.w3.org/TR/xhtml11/DTD/xhtml11.dtd">
 <ui:composition xmlns:ui="http://java.sun.com/jsf/facelets"
-                xmlns:h="http://java.sun.com/jsf/html"
                 xmlns:p="http://primefaces.org/ui"
-                xmlns:f="http://java.sun.com/jsf/core"
-                xmlns:c="http://xmlns.jcp.org/jsp/jstl/core">
+                xmlns:c="http://xmlns.jcp.org/jsp/jstl/core"
+                xmlns:h="http://xmlns.jcp.org/jsf/html">
     <p:outputPanel id="menuPanel" layout="block">
-        <p:menu rendered="#{userLogin.loggedIn}">
-            <p:menuitem value="#{bundle.Menu_home}" outcome="/main.xhtml" icon="inicio-icon" style="vertical-align: middle; font-weight: bold" onclick="PF('statusDialog').show()" oncomplete="PF('statusDialog').hide()"/>
-            <c:choose>
-                <c:when test='#{userLogin.user.admin or userLogin.user.doctor}'>
+        <h:form>
+            <p:menu rendered="#{loginController.loggedIn}">
+
+                <!-- FIXME: Hacer que se recargue sólo el panel central -->
+                <p:menuitem value="#{bundle.Menu_home}" outcome="/index.xhtml" icon="inicio-icon" style="vertical-align: middle; font-weight: bold" onclick="PF('statusDialog').show()" oncomplete="PF('statusDialog').hide()"/>
+                <c:if test='#{loginController.person.admin or loginController.person.doctor}'>
                     <p:submenu label="#{bundle.Menu_people}">
-                        <p:menuitem value="#{bundle.Menu_person}" outcome="/secured/person/List.xhtml" icon="person-icon" onclick="PF('statusDialog').show()" oncomplete="PF('statusDialog').hide()"/>
+                        <p:menuitem value="#{bundle.Menu_person}" outcome="/secured/person/List.xhtml" icon="people-icon" onclick="PF('statusDialog').show()" oncomplete="PF('statusDialog').hide()"/>
                     </p:submenu>
-                </c:when>
-                <c:otherwise>
-                    <p:submenu label="#{bundle.Menu_profile}">
-                        <p:menuitem value="#{bundle.Menu_profile}" outcome="/secured/person/List.xhtml" icon="person-icon" onclick="PF('statusDialog').show()" oncomplete="PF('statusDialog').hide()"/>
-                    </p:submenu>
-                </c:otherwise>
-            </c:choose>
-            <!-- JYFR
-            <p:submenu label="#{bundle.Menu_activities}">
-                <p:menuitem value="#{bundle.Menu_step}" outcome="/secured/activityLog/List.xhtml" icon="step-icon" onclick="PF('statusDialog').show()" oncomplete="PF('statusDialog').hide()"/>
-            </p:submenu>
-            -->
-            <p:submenu label="#{bundle.Menu_control}" rendered="#{userLogin.user.admin}">
-                <p:menuitem value="#{bundle.Menu_report}" outcome="/secured/report/List.xhtml" icon="report-icon" onclick="PF('statusDialog').show()" oncomplete="PF('statusDialog').hide()"/>
-                <p:menuitem value="#{bundle.Menu_role}" outcome="/secured/role/List.xhtml" icon="role-icon" onclick="PF('statusDialog').show()" oncomplete="PF('statusDialog').hide()"/>
-            </p:submenu>
-            <p:submenu label="#{bundle.Menu_options}" rendered="#{userLogin.user.admin}">
-                <p:menuitem value="#{bundle.Menu_config}" outcome="/secured/option/List.xhtml" icon="config-icon" onclick="PF('statusDialog').show()" oncomplete="PF('statusDialog').hide()"/>
-            </p:submenu>
-        </p:menu>
+                </c:if>
+                <p:submenu label="#{bundle.Menu_profile}">
+                    <p:menuitem value="#{bundle.Menu_profile}" icon="person-icon" onclick="PF('statusDialog').show()" update=":PersonEditForm" actionListener="#{personController.setSelected(loginController.person)}" oncomplete="PF('PersonEditDialog').show()"/>
+                    <p:menuitem value="#{bundle.Authorize}" icon="fitbit-icon" update="openWindow" actionListener="#{personController.authorize(loginController.person, '')}" oncomplete="PF('statusDialog').hide()"/>
+                    <p:menuitem value="#{bundle.Synchronize}" icon="fitbit-sync-icon" onclick="PF('statusDialog').show()" update=":PersonSynchronizeForm, :messages" actionListener="#{personController.openSynchronizationDialog(loginController.person)}" oncomplete="PF('statusDialog').hide()"/>
+                    <p:menuitem value="#{bundle.Alerts}" icon="alert-icon" update=":PersonEditForm, :messages" actionListener="#{personController.checkEmail(loginController.person)}" onclick="PF('statusDialog').show()" oncomplete="PF('statusDialog').hide()"/>
+                </p:submenu>
+                <p:submenu label="#{bundle.Graphics}">
+                    <p:menuitem value="#{bundle.Steps}" icon="steps-icon" onclick="PF('statusDialog').show()" update=":PersonActivityMonthLineChartForm" oncomplete="PF('StepsLogMonthLineChart').show()" action="#{personController.initChartDates()}"/>
+                    <p:menuitem value="#{bundle.Sessions}" icon="session-icon" outcome="/secured/session/SessionDashboard.xhtml" onclick="PF('statusDialog').show()" oncomplete="PF('statusDialog').hide()"/>
+                    <p:menuitem value="#{bundle.Sleep}" icon="sleep-icon" onclick="PF('statusDialog').show()" update=":PersonSleepMonthChartForm" oncomplete="PF('PersonSleepMonthChartDialog').show()" action="#{personController.initChartDates()}"/>
+                    <p:menuitem value="#{bundle.HeartRate}" icon="heart-icon" onclick="PF('statusDialog').show()" update=":PersonHeartRateChartForm" oncomplete="PF('PersonHeartRateChartDialog').show()" action="#{personController.initChartDates()}"/>
+                    <p:menuitem value="#{bundle.Map}" icon="map-icon" onclick="PF('statusDialog').show()" update=":PersonMapForm" oncomplete="PF('PersonMapDialog').show()" action="#{personController.initChartDates()}" rendered="#{loginController.person.admin}"/>
+                    <p:menuitem value="#{bundle.SmartDriver}" icon="smartDriver-icon" onclick="PF('statusDialog').show()" update=":PersonMapForm" oncomplete="PF('PersonMapDialog').show()" action="#{personController.initChartDates()}" rendered="#{loginController.person.admin}"/>
+                </p:submenu>
+                <!-- JYFR
+                <p:submenu label="#{bundle.Menu_activities}">
+                    <p:menuitem value="#{bundle.Menu_step}" outcome="/secured/activityLog/List.xhtml" icon="steps-icon" onclick="PF('statusDialog').show()" oncomplete="PF('statusDialog').hide()"/>
+                </p:submenu>
+                -->
+                <p:submenu label="#{bundle.Menu_control}" rendered="#{loginController.person.admin}">
+                    <p:menuitem value="#{bundle.Menu_report}" outcome="/secured/report/List.xhtml" icon="report-icon" onclick="PF('statusDialog').show()" oncomplete="PF('statusDialog').hide()"/>
+                    <p:menuitem value="#{bundle.Menu_role}" outcome="/secured/role/List.xhtml" icon="role-icon" onclick="PF('statusDialog').show()" oncomplete="PF('statusDialog').hide()"/>
+                </p:submenu>
+                <p:submenu label="#{bundle.Menu_system}">
+                    <p:menuitem value="#{bundle.Menu_config}" outcome="/secured/option/List.xhtml" icon="config-icon" onclick="PF('statusDialog').show()" oncomplete="PF('statusDialog').hide()" rendered="#{loginController.person.admin}"/>
+                    <p:menuitem value="#{bundle.Menu_user_access}" icon="userAccess-icon" outcome="/secured/person/UserAccess.xhtml" onclick="PF('statusDialog').show()" oncomplete="PF('statusDialog').hide()"/>
+                    <p:menuitem value="#{bundle.Menu_suggestions}" icon="suggestion-icon" onclick="PF('statusDialog').show()" update=":SuggestionForm" actionListener="#{personController.editMyProfile}" oncomplete="PF('SuggestionDialog').show()"/>
+                </p:submenu>
+            </p:menu>
+        </h:form>
     </p:outputPanel>
+    <h:panelGroup id="openWindow">
+        <h:outputScript rendered="#{not empty personController.authorizeUrl}">
+            window.open('#{personController.authorizeUrlAndReset}', '_self');
+        </h:outputScript>
+    </h:panelGroup>
+
+    <ui:include src="/secured/person/Edit.xhtml"/>
+    <ui:include src="/secured/person/Synchronize.xhtml"/>
+    <ui:include src="/secured/person/StepLogMonthLineChart.xhtml"/>
+    <ui:include src="/secured/person/SessionsWeekBarChart.xhtml"/>
+    <ui:include src="/secured/person/SleepLogMonthBarChart.xhtml"/>
+    <ui:include src="/secured/person/LocationLogMap.xhtml"/>
+    <ui:include src="/secured/person/HeartRateLogLineChart.xhtml"/>
+    <ui:include src="/secured/suggestion/Suggestion.xhtml"/>
 </ui:composition>

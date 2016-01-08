@@ -1,0 +1,51 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.1//EN" "http://www.w3.org/TR/xhtml11/DTD/xhtml11.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml"
+      xmlns:ui="http://xmlns.jcp.org/jsf/facelets"
+      xmlns:h="http://xmlns.jcp.org/jsf/html"
+      xmlns:p="http://primefaces.org/ui"
+      xmlns:c="http://xmlns.jcp.org/jsp/jstl/core">
+    <ui:composition>
+        <h:head>
+            <h:outputScript name="charts/charts.js" library="primefaces" target="head" />
+            <h:outputStylesheet name="charts/charts.css" library="primefaces" />
+        </h:head>
+        <p:dialog id="HeartRateDayChartDlg" widgetVar="PersonHeartRateDayChartDialog" modal="true" resizable="true" appendTo="@(body)" header="#{bundle.HeartRateGraphic}" closeOnEscape="true" maximizable="true">
+
+            <p:messages showDetail="true" autoUpdate="true" />
+
+            <h:form id="PersonHeartRateDayChartForm">
+                <h:panelGrid id="display">
+                    <c:choose>
+                        <c:when test='#{personController.selected == null or personController.heartRateDayChartModel == null or empty personController.heartRateDayChartModel.series}'>
+                            <h:panelGrid>
+                                <h:outputText value="#{bundle.NoData}"/>
+                            </h:panelGrid>
+                        </c:when>
+
+                        <c:otherwise>
+                            <h:panelGroup>
+                                <p:chart id="heartRateDayChart" widgetVar="heartRateDayChart" type="line" model="#{personController.heartRateDayChartModel}" style="width:1024px;height:400px" rendered="#{personController.selected != null and personController.heartRateDayChartModel != null and not empty personController.heartRateDayChartModel.series}" responsive="true"/>
+
+                                <p:panelGrid columns="2">
+                                    <p:panelGrid columns="6">
+                                        <h:outputText value="#{bundle.MaximumHeartRate}"/>
+                                        <h:outputText value="#{personController.selectedHealthLog.minimumHeartRate}" title="#{bundle.MaximumHeartRate}" styleClass="bold"/>
+                                        <h:outputText value="#{bundle.MinimumHeartRate}"/>
+                                        <h:outputText value="#{personController.selectedHealthLog.maximumHeartRate}" title="#{bundle.MinimumHeartRate}" styleClass="bold"/>
+                                        <h:outputText value="#{bundle.AverageHeartRate}"/>
+                                        <h:outputText value="#{personController.selectedHealthLog.average}" title="#{bundle.AverageHeartRate}" styleClass="bold"/>
+                                    </p:panelGrid>
+                                    <p:commandButton value="#{bundle.ZoomReset}" type="button" onclick="PF('heartRateDayChart').resetZoom()" icon="ui-icon-cancel" />
+                                </p:panelGrid>
+                            </h:panelGroup>
+                        </c:otherwise>
+                    </c:choose>
+
+                    <p:commandButton value="#{bundle.Close}" onclick="PF('PersonHeartRateDayChartDialog').hide()"/>
+                </h:panelGrid>
+
+            </h:form>
+        </p:dialog>
+    </ui:composition>
+</html>

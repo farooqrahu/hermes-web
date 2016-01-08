@@ -26,7 +26,7 @@ public class LoginFilter implements Filter {
     @Override
     public void doFilter(ServletRequest request, ServletResponse response, FilterChain chain) throws IOException, ServletException {
         HttpServletRequest req = (HttpServletRequest) request;
-        LoginBean loginBean = (LoginBean) req.getSession().getAttribute("userLogin");
+        LoginController loginBean = (LoginController) req.getSession().getAttribute("loginController");
 
         if (loginBean != null && loginBean.isLoggedIn()) {
             // El usuario está registrado, lo redirigimos a la página solicitada.

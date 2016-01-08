@@ -30,6 +30,7 @@ public class UsernameValidator implements Validator {
 
     @Override
     public void validate(FacesContext context, UIComponent component, Object value) throws ValidatorException {
+        // TODO: Implementar resto de validaciones, como usuario existente, nombre con caracteres extraños, etc.
         if (value == null) {
             return;
         }

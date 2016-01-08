@@ -1,34 +1,44 @@
 package es.jyago.hermes.person;
 
-import com.fitbit.api.common.model.timeseries.IntradayData;
-import com.fitbit.api.common.model.timeseries.IntradaySummary;
 import es.jyago.hermes.activityLog.ActivityLog;
 import es.jyago.hermes.activityLog.ActivityLogController;
-import es.jyago.hermes.csv.CSVControllerInterface;
-import es.jyago.hermes.csv.CSVUtil;
-import es.jyago.hermes.fitbit.HermesFitbitController;
-import es.jyago.hermes.stepLog.StepLog;
+import es.jyago.hermes.activityLog.ActivityLogHermesZtreamyFacade;
+import es.jyago.hermes.bean.LocaleBean;
 import es.jyago.hermes.util.Constants;
 import es.jyago.hermes.util.JsfUtil;
 import es.jyago.hermes.util.JsfUtil.PersistAction;
-import es.jyago.hermes.activityLog.ActivityLogHermesZtreamyFacade;
-import es.jyago.hermes.configuration.Configuration;
-import es.jyago.hermes.login.LoginBean;
-import es.jyago.hermes.person.configuration.PersonConfiguration;
+import es.jyago.hermes.fitbit.FitbitResetRequestsScheduledTask;
+import es.jyago.hermes.fitbit.HermesFitbitControllerOauth2;
+import es.jyago.hermes.fitbit.HermesFitbitException;
+import es.jyago.hermes.fitbit.IFitbitFacade;
+import es.jyago.hermes.healthLog.HealthLog;
+import es.jyago.hermes.healthLog.HealthLogHermesZtreamyFacade;
+import es.jyago.hermes.heartLog.HeartLog;
+import es.jyago.hermes.location.LocationLog;
+import es.jyago.hermes.location.LocationLogCSVController;
+import es.jyago.hermes.location.LocationLogCSVController2;
+import es.jyago.hermes.location.LocationLogController;
+import es.jyago.hermes.location.detail.LocationLogDetail;
+import es.jyago.hermes.login.LoginController;
+import es.jyago.hermes.sleepLog.SleepLog;
+import es.jyago.hermes.sleepLog.SleepLogHermesZtreamyFacade;
 import es.jyago.hermes.util.HermesException;
+import es.jyago.hermes.util.Util;
 import java.io.IOException;
 import java.io.Serializable;
 import java.net.MalformedURLException;
-import java.text.ParseException;
+import java.text.MessageFormat;
 import java.util.ArrayList;
 import java.util.Calendar;
+import java.util.Collections;
 import java.util.Date;
-import java.util.HashSet;
+import java.util.HashMap;
 import java.util.Iterator;
 import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Locale;
 import java.util.Map;
-import java.util.ResourceBundle;
+import java.util.TreeMap;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 import javax.ejb.EJB;
@@ -43,21 +53,33 @@ import javax.faces.convert.FacesConverter;
 import javax.inject.Inject;
 import javax.inject.Named;
 import javax.servlet.http.HttpServletRequest;
+import javax.servlet.http.HttpSession;
+import org.apache.commons.codec.binary.Hex;
+import org.apache.commons.codec.digest.DigestUtils;
 import org.joda.time.DateTime;
 import org.joda.time.DateTimeConstants;
 import org.joda.time.Days;
 import org.joda.time.LocalDate;
+import org.joda.time.LocalTime;
 import org.primefaces.context.RequestContext;
 import org.primefaces.event.FileUploadEvent;
 import org.primefaces.event.ItemSelectEvent;
 import org.primefaces.event.SelectEvent;
-import org.primefaces.model.StreamedContent;
+import org.primefaces.event.map.OverlaySelectEvent;
+import org.primefaces.model.UploadedFile;
+import org.primefaces.model.chart.Axis;
+import org.primefaces.model.chart.AxisType;
 import org.primefaces.model.chart.BarChartModel;
+import org.primefaces.model.chart.BarChartSeries;
+import org.primefaces.model.chart.CategoryAxis;
+import org.primefaces.model.chart.ChartSeries;
+import org.primefaces.model.chart.DateAxis;
 import org.primefaces.model.chart.LineChartModel;
+import org.primefaces.model.chart.LineChartSeries;
 
 @Named("personController")
 @SessionScoped
-public class PersonController implements Serializable, CSVControllerInterface<Person> {
+public class PersonController implements Serializable, IFitbitFacade {
 
     private static final Logger log = Logger.getLogger(PersonController.class.getName());
 
@@ -65,26 +87,40 @@ public class PersonController implements Serializable, CSVControllerInterface<Pe
     private PersonFacade ejbFacade;
     private List<Person> items;
     private Person selected;
-    private HermesFitbitController hermesFitbitController;
+    private HermesFitbitControllerOauth2 hermesFitbitController;
     private String authorizeUrl;
     private Date startDate;
     private Date endDate;
+    private Date fitbitEndDate;
     private String aggregation;
     private ActivityLog selectedActivity;
     private List<ActivityLog> chartMonthActivityLogList;
+    private HealthLog selectedHealthLog;
+    private List<HealthLog> chartMonthHealthLogList;
     private int dateSelector;
+
     @Inject
     private ActivityLogController activityLogController;
+    @Inject
+    private LocationLogController locationLogController;
+    private String lastCode;
+
+    // Gráficos
+    private LineChartModel stepsLogLineChartModel;
+    private BarChartModel sleepLogBarChartModel;
+    private LineChartModel heartLogLineChartModel;
 
     public PersonController() {
         log.log(Level.INFO, "PersonController() - Inicialización del controlador de personas");
-        authorizeUrl = null;
+
         selected = null;
+        authorizeUrl = null;
         items = null;
         hermesFitbitController = null;
         startDate = Calendar.getInstance().getTime();
         endDate = Calendar.getInstance().getTime();
         dateSelector = 1;
+        lastCode = null;
     }
 
     public Person getSelected() {
@@ -93,6 +129,26 @@ public class PersonController implements Serializable, CSVControllerInterface<Pe
 
     public void setSelected(Person selected) {
         this.selected = selected;
+        // Inicializamos los controladores.
+        initControllers();
+        // Inicializamos los gráficos.
+        initCharts();
+    }
+
+    private void initControllers() {
+        locationLogController.setPerson(selected);
+    }
+
+    private void initCharts() {
+        initChartDates();
+        initStepsLogLineChartModel();
+        initSleepLogChartModel();
+        initHeartRateChartModel();
+        initMap();
+    }
+
+    private void initMap() {
+        locationLogController.initLocationLogMapModel(selected.getLocationLogList());
     }
 
     protected void setEmbeddableKeys() {
@@ -106,50 +162,53 @@ public class PersonController implements Serializable, CSVControllerInterface<Pe
     }
 
     public Person prepareCreate() {
-        List<Configuration> configList = new ArrayList();
-
-        for (Person.PersonOptions option : Person.PersonOptions.values()) {
-            configList.add(Constants.getConfigurationByKey(option.name()));
-        }
-
-        selected = new Person(configList);
-
+        selected = new Person();
         initializeEmbeddableKey();
+
         return selected;
     }
 
-    public void prepareEdit() {
-        if (selected != null) {
-
-            // Analizamos las configuraciones que tiene asignadas la persona, por si faltan.
-            if (selected.getConfigurationCollection() == null || selected.getConfigurationCollection().size() < Person.PersonOptions.values().length) {
-                for (Person.PersonOptions option : Person.PersonOptions.values()) {
-                    boolean found = false;
-                    for (PersonConfiguration pc : selected.getConfigurationCollection()) {
-                        if (option.name().equals(pc.getOption().getOptionKey())) {
-                            found = true;
-                            break;
-                        }
-                    }
-
-                    // Si es una opción que no tiene la persona, la añadimos, pero le asignamos 'null' como valor para que el usuario tenga que grabar los datos.
-                    if (!found) {
-                        PersonConfiguration pc = new PersonConfiguration();
-                        pc.setOption(Constants.getConfigurationByKey(option.name()));
-                        pc.setPerson(selected);
-                        pc.setValue(null);
-                        selected.getConfigurationCollection().add(pc);
-                    }
-                }
-                selected.prepareConfigurationCollectionHashMap();
-            }
-        }
+    public Person getPerson(String username, String password) {
+        return (Person) ejbFacade.getEntityManager().createNamedQuery("Person.findByUsernamePassword")
+                .setParameter("username", username)
+                .setParameter("password", password)
+                .getSingleResult();
     }
 
     public void create() {
-        persist(PersistAction.CREATE, ResourceBundle.getBundle("/Bundle").getString("PersonCreated"));
+        HttpServletRequest request = (HttpServletRequest) FacesContext.getCurrentInstance().getExternalContext().getRequest();
+        selected.setIp(request.getParameter("ip"));
+        selected.setCity(request.getParameter("city"));
+        selected.setRegion(request.getParameter("region"));
+        String country = request.getParameter("country");
+        Locale locale = new Locale("", country);
+        selected.setCountry(locale.getDisplayCountry());
+        persist(PersistAction.CREATE, LocaleBean.getBundle().getString("PersonCreated"));
         if (!JsfUtil.isValidationFailed()) {
             items = null;    // Invalidate list of items to trigger re-query.
+        }
+    }
+
+    public String createAndRedirect() {
+        if (selected.hasFitbitCredentials()) {
+            create();
+        } else {
+            // Activamos la bandera para indicar que ha habido un error.
+            FacesContext.getCurrentInstance().validationFailed();
+            JsfUtil.addErrorMessage(LocaleBean.getBundle().getString("Fitbit.error.noCredentials"));
+        }
+        // Si no ha fallado la validación, nos registramos en la aplicación y vamos a la pantalla principal del usuario.
+        if (!JsfUtil.isValidationFailed()) {
+            HttpSession session = (HttpSession) FacesContext.getCurrentInstance().getExternalContext().getSession(true);
+            session.setAttribute("username", selected.getUsername());
+            session.setAttribute("password", selected.getPassword());
+            // JYFR: Para mantener los mensajes en una redirección.
+//        ExternalContext ec = FacesContext.getCurrentInstance().getExternalContext();
+//        ec.getFlash().setKeepMessages(true);
+
+            return "/faces/index.xhtml?faces-redirect=true";
+        } else {
+            return null;
         }
     }
 
@@ -157,56 +216,95 @@ public class PersonController implements Serializable, CSVControllerInterface<Pe
         update(true);
     }
 
+//    public void updateWithImports() {
+//        if (selected.getLocationLogList() == null) {
+//            selected.setLocationLogList(new ArrayList<>());
+//        }
+//
+//        // Sustituimos los coincidentes.
+//        for (int i = selected.getLocationLogList().size() - 1; i >= 0; i--) {
+//            LocationLog existingLocationLog = selected.getLocationLogList().get(i);
+//            // Si tenemos registrado el mismo archivo, lo eliminamos.
+//            LocationLog importedLocationLog = importedLocationLogs.get(existingLocationLog.getFilename());
+//            if (importedLocationLog != null) {
+//                selected.getLocationLogList().remove(i);
+//            }
+//        }
+//        // FIXME: Solucionar UniqueConstrain
+//
+////        List<LocationLog> locationLogList = selected.getLocationLogList();
+////        selected.setLocationLogList(null);
+//
+////        update(false);
+//        // Añadimos los no coincidentes y los que se sustituyen.
+////        locationLogList.addAll(importedLocationLogs.values());
+//        selected.getLocationLogList().addAll(importedLocationLogs.values());
+//        // Actualizamos el listado con las nuevas importaciones.
+////        selected.setLocationLogList(locationLogList);
+//        update(true);
+//        // Vaciamos el contenedor de los archivos importados.
+//        this.importedLocationLogs.clear();
+//    }
+//
+//    public boolean hasImportedLocationLogs() {
+//        return !this.importedLocationLogs.isEmpty();
+//    }
     public void update(boolean showMessage) {
         String message = null;
         if (showMessage) {
-            message = ResourceBundle.getBundle("/Bundle").getString("PersonUpdated");
+            message = LocaleBean.getBundle().getString("PersonUpdated");
         }
         persist(PersistAction.UPDATE, message);
     }
 
     public void destroy() {
-        persist(PersistAction.DELETE, ResourceBundle.getBundle("/Bundle").getString("PersonDeleted"));
+        persist(PersistAction.DELETE, LocaleBean.getBundle().getString("PersonDeleted"));
         if (!JsfUtil.isValidationFailed()) {
             selected = null; // Remove selection
             items = null;    // Invalidate list of items to trigger re-query.
         }
     }
 
-    @Override
     public List<Person> getItems() {
 
-        // TODO: Nuevo registro autorizando por Fitbit
-        // TODO: Reubicar.
-        FacesContext ctx = FacesContext.getCurrentInstance();
-        HttpServletRequest request = (HttpServletRequest) ctx.getExternalContext().getRequest();
-
-        String tempTokenReceived = request.getParameter(HermesFitbitController.OAUTH_TOKEN);
-        String tempTokenVerifier = request.getParameter(HermesFitbitController.OAUTH_VERIFIER);
-
-        if (tempTokenReceived != null && tempTokenVerifier != null) {
-            if (completeAuthorization(tempTokenReceived, tempTokenVerifier)) {
-                // Invocamos el formulario de edición de usuario, para que el usuario pueda corregir sus datos.
-                RequestContext.getCurrentInstance().execute("PF('PersonEditDialog').show()");
-            }
-        }
-
         if (items == null) {
-            LoginBean loginBean = (LoginBean) request.getSession().getAttribute("userLogin");
+            HttpServletRequest request = (HttpServletRequest) FacesContext.getCurrentInstance().getExternalContext().getRequest();
+            LoginController loginBean = (LoginController) request.getSession().getAttribute("loginController");
 
-            if (loginBean.getUser().isAdmin() || loginBean.getUser().isDoctor()) {
+            if (loginBean.getPerson().isAdmin() || loginBean.getPerson().isDoctor()) {
                 items = getFacade().findAll();
                 // Procesamos todos los elementos para añadirle las opciones de configuración.
 
             } else {
                 items = new ArrayList<>();
-                items.add(loginBean.getUser());
+                items.add(loginBean.getPerson());
             }
             // Mostramos el mensaje de ayuda si es la primera vez que accede (que será si no existe la cookie)
-            JsfUtil.showHelpMessage("initialMessagePersonList", ResourceBundle.getBundle("/Bundle").getString("ContextMenuInfo"));
+            JsfUtil.showHelpMessage("initialMessagePersonList", LocaleBean.getBundle().getString("ContextMenuInfo"));
         }
 
         return items;
+    }
+
+    public void checkFitbitReturnCode() {
+        // Obtenemos los datos del usuario registrado.
+        HttpServletRequest request = (HttpServletRequest) FacesContext.getCurrentInstance().getExternalContext().getRequest();
+        LoginController loginBean = (LoginController) request.getSession().getAttribute("loginController");
+        // Asignamos la persona asociada al usuario.
+        selected = loginBean != null ? loginBean.getPerson() : null;
+
+        if (selected != null) {
+            // Comprobamos si llega información de Fitbit.
+            String code = request.getParameter(HermesFitbitControllerOauth2.OAUTH2_CODE);
+            if (code != null) {
+                if (lastCode == null || !lastCode.equals(code)) {
+                    if (completeAuthorization(code)) {
+                        update(false);
+                        lastCode = code;
+                    }
+                }
+            }
+        }
     }
 
     private void persist(PersistAction persistAction, String successMessage) {
@@ -214,6 +312,8 @@ public class PersonController implements Serializable, CSVControllerInterface<Pe
             setEmbeddableKeys();
             try {
                 if (persistAction != PersistAction.DELETE) {
+                    // Cuando vayamos a guardar los datos de la persona, calculamos el SHA del e-mail.
+                    selected.setSha(new String(Hex.encodeHex(DigestUtils.sha256(selected.getEmail()))));
                     getFacade().edit(selected);
                 } else {
                     getFacade().remove(selected);
@@ -225,37 +325,19 @@ public class PersonController implements Serializable, CSVControllerInterface<Pe
             } catch (EJBException ex) {
                 // Activamos la bandera para indicar que ha habido un error.
                 FacesContext.getCurrentInstance().validationFailed();
-                String msg = "";
-                Throwable cause = ex.getCause();
-                if (cause != null) {
-                    msg = cause.getLocalizedMessage();
-                }
-                if (msg.length() > 0) {
-                    // Mostramos un mensaje informativo para que revise el formulario.
-                    JsfUtil.addErrorMessage(msg, ResourceBundle.getBundle("/Bundle").getString("CheckData"));
-                } else {
-                    JsfUtil.addErrorMessage(ex, ResourceBundle.getBundle("/Bundle").getString("PersistenceErrorOccured"));
-                }
+                JsfUtil.showDetailedExceptionCauseMessage(ex);
             } catch (Exception ex) {
                 FacesContext.getCurrentInstance().validationFailed();
                 log.log(Level.SEVERE, "persist() - Error al registrar los cambios", ex);
                 // TODO: Usar esta forma para mostrar los mensajes!
                 // TODO: Incluso poner el 'bundle' en JsfUtil y enviar sólo la key.
-                JsfUtil.addErrorMessage(ex, ResourceBundle.getBundle("/Bundle").getString("PersistenceErrorOccured"));
+                JsfUtil.addErrorMessage(ex, LocaleBean.getBundle().getString("PersistenceErrorOccured"));
             }
         }
     }
 
     public Person getPerson(java.lang.Integer id) {
         return getFacade().find(id);
-    }
-
-    public List<Person> getItemsAvailableSelectMany() {
-        return getFacade().findAll();
-    }
-
-    public List<Person> getItemsAvailableSelectOne() {
-        return getFacade().findAll();
     }
 
     public Date getStartDate() {
@@ -270,123 +352,183 @@ public class PersonController implements Serializable, CSVControllerInterface<Pe
         return endDate;
     }
 
+    public Date getFitbitEndDate() {
+        return fitbitEndDate;
+    }
+
     public void setEndDate(Date endDate) {
         this.endDate = endDate;
     }
 
     public void initSynchronizationDates() {
         if (selected != null) {
+            initFitbitController(selected);
+            initEndSyncDate();
+            initStartSyncDate();
+        }
+    }
+
+    public void openSynchronizationDialog() {
+        initSynchronizationDates();
+        if (!FacesContext.getCurrentInstance().isValidationFailed()) {
+            RequestContext.getCurrentInstance().execute("PF('PersonSynchronizeDialog').show()");
+        }
+    }
+
+    public void openSynchronizationDialog(Person person) {
+        selected = person;
+        openSynchronizationDialog();
+    }
+
+    public void checkEmail() {
+        if (!Util.validateEmail(selected.getEmail())) {
+            log.log(Level.SEVERE, "checkEmail() - El email de la persona no es válido: {0}", selected.getEmail());
+            FacesContext.getCurrentInstance().validationFailed();
+            JsfUtil.addErrorMessage(LocaleBean.getBundle().getString("CheckEmail"));
+            RequestContext.getCurrentInstance().execute("PF('PersonEditDialog').show()");
+        } else {
             try {
-                initFitbitController();
-                startDate = getStartSyncDate();
-                endDate = getEndSyncDate();
-            } catch (HermesException ex) {
-                FacesContext.getCurrentInstance().validationFailed();
-                log.log(Level.SEVERE, "initSynchronizationDates() - Error al obtener el rango de fechas de sincronización", ex);
-                FacesContext.getCurrentInstance().addMessage("messages", new FacesMessage(FacesMessage.SEVERITY_ERROR, ResourceBundle.getBundle("/Bundle").getString("Error"), ex.getMessage()));
+                ExternalContext ec = FacesContext.getCurrentInstance().getExternalContext();
+                ec.redirect(ec.getRequestContextPath() + "/faces/secured/alert/List.xhtml");
+            } catch (IOException ex) {
+                log.log(Level.SEVERE, "checkEmail() - Error al redirigir al listado de alertas", ex);
             }
         }
     }
 
-    public Date getStartSyncDate() {
+    public void checkEmail(Person person) {
+        selected = person;
+        checkEmail();
+    }
+
+    private void initStartSyncDate() {
         // La fecha de inicio de sincronización será la más antigua entre la última registrada para la persona
         // y la última sincronización de la pulsera de Fitbit.
         // Si la persona no tuviera ninguna sincronización, tomamos como fecha de partida el primer día del año actual.
-        Date personLastSynchronization = selected.getLastSynchronization();
-        Date lastFitbitSynchronization = getEndSyncDate();
+        Date personLastSynchronization = selected.getLastFitbitSynchronization();
+        Date lastFitbitSynchronization = endDate;
         if (personLastSynchronization == null) {
             Calendar firstDayOfYear = Calendar.getInstance();
             firstDayOfYear.set(Calendar.MONTH, 0);
             firstDayOfYear.set(Calendar.DAY_OF_MONTH, 1);
             personLastSynchronization = firstDayOfYear.getTime();
         }
-        return personLastSynchronization.before(lastFitbitSynchronization) ? personLastSynchronization : lastFitbitSynchronization;
+
+        startDate = personLastSynchronization.before(lastFitbitSynchronization) ? personLastSynchronization : lastFitbitSynchronization;
     }
 
-    public Date getEndSyncDate() {
-        Date endSyncDate = new Date();
+    private void initEndSyncDate() {
+        endDate = new Date();
+        fitbitEndDate = new Date();
 
         try {
             if (hermesFitbitController != null) {
                 // La sincronización se hará hasta el último día de sincronización de la pulsera de Fitbit.
-                endSyncDate = hermesFitbitController.getLastSyncDate();
+                endDate = hermesFitbitController.getLastSyncDate();
+                fitbitEndDate = endDate;
             }
+        } catch (HermesFitbitException ex) {
+            log.log(Level.SEVERE, "getEndSyncDate() - Error al autorizar la petición a Fitbit");
+            FacesContext.getCurrentInstance().validationFailed();
+            redirectToFitbit();
         } catch (HermesException ex) {
-            log.log(Level.SEVERE, "getEndSyncDate() - Error al obtener la fecha de fin de sincronización", ex);
-            FacesContext.getCurrentInstance().addMessage("messages", new FacesMessage(FacesMessage.SEVERITY_ERROR, ResourceBundle.getBundle("/Bundle").getString("Info"), ex.getMessage()));
+            log.log(Level.SEVERE, "getEndSyncDate() - Error al obtener la fecha de fin de sincronización");
+            FacesContext.getCurrentInstance().validationFailed();
+            FacesContext.getCurrentInstance().addMessage("messages", new FacesMessage(FacesMessage.SEVERITY_ERROR, ex.getMessage(), LocaleBean.getBundle().getString("PleaseTryAgainLater")));
+            // Para que se mantenga el mensaje.
+            FacesContext.getCurrentInstance().getExternalContext().getFlash().setKeepMessages(true);
         }
-
-        return endSyncDate;
     }
 
-    private void initFitbitController() throws HermesException {
-        if (selected != null) {
-            if (selected.hasFitbitCredentials()) {
-                hermesFitbitController = new HermesFitbitController(selected);
-            } else {
-                throw new HermesException("Fitbit.info.PersonWithoutCredentials");
-            }
-        } else {
-            FacesContext.getCurrentInstance().addMessage("messages", new FacesMessage(FacesMessage.SEVERITY_INFO, ResourceBundle.getBundle("/Bundle").getString("Info"), ResourceBundle.getBundle("/Bundle").getString("ListPersonNotSelected")));
+    private void redirectToFitbit() {
+        log.log(Level.INFO, "redirectToFitbit() - Redirigir a la página de autorización de Fitbit");
+
+        FacesContext.getCurrentInstance().validationFailed();
+        authorize("");
+        ExternalContext ec = FacesContext.getCurrentInstance().getExternalContext();
+        try {
+            ec.redirect(getAuthorizeUrlAndReset());
+        } catch (IOException e) {
+            log.log(Level.SEVERE, "redirectToFitbit() - Error al redirigir a la página de autorización de Fitbit");
         }
+    }
+
+    private void initFitbitController(Person person) {
+        hermesFitbitController = new HermesFitbitControllerOauth2(this);
     }
 
     public void authorize(String nextPage) {
         try {
-            initFitbitController();
+            initFitbitController(selected);
             authorizeUrl = hermesFitbitController.getAuthorizeURL((HttpServletRequest) FacesContext.getCurrentInstance().getExternalContext().getRequest(), nextPage);
         } catch (HermesException ex) {
-            FacesContext.getCurrentInstance().addMessage("messages", new FacesMessage(FacesMessage.SEVERITY_ERROR, ResourceBundle.getBundle("/Bundle").getString("Error"), ex.getMessage()));
+            log.log(Level.SEVERE, "authorize() - Error al autorizar a la persona {0}", selected.getFullName());
+            FacesContext.getCurrentInstance().addMessage("messages", new FacesMessage(FacesMessage.SEVERITY_ERROR, ex.getMessage(), LocaleBean.getBundle().getString("PleaseTryAgainLater")));
         }
+    }
+
+    public void authorize(Person person, String nextPage) {
+        selected = person;
+        authorize(nextPage);
     }
 
     public void prepareRegister() {
-        hermesFitbitController = new HermesFitbitController(prepareCreate());
-        authorize("/faces/register.xhtml");
-    }
-
-    public String register() {
-        FacesContext ctx = FacesContext.getCurrentInstance();
-        Map<String, String> requestMap = ctx.getExternalContext().getRequestParameterMap();
-
-        String tempTokenReceived = requestMap.get(HermesFitbitController.OAUTH_TOKEN);
-        String tempTokenVerifier = requestMap.get(HermesFitbitController.OAUTH_VERIFIER);
-
-        if (tempTokenReceived != null && tempTokenVerifier != null) {
-            if (completeAuthorization(tempTokenReceived, tempTokenVerifier)) {
-                return "/faces/index.xhtml";
-            }
+        prepareCreate();
+        if (selected != null) {
+            initFitbitController(selected);
+            authorize("/reg");
         } else {
-            log.log(Level.SEVERE, "register() - Error al completar el registro porque los tokens son nulos.\noauth_token = {0}\noauth_verifier = {1}", new Object[]{tempTokenReceived, tempTokenVerifier});
-            FacesContext.getCurrentInstance().addMessage("messages", new FacesMessage(FacesMessage.SEVERITY_ERROR, ResourceBundle.getBundle("/Bundle").getString("Error"), ResourceBundle.getBundle("/Bundle").getString("Fitbit.error.invalidTokens")));
+            log.log(Level.SEVERE, "prepareRegister() - Error al preparar el registro de la persona {0}", selected.getFullName());
+            FacesContext.getCurrentInstance().addMessage("messages", new FacesMessage(FacesMessage.SEVERITY_ERROR, LocaleBean.getBundle().getString("Error"), LocaleBean.getBundle().getString("Fitbit.error.noCredentials")));
         }
-        /*
-         ExternalContext ec = FacesContext.getCurrentInstance().getExternalContext();
-         ec.redirect(((HttpServletRequest) ec.getRequest()).getRequestURI());
-         */
-        // Para mantener los mensajes en una redirección.
-        ExternalContext ec = FacesContext.getCurrentInstance().getExternalContext();
-        ec.getFlash().setKeepMessages(true);
-        return "/faces/register?faces-redirect=true";
     }
 
-    private boolean completeAuthorization(String tempTokenReceived, String tempTokenVerifier) {
-        try {
-            hermesFitbitController.completeAuthorization(tempTokenReceived, tempTokenVerifier);
-            if (hermesFitbitController.isResourceCredentialsSet() && selected != null) {
-                hermesFitbitController.transferUserInfoToPerson(selected);
-                // FIXME
-                // Comprobamos si está rellena la información necesaria y si no, la rellenamos con valores por defecto.
-                fillDefaultPerson();
-                create();
-                //update();
-                // Invocamos el formulario de edición de usuario, para que el usuario pueda corregir sus datos.
-//                RequestContext.getCurrentInstance().execute("PF('PersonEditDialog').show()");
-                return true;
+    public void onWelcomePageLoad() {
+        // JYFR: Controlamos que sólo se ejecute la primera vez que se carga la página de registro y no por un cambio de pestaña de un formulario, por ejemplo.
+        if (!FacesContext.getCurrentInstance().isPostback()) {
+            String configValue = Constants.getConfigurationValueByKey("WelcomeHits");
+            Integer hits = configValue != null ? Integer.parseInt(configValue) : 0;
+            Constants.setConfigurationValueByKey("WelcomeHits", Integer.toString(++hits));
+        }
+    }
+
+    public void onRegisterPageLoad() {
+        // JYFR: Controlamos que sólo se ejecute la primera vez que se carga la página de registro y no por un cambio de pestaña de un formulario, por ejemplo.
+        if (!FacesContext.getCurrentInstance().isPostback()) {
+            String configValue = Constants.getConfigurationValueByKey("RegisterHits");
+            Integer hits = configValue != null ? Integer.parseInt(configValue) : 0;
+            Constants.setConfigurationValueByKey("RegisterHits", Integer.toString(++hits));
+
+            try {
+                if (hermesFitbitController != null) {
+                    FacesContext ctx = FacesContext.getCurrentInstance();
+                    HttpServletRequest request = (HttpServletRequest) ctx.getExternalContext().getRequest();
+                    String code = request.getParameter(HermesFitbitControllerOauth2.OAUTH2_CODE);
+                    hermesFitbitController.completeAuthorization(code);
+                    hermesFitbitController.transferUserInfoToPerson();
+                } else {
+                    log.log(Level.SEVERE, "onRegisterPageLoad() - Error al completar el registro");
+                    FacesContext.getCurrentInstance().addMessage("messages", new FacesMessage(FacesMessage.SEVERITY_ERROR, LocaleBean.getBundle().getString("Fitbit.error.noAuthorization"), LocaleBean.getBundle().getString("PleaseTryAgainLater")));
+                }
+            } catch (HermesException ex) {
+                log.log(Level.SEVERE, "onRegisterPageLoad() - Error al completar el registro");
+                FacesContext.getCurrentInstance().addMessage("messages", new FacesMessage(FacesMessage.SEVERITY_ERROR, ex.getMessage(), LocaleBean.getBundle().getString("PleaseTryAgainLater")));
             }
-        } catch (HermesException ex) {
-            log.log(Level.SEVERE, "register() - Error al completar el registro", ex);
-            FacesContext.getCurrentInstance().addMessage("messages", new FacesMessage(FacesMessage.SEVERITY_ERROR, ResourceBundle.getBundle("/Bundle").getString("Error"), ex.getMessage()));
+        }
+    }
+
+    private boolean completeAuthorization(String code) {
+        if (selected != null) {
+            try {
+                hermesFitbitController.completeAuthorization(code);
+                JsfUtil.addSuccessMessage(LocaleBean.getBundle().getString("Fitbit.info.authorized"), LocaleBean.getBundle().getString("Fitbit.info.canOperate"));
+                // Para que se mantenga el mensaje.
+                FacesContext.getCurrentInstance().getExternalContext().getFlash().setKeepMessages(true);
+                return true;
+            } catch (HermesException ex) {
+                log.log(Level.SEVERE, "completeAuthorization() - Error al completar la autorización");
+                FacesContext.getCurrentInstance().addMessage("messages", new FacesMessage(FacesMessage.SEVERITY_ERROR, ex.getMessage(), LocaleBean.getBundle().getString("PleaseTryAgainLater")));
+            }
         }
 
         return false;
@@ -399,6 +541,7 @@ public class PersonController implements Serializable, CSVControllerInterface<Pe
     public String getAuthorizeUrlAndReset() {
         // La URL de autorización sólo puede ser usada una vez.
         String temp = authorizeUrl;
+        log.log(Level.FINEST, "getAuthorizeUrlAndReset() - URL temporal de registro: {0}", authorizeUrl);
         authorizeUrl = null;
         return temp;
     }
@@ -409,45 +552,21 @@ public class PersonController implements Serializable, CSVControllerInterface<Pe
 
     public void synchronize() {
         try {
-            log.log(Level.INFO, "synchronize() - Sincronización manual con Fitbit de la persona {0}", selected.toString());
-            initFitbitController();
-            log.log(Level.INFO, "synchronize() - Obteniendo datos desde {0} hasta {1}", new Object[]{Constants.dfTime.format(startDate), Constants.dfTime.format(endDate)});
-
-            List<IntradaySummary> listIntradaySummary = hermesFitbitController.getIntradayData(startDate, endDate);
-
-            HashSet<ActivityLog> hashSetActivityLog = new HashSet<>(selected.getActivityLogCollection());
-            for (IntradaySummary intradaySummary : listIntradaySummary) {
-                ActivityLog activityLog = new ActivityLog();
-
-                activityLog.setDate(Constants.dfFitbit.parse(intradaySummary.getSummary().getDateTime()));
-                activityLog.setStepLogCollection(new ArrayList());
-                activityLog.setPerson(selected);
-
-                for (IntradayData intradayData : intradaySummary.getIntradayDataset().getDataset()) {
-                    StepLog stepLog = new StepLog();
-                    stepLog.setActivityLog(activityLog);
-                    stepLog.setTimeLog(Constants.dfTime.parse(intradayData.getTime()));
-                    stepLog.setSteps((int) intradayData.getValue());
-                    activityLog.getStepLogCollection().add(stepLog);
-                }
-                activityLog.calculateTotal();
-                hashSetActivityLog.remove(activityLog);
-                hashSetActivityLog.add(activityLog);
+            hermesFitbitController.synchronize(startDate, endDate);
+            HttpServletRequest request = (HttpServletRequest) FacesContext.getCurrentInstance().getExternalContext().getRequest();
+            LoginController loginBean = (LoginController) request.getSession().getAttribute("loginController");
+            // Comprobamos si el usuario es administrador y si está sincronizando los datos de otra persona a través del listado.
+            if (loginBean.getPerson().isAdmin() && !loginBean.getPerson().equals(selected)) {
+                // Refrescamos el listado de personas.
+                items = null;
+            } else {
+                // Refrescamos el panel principal.
+                RequestContext.getCurrentInstance().update("MainForm");
             }
-            selected.getActivityLogCollection().clear();
-            update(false);
-            selected.getActivityLogCollection().addAll(hashSetActivityLog);
-            update();
         } catch (HermesException ex) {
-            log.log(Level.SEVERE, "synchronize() - Error al sincronizar los datos de Fitbit", ex);
-            FacesContext.getCurrentInstance().addMessage("messages", new FacesMessage(FacesMessage.SEVERITY_ERROR, ResourceBundle.getBundle("/Bundle").getString("Error"), ex.getMessage()));
-        } catch (ParseException ex) {
-            log.log(Level.SEVERE, "synchronize() - Error al sincronizar los datos de Fitbit", ex);
-            FacesContext.getCurrentInstance().addMessage("messages", new FacesMessage(FacesMessage.SEVERITY_ERROR, ResourceBundle.getBundle("/Bundle").getString("Error"), ResourceBundle.getBundle("/Bundle").getString("Fitbit.error.parsingDate")));
+            log.log(Level.SEVERE, "synchronize() - Error al sincronizar los datos de Fitbit de la persona {0}", selected.getFullName());
+            FacesContext.getCurrentInstance().addMessage("messages", new FacesMessage(FacesMessage.SEVERITY_ERROR, ex.getMessage(), LocaleBean.getBundle().getString("PleaseTryAgainLater")));
         }
-
-        selected = null;
-        items = null;
     }
 
     public void validate() {
@@ -460,41 +579,43 @@ public class PersonController implements Serializable, CSVControllerInterface<Pe
         }
     }
 
-    private void fillDefaultPerson() {
-        if (this.selected == null) {
-            prepareCreate();
-        }
-        // Rellenamos los campos obligatorios con valores por defecto, en caso de que no vengan rellenos.
-        if (this.selected.getFirstName() == null) {
-            this.selected.setFirstName(ResourceBundle.getBundle("/Bundle").getString("Default"));
-        }
-
-        if (this.selected.getSurname1() == null) {
-            this.selected.setSurname1(ResourceBundle.getBundle("/Bundle").getString("Default"));
-        }
-
-        if (this.selected.getSurname2() == null) {
-            this.selected.setSurname2(ResourceBundle.getBundle("/Bundle").getString("Default"));
-        }
-    }
-
     public void sendToZtreamy() {
         FacesMessage message;
 
         try {
-            ActivityLogHermesZtreamyFacade ztreamy = new ActivityLogHermesZtreamyFacade(this.getSelected().getActivityLogCollection(startDate, endDate, aggregation));
+            // Los parámetros de configuración de Ztreamy estarán en la tabla de configuración.
+            String url = Constants.getConfigurationValueByKey("ZtreamyStepsApplicationId");
+            List<ActivityLog> activityLogList = this.getSelected().getActivityLogList(startDate, endDate, aggregation);
+            ActivityLogHermesZtreamyFacade activityLogZtreamy = new ActivityLogHermesZtreamyFacade(activityLogList, this.getSelected(), url);
+            List<SleepLog> sleepLogList = this.getSelected().getSleepLogList(startDate, endDate);
+            SleepLogHermesZtreamyFacade sleepLogZtreamy = new SleepLogHermesZtreamyFacade(sleepLogList, this.getSelected(), url);
+            List<HealthLog> healthLogList = this.getSelected().getHealthLogList(startDate, endDate, aggregation);
+            HealthLogHermesZtreamyFacade healthLogZtreamy = new HealthLogHermesZtreamyFacade(healthLogList, this.getSelected(), url);
 
-            if (ztreamy.send()) {
-                message = new FacesMessage(FacesMessage.SEVERITY_INFO, ResourceBundle.getBundle("/Bundle").getString("Ztreamy"), ResourceBundle.getBundle("/Bundle").getString("ZtreamySendOK"));
+            if (activityLogZtreamy.send() && sleepLogZtreamy.send() && healthLogZtreamy.send()) {
+                for (ActivityLog activityLog : activityLogList) {
+                    activityLog.setSendDate(new Date());
+                }
+                for (SleepLog sleepLog : sleepLogList) {
+                    sleepLog.setSendDate(new Date());
+                }
+                for (HealthLog healthLog : healthLogList) {
+                    healthLog.setSendDate(new Date());
+                }
+                update(false);
+                message = new FacesMessage(FacesMessage.SEVERITY_INFO, LocaleBean.getBundle().getString("Ztreamy"), LocaleBean.getBundle().getString("ZtreamySendOK"));
             } else {
-                message = new FacesMessage(FacesMessage.SEVERITY_ERROR, ResourceBundle.getBundle("/Bundle").getString("Error"), ResourceBundle.getBundle("/Bundle").getString("Ztreamy.error"));
+                message = new FacesMessage(FacesMessage.SEVERITY_ERROR, LocaleBean.getBundle().getString("Error"), LocaleBean.getBundle().getString("Ztreamy.error"));
             }
         } catch (MalformedURLException ex) {
-            message = new FacesMessage(FacesMessage.SEVERITY_ERROR, ResourceBundle.getBundle("/Bundle").getString("Error"), ResourceBundle.getBundle("/Bundle").getString("Ztreamy.error.Url"));
+            message = new FacesMessage(FacesMessage.SEVERITY_ERROR, LocaleBean.getBundle().getString("Error"), LocaleBean.getBundle().getString("Ztreamy.error.Url"));
             log.log(Level.SEVERE, "sendToZtreamy() - Error en la URL", ex);
         } catch (IOException ex) {
-            message = new FacesMessage(FacesMessage.SEVERITY_ERROR, ResourceBundle.getBundle("/Bundle").getString("Error"), ResourceBundle.getBundle("/Bundle").getString("Ztreamy.error"));
+            message = new FacesMessage(FacesMessage.SEVERITY_ERROR, LocaleBean.getBundle().getString("Error"), LocaleBean.getBundle().getString("Ztreamy.error"));
             log.log(Level.SEVERE, "sendToZtreamy() - Error de I/O", ex);
+        } catch (HermesException ex) {
+            message = new FacesMessage(FacesMessage.SEVERITY_ERROR, LocaleBean.getBundle().getString("Error"), ex.getMessage());
+            log.log(Level.SEVERE, "sendToZtreamy() - Error al enviar");
         }
 
         FacesContext.getCurrentInstance().addMessage("messages", message);
@@ -514,7 +635,8 @@ public class PersonController implements Serializable, CSVControllerInterface<Pe
 
     public void initChartDates() {
         if (selected != null) {
-            LocalDate start = new LocalDate();
+            // Situaremos el gráfico en los últimos datos sincronizados del usuario.
+            LocalDate start = new LocalDate(selected.getLastFitbitSynchronization());
             start = start.dayOfMonth().withMinimumValue();
             startDate = start.toDate();
             LocalDate end = new LocalDate(start);
@@ -523,7 +645,11 @@ public class PersonController implements Serializable, CSVControllerInterface<Pe
         }
     }
 
-    public LineChartModel getLineChartModel() {
+    public LineChartModel getStepsLogLineChartModel() {
+        return stepsLogLineChartModel;
+    }
+
+    private void initStepsLogLineChartModel() {
         if (selected != null) {
             // Para el gráfico de actividad de la persona daremos los siguientes parámetros:
             // - Fecha de inicio...: Primer día del mes actual
@@ -538,41 +664,295 @@ public class PersonController implements Serializable, CSVControllerInterface<Pe
                 cal.set(Calendar.DATE, cal.getActualMaximum(Calendar.DATE));
                 endDate = cal.getTime();
             }
-            LocalDate start = new LocalDate(startDate);
-            LocalDate end = new LocalDate(endDate);
-            int days = Days.daysBetween(start, end).getDays();
 
-            chartMonthActivityLogList = selected.getActivityLogCollection(startDate, endDate, Constants.TimeAggregations.Days.toString());
+            chartMonthActivityLogList = selected.getActivityLogList(startDate, endDate, Constants.TimeAggregations.Days.toString());
 
             LinkedHashMap<Date, Integer> values = new LinkedHashMap();
-            if (chartMonthActivityLogList != null && chartMonthActivityLogList.size() > 0) {
+            if (chartMonthActivityLogList != null && !chartMonthActivityLogList.isEmpty()) {
                 for (ActivityLog activityLog : chartMonthActivityLogList) {
-                    values.put(activityLog.getDate(), activityLog.getTotal());
+                    values.put(activityLog.getDateLog(), activityLog.getTotal());
                 }
             }
 
-            if (values.size() < days) {
-                LocalDate tempDate;
+            LinkedHashMap<Date, Integer> filledValues = (LinkedHashMap<Date, Integer>) fillEmptyDays(values);
 
-                if (values.isEmpty()) {
-                    tempDate = new LocalDate(start.plusDays(-1));
+            stepsLogLineChartModel = new LineChartModel();
+            LineChartSeries series = new LineChartSeries();
+
+            // Rellenamos la serie con las fechas y los totales de pasos.
+            for (Date key : filledValues.keySet()) {
+                series.set(key.getTime(), filledValues.get(key) != null ? filledValues.get(key) : 0);
+            }
+
+            // Indicamos el texto de la leyenda.
+            series.setLabel(LocaleBean.getBundle().getString("Steps"));
+
+            stepsLogLineChartModel.setTitle(Constants.df.format(startDate) + " - " + Constants.df.format(endDate));
+            stepsLogLineChartModel.setLegendPosition("ne");
+            stepsLogLineChartModel.setShowPointLabels(true);
+            stepsLogLineChartModel.setShowDatatip(true);
+            stepsLogLineChartModel.setMouseoverHighlight(true);
+            stepsLogLineChartModel.setDatatipFormat("%1$s -> %2$d");
+            stepsLogLineChartModel.setSeriesColors("2DC800");
+            stepsLogLineChartModel.setAnimate(true);
+            stepsLogLineChartModel.setZoom(true);
+
+            DateAxis xAxis = new DateAxis(LocaleBean.getBundle().getString("Days"));
+            xAxis.setTickAngle(-45);
+            xAxis.setTickFormat("%d/%m/%Y");
+            stepsLogLineChartModel.getAxes().put(AxisType.X, xAxis);
+
+            Axis yAxis = stepsLogLineChartModel.getAxis(AxisType.Y);
+            yAxis.setLabel(LocaleBean.getBundle().getString("Steps"));
+            yAxis.setMin(0);
+
+            if (!series.getData().isEmpty()) {
+                stepsLogLineChartModel.addSeries(series);
+            }
+        }
+    }
+
+    private void initSleepLogChartModel() {
+        if (selected != null) {
+            // Para el gráfico de sueño de la persona daremos los siguientes parámetros:
+            // - Fecha de inicio...: Primer día del mes actual
+            // - Fecha de fin......: Último día del mes actual
+            // - Agregación........: Por días
+            if (startDate == null && endDate == null) {
+                Calendar cal = Calendar.getInstance();
+
+                cal.set(Calendar.DATE, cal.getActualMinimum(Calendar.DATE));
+                startDate = cal.getTime();
+
+                cal.set(Calendar.DATE, cal.getActualMaximum(Calendar.DATE));
+                endDate = cal.getTime();
+            }
+
+            List<SleepLog> sleepLogList = selected.getSleepLogList(startDate, endDate);
+
+            LinkedHashMap<Date, SleepLog> values = new LinkedHashMap();
+            if (sleepLogList != null && !sleepLogList.isEmpty()) {
+                for (SleepLog sleepLog : sleepLogList) {
+                    values.put(sleepLog.getDateLog(), sleepLog);
+                }
+            }
+
+            LinkedHashMap<Date, SleepLog> filledValues = (LinkedHashMap<Date, SleepLog>) fillEmptyDays(values);
+            sleepLogBarChartModel = new BarChartModel();
+
+            BarChartSeries hoursAsleepSeries = new BarChartSeries();
+            BarChartSeries hoursInBedSeries = new BarChartSeries();
+            BarChartSeries awakeningsSeries = new BarChartSeries();
+
+            ChartSeries startHourSeries = new ChartSeries();
+            ChartSeries startMinuteSeries = new ChartSeries();
+            ChartSeries endHourSeries = new ChartSeries();
+            ChartSeries endMinuteSeries = new ChartSeries();
+            // Rellenamos la serie con las fechas y los datos de sueño.
+            for (Date key : filledValues.keySet()) {
+                SleepLog value = filledValues.get(key);
+                String onlyDate = Constants.df.format(key);
+                if (value != null) {
+                    hoursAsleepSeries.set(onlyDate, value.getMinutesAsleep() / 60.0f);
+                    hoursInBedSeries.set(onlyDate, value.getMinutesInBed() / 60.0f);
+                    awakeningsSeries.set(onlyDate, (float) value.getAwakenings());
+                    LocalTime lts = new LocalTime(value.getStartTime());
+                    startHourSeries.set(onlyDate, lts.getHourOfDay());
+                    startMinuteSeries.set(onlyDate, lts.getMinuteOfHour());
+                    LocalTime lte = new LocalTime(value.getEndTime());
+                    endHourSeries.set(onlyDate, lte.getHourOfDay());
+                    endMinuteSeries.set(onlyDate, lte.getMinuteOfHour());
                 } else {
-                    tempDate = new LocalDate(values.keySet().iterator().next());
-                }
-
-                int total = days - values.size();
-
-                // No hay datos para todo el rango indicado. Para evitar que no se pueda representar, añadimos datos con 0 en los restantes.
-                for (int i = 0; i <= total; i++) {
-                    tempDate = tempDate.plusDays(1);
-                    values.put(tempDate.toDate(), 0);
+                    hoursAsleepSeries.set(onlyDate, 0.0f);
+                    hoursInBedSeries.set(onlyDate, 0.0f);
+                    awakeningsSeries.set(onlyDate, 0.0f);
+                    startHourSeries.set(onlyDate, 0);
+                    startMinuteSeries.set(onlyDate, 0);
+                    endHourSeries.set(onlyDate, 0);
+                    endMinuteSeries.set(onlyDate, 0);
                 }
             }
 
-            return selected.getLineModel(values, Constants.df.format(startDate) + " - " + Constants.df.format(endDate));
+            // Indicamos el texto de la leyenda.
+            hoursAsleepSeries.setLabel(LocaleBean.getBundle().getString("HoursAsleep"));
+            hoursInBedSeries.setLabel(LocaleBean.getBundle().getString("HoursInBed"));
+            awakeningsSeries.setLabel(LocaleBean.getBundle().getString("Awakenings"));
+
+            sleepLogBarChartModel.setTitle(Constants.df.format(startDate) + " - " + Constants.df.format(endDate));
+            sleepLogBarChartModel.setLegendPosition("ne");
+            sleepLogBarChartModel.setShowPointLabels(true);
+            sleepLogBarChartModel.setShowDatatip(true);
+            sleepLogBarChartModel.setMouseoverHighlight(true);
+//        model.setDatatipFormat("%1$s -> %2$d");
+//        model.setSeriesColors("FFB347, B19CD9, 77DD77, FF6961");
+//        model.setDatatipFormat("%2$#.1f");
+            sleepLogBarChartModel.setSeriesColors("DDF9D9, FFE5BC, F6CDE6");
+            sleepLogBarChartModel.setAnimate(true);
+            sleepLogBarChartModel.setShadow(false);
+            sleepLogBarChartModel.setZoom(false);
+            sleepLogBarChartModel.setLegendRows(1);
+            sleepLogBarChartModel.setLegendCols(3);
+
+            // Eje de abscisas.
+            CategoryAxis xAxis = new CategoryAxis(LocaleBean.getBundle().getString("Days"));
+            xAxis.setTickAngle(90);
+            xAxis.setTickFormat("%d/%m/%Y");
+            sleepLogBarChartModel.getAxes().put(AxisType.X, xAxis);
+
+            Axis yAxis = sleepLogBarChartModel.getAxis(AxisType.Y);
+            yAxis.setMin(0.0f);
+
+            // FIXME: Arreglar, si interesa, cuando se corrija el bug de Primefaces que hace que no se pueda usar
+            // DateAxis en un BarChart. La ventaja de poder usar DateAxis es que se podría hacer zoom en el gráfico.
+//        DateAxis xAxis = new DateAxis(LocaleBean.getBundle().getString("Days"));
+//        xAxis.setMin(Constants.dfFitbit.format(minimumDate));
+//        xAxis.setMax(Constants.dfFitbit.format(maximumDate));
+//        xAxis.setTickAngle(90);
+//        xAxis.setTickFormat("%d/%m/%Y");
+//        model.getAxes().put(AxisType.X, xAxis);
+            if (!hoursAsleepSeries.getData().isEmpty()) {
+                sleepLogBarChartModel.addSeries(hoursAsleepSeries);
+            }
+            if (!hoursInBedSeries.getData().isEmpty()) {
+                sleepLogBarChartModel.addSeries(hoursInBedSeries);
+            }
+            if (!awakeningsSeries.getData().isEmpty()) {
+                sleepLogBarChartModel.addSeries(awakeningsSeries);
+            }
+            if (!startHourSeries.getData().isEmpty()) {
+                sleepLogBarChartModel.addSeries(startHourSeries);
+            }
+            if (!startMinuteSeries.getData().isEmpty()) {
+                sleepLogBarChartModel.addSeries(startMinuteSeries);
+            }
+            if (!endHourSeries.getData().isEmpty()) {
+                sleepLogBarChartModel.addSeries(endHourSeries);
+            }
+            if (!endMinuteSeries.getData().isEmpty()) {
+                sleepLogBarChartModel.addSeries(endMinuteSeries);
+            }
+
+            // JYFR: Extensión para gráficos. Así podemos cambiar más características. Ver las opciones en la web de 'jqPlot'.
+            sleepLogBarChartModel.setExtender("customSleepMonthChartExtender");
+        }
+    }
+
+    public BarChartModel getSleepLogBarChartModel() {
+        return sleepLogBarChartModel;
+    }
+
+    private LineChartModel getHeartRateLineModel(LinkedHashMap<Date, Integer> values, String title) {
+        LineChartModel model = new LineChartModel();
+        LineChartSeries series = new LineChartSeries();
+
+        // Rellenamos la serie con las fechas y los ritmos cardíacos medios.
+        for (Date key : values.keySet()) {
+            series.set(key.getTime(), values.get(key) != null ? values.get(key) : 0);
+        }
+
+        // Indicamos el texto de la leyenda.
+        series.setLabel(LocaleBean.getBundle().getString("HeartRate"));
+
+        model.setTitle(title);
+        model.setLegendPosition("ne");
+        model.setShowPointLabels(true);
+        model.setShowDatatip(true);
+        model.setMouseoverHighlight(true);
+        model.setDatatipFormat("%1$s -> %2$d");
+        model.setSeriesColors("FF392E");
+        model.setAnimate(true);
+        model.setZoom(true);
+
+        DateAxis xAxis = new DateAxis(LocaleBean.getBundle().getString("Days"));
+        xAxis.setTickAngle(-45);
+        xAxis.setTickFormat("%d/%m/%Y");
+        model.getAxes().put(AxisType.X, xAxis);
+
+        Axis yAxis = model.getAxis(AxisType.Y);
+        yAxis.setLabel(LocaleBean.getBundle().getString("AverageHeartRate"));
+        yAxis.setMin(0);
+
+        if (!series.getData().isEmpty()) {
+            model.addSeries(series);
+        }
+
+        return model;
+    }
+
+    private void initHeartRateChartModel() {
+        if (selected != null) {
+            // Para el gráfico de ritmo cardíaco de la persona daremos los siguientes parámetros:
+            // - Fecha de inicio...: Primer día del mes actual
+            // - Fecha de fin......: Último día del mes actual
+            // - Agregación........: Por días
+            if (startDate == null && endDate == null) {
+                Calendar cal = Calendar.getInstance();
+
+                cal.set(Calendar.DATE, cal.getActualMinimum(Calendar.DATE));
+                startDate = cal.getTime();
+
+                cal.set(Calendar.DATE, cal.getActualMaximum(Calendar.DATE));
+                endDate = cal.getTime();
+            }
+
+            chartMonthHealthLogList = selected.getHealthLogList(startDate, endDate, Constants.TimeAggregations.Days.toString());
+
+            LinkedHashMap<Date, Integer> values = new LinkedHashMap();
+            if (chartMonthHealthLogList != null && !chartMonthHealthLogList.isEmpty()) {
+                for (HealthLog healthLog : chartMonthHealthLogList) {
+                    values.put(healthLog.getDateLog(), healthLog.getAverage());
+                }
+            }
+
+            heartLogLineChartModel = getHeartRateLineModel((LinkedHashMap<Date, Integer>) fillEmptyDays(values), Constants.df.format(startDate) + " - " + Constants.df.format(endDate));
+        }
+    }
+
+    public LineChartModel getHeartLogLineChartModel() {
+        return heartLogLineChartModel;
+    }
+
+    public LineChartModel getHeartRateDayChartModel() {
+        if (selectedHealthLog != null) {
+
+            LinkedHashMap<Date, Integer> values = new LinkedHashMap();
+            if (selectedHealthLog.getHeartLogList() != null && !selectedHealthLog.getHeartLogList().isEmpty()) {
+                for (HeartLog heartLog : selectedHealthLog.getHeartLogList()) {
+                    values.put(heartLog.getTimeLog(), heartLog.getRate());
+                }
+            }
+
+            return getHeartRateLineModel(values, Constants.df.format(selectedHealthLog.getDateLog()));
         }
 
         return null;
+    }
+
+    private LinkedHashMap<Date, ?> fillEmptyDays(LinkedHashMap<Date, ?> values) {
+        LocalDate start = new LocalDate(startDate);
+        LocalDate end = new LocalDate(endDate);
+        int days = Days.daysBetween(start, end).getDays();
+
+        if (values.size() < days) {
+            LocalDate tempDate = new LocalDate(startDate);
+
+            for (int i = 0; i <= days; i++) {
+                if (values.get(tempDate.toDate()) == null) {
+                    values.put(tempDate.toDate(), null);
+                }
+                tempDate = tempDate.plusDays(1);
+            }
+        }
+
+        TreeMap<Date, ?> treeMap = new TreeMap<>(values);
+
+        LinkedHashMap tempLinkedHashMap = new LinkedHashMap<>();
+
+        for (Map.Entry<Date, ?> entry : treeMap.entrySet()) {
+            tempLinkedHashMap.put(entry.getKey(), entry.getValue());
+        }
+
+        return tempLinkedHashMap;
     }
 
 //    public BarChartModel getSessionsBarChartModel() {
@@ -591,7 +971,7 @@ public class PersonController implements Serializable, CSVControllerInterface<Pe
 //            LocalDate end = new LocalDate(endDate);
 //            int days = Days.daysBetween(start, end).getDays();
 //
-//            List<ActivityLog> weekActivityList = selected.getActivityLogCollection(startDate, endDate, Constants.TimeAggregations.Days.toString());
+//            List<ActivityLog> weekActivityList = selected.getActivityLogList(startDate, endDate, Constants.TimeAggregations.Days.toString());
 //
 //            LinkedHashMap<Date, Integer> values = new LinkedHashMap();
 //            LinkedHashMap<Date, Integer> sessions = new LinkedHashMap();
@@ -599,9 +979,9 @@ public class PersonController implements Serializable, CSVControllerInterface<Pe
 //            
 //            if (weekActivityList != null && weekActivityList.size() > 0) {
 //                for (ActivityLog activityLog : weekActivityList) {
-//                    values.put(activityLog.getDate(), activityLog.getTotal());
-//                    continuousSteps.put(activityLog.getDate(), activityLog.getSessionsContinuousStepsTotal());
-//                    sessions.put(activityLog.getDate(), activityLog.getSessionsTotal());
+//                    values.put(activityLog.getDateLog(), activityLog.getTotal());
+//                    continuousSteps.put(activityLog.getDateLog(), activityLog.getSessionsContinuousStepsTotal());
+//                    sessions.put(activityLog.getDateLog(), activityLog.getSessionsTotal());
 //                }
 //            }
 //            
@@ -645,17 +1025,17 @@ public class PersonController implements Serializable, CSVControllerInterface<Pe
             LocalDate start = new LocalDate(startDate);
             LocalDate end = new LocalDate(endDate);
 
-            List<ActivityLog> weekActivityList = selected.getActivityLogCollection(startDate, endDate, Constants.TimeAggregations.Days.toString());
+            List<ActivityLog> weekActivityList = selected.getActivityLogList(startDate, endDate, Constants.TimeAggregations.Days.toString());
 
             LinkedHashMap<Date, Integer> activeSessions = new LinkedHashMap();
             LinkedHashMap<String, Integer> activeSessionsSteps = new LinkedHashMap();
             LinkedHashMap<String, Integer> continuousSteps = new LinkedHashMap();
 
-            if (weekActivityList != null && weekActivityList.size() > 0) {
+            if (weekActivityList != null && !weekActivityList.isEmpty()) {
                 for (ActivityLog activityLog : weekActivityList) {
                     activeSessions.putAll(activityLog.getActiveSessions());
                 }
-                if (activeSessions.size() > 0) {
+                if (!activeSessions.isEmpty()) {
                     Iterator it = activeSessions.keySet().iterator();
                     Date currentDate = (Date) it.next();
                     DateTime previousDate = new DateTime(currentDate);
@@ -704,7 +1084,7 @@ public class PersonController implements Serializable, CSVControllerInterface<Pe
                     }
                 }
             } else {
-                LocalDate tempDate = new LocalDate(start.plusDays(-1));
+                LocalDate tempDate = new LocalDate(start.minusDays(1));
                 for (int i = 0; i < 7; i++) {
                     tempDate = tempDate.plusDays(1);
                     continuousSteps.put(Constants.df.format(tempDate.toDate()), 0);
@@ -712,7 +1092,7 @@ public class PersonController implements Serializable, CSVControllerInterface<Pe
                 }
             }
 
-            return selected.getSessionsBarChartModel(activeSessionsSteps, continuousSteps, Constants.df.format(startDate) + " - " + Constants.df.format(endDate));
+            return getSessionsBarChartModel(activeSessionsSteps, continuousSteps, Constants.df.format(startDate) + " - " + Constants.df.format(endDate));
         }
 
         return null;
@@ -721,33 +1101,55 @@ public class PersonController implements Serializable, CSVControllerInterface<Pe
     public boolean hasPreviousMonth() {
         LocalDate localDate = new LocalDate(startDate);
         localDate = localDate.plusMonths(-1);
-        return selected.getActivityLogCollection(localDate.dayOfMonth().withMinimumValue().toDate(), localDate.dayOfMonth().withMaximumValue().toDate(), null).isEmpty();
+        return selected.getActivityLogList(localDate.dayOfMonth().withMinimumValue().toDate(), localDate.dayOfMonth().withMaximumValue().toDate(), null).isEmpty();
     }
 
     public boolean hasNextMonth() {
         LocalDate localDate = new LocalDate(startDate);
         localDate = localDate.plusMonths(1);
-        return selected.getActivityLogCollection(localDate.dayOfMonth().withMinimumValue().toDate(), localDate.dayOfMonth().withMaximumValue().toDate(), null).isEmpty();
+        return selected.getActivityLogList(localDate.dayOfMonth().withMinimumValue().toDate(), localDate.dayOfMonth().withMaximumValue().toDate(), null).isEmpty();
     }
 
     public boolean hasPreviousWeek() {
         LocalDate localDate = new LocalDate(startDate);
         localDate = localDate.plusWeeks(-1);
-        return selected.getActivityLogCollection(localDate.dayOfWeek().withMinimumValue().toDate(), localDate.dayOfWeek().withMaximumValue().toDate(), null).isEmpty();
+        return selected.getActivityLogList(localDate.dayOfWeek().withMinimumValue().toDate(), localDate.dayOfWeek().withMaximumValue().toDate(), null).isEmpty();
     }
 
     public boolean hasNextWeek() {
         LocalDate localDate = new LocalDate(startDate);
         localDate = localDate.plusWeeks(1);
-        return selected.getActivityLogCollection(localDate.dayOfMonth().withMinimumValue().toDate(), localDate.dayOfMonth().withMaximumValue().toDate(), null).isEmpty();
+        return selected.getActivityLogList(localDate.dayOfMonth().withMinimumValue().toDate(), localDate.dayOfMonth().withMaximumValue().toDate(), null).isEmpty();
     }
 
-    public void previousMonthChart() {
-        addMonthMonth(-1);
+    public void previousMonthStepLogChart() {
+        addMont(-1);
+        initStepsLogLineChartModel();
     }
 
-    public void nextMonthChart() {
-        addMonthMonth(1);
+    public void nextMonthStepLogChart() {
+        addMont(1);
+        initStepsLogLineChartModel();
+    }
+
+    public void previousMonthHeartLogChart() {
+        addMont(-1);
+        initHeartRateChartModel();
+    }
+
+    public void nextMonthHeartLogChart() {
+        addMont(1);
+        initHeartRateChartModel();
+    }
+
+    public void previousMonthSleepLogChart() {
+        addMont(-1);
+        initSleepLogChartModel();
+    }
+
+    public void nextMonthSleepLogChart() {
+        addMont(1);
+        initSleepLogChartModel();
     }
 
     public void previousWeekChart() {
@@ -763,6 +1165,7 @@ public class PersonController implements Serializable, CSVControllerInterface<Pe
         if (!selectedDate.after(endDate)) {
             startDate = selectedDate;
         }
+        initStepsLogLineChartModel();
     }
 
     public void updateEndDate(SelectEvent selectEvent) {
@@ -770,6 +1173,7 @@ public class PersonController implements Serializable, CSVControllerInterface<Pe
         if (!selectedDate.before(startDate)) {
             endDate = selectedDate;
         }
+        initStepsLogLineChartModel();
     }
 
     public int getDateSelector() {
@@ -780,7 +1184,7 @@ public class PersonController implements Serializable, CSVControllerInterface<Pe
         this.dateSelector = dateSelector;
     }
 
-    private void addMonthMonth(int months) {
+    private void addMont(int months) {
         LocalDate start = new LocalDate(startDate);
         start = start.plusMonths(months);
         start = start.dayOfMonth().withMinimumValue();
@@ -800,13 +1204,35 @@ public class PersonController implements Serializable, CSVControllerInterface<Pe
         endDate = end.toDate();
     }
 
-    public void itemSelect(ItemSelectEvent event) {
+    public void itemSelectSessions(ItemSelectEvent event) {
         try {
             selectedActivity = chartMonthActivityLogList.get(event.getItemIndex());
-            log.log(Level.INFO, "itemSelect() - Se ha seleccionado el día: {0}", Constants.df.format(selectedActivity.getDate()));
+            log.log(Level.INFO, "itemSelectSessions() - Obtener las sesiones del día: {0}", Constants.df.format(selectedActivity.getDateLog()));
             RequestContext.getCurrentInstance().execute("PF('ActivityLogSessionsChartDialog').show()");
         } catch (IndexOutOfBoundsException ex) {
+            FacesContext.getCurrentInstance().addMessage("messages", new FacesMessage(FacesMessage.SEVERITY_INFO, LocaleBean.getBundle().getString("NoDataForDate"), null));
             selectedActivity = null;
+        }
+    }
+
+    public void itemSelectSessions2(ItemSelectEvent event) {
+        try {
+            selectedActivity = chartMonthActivityLogList.get(event.getItemIndex());
+            log.log(Level.INFO, "itemSelectSessions() - Obtener las sesiones del día: {0}", Constants.df.format(selectedActivity.getDateLog()));
+        } catch (IndexOutOfBoundsException ex) {
+            FacesContext.getCurrentInstance().addMessage("messages", new FacesMessage(FacesMessage.SEVERITY_INFO, LocaleBean.getBundle().getString("NoDataForDate"), null));
+            selectedActivity = null;
+        }
+    }
+
+    public void itemSelectHeartLog(ItemSelectEvent event) {
+        try {
+            selectedHealthLog = chartMonthHealthLogList.get(event.getItemIndex());
+            log.log(Level.INFO, "itemSelectHeartLog() - Obtener el detalle del ritmo cardíaco del día: {0}", Constants.df.format(selectedHealthLog.getDateLog()));
+            RequestContext.getCurrentInstance().execute("PF('HeartRateDayChartDlg').show()");
+        } catch (IndexOutOfBoundsException ex) {
+            FacesContext.getCurrentInstance().addMessage("messages", new FacesMessage(FacesMessage.SEVERITY_INFO, LocaleBean.getBundle().getString("NoDataForDate"), null));
+            selectedHealthLog = null;
         }
     }
 
@@ -814,9 +1240,14 @@ public class PersonController implements Serializable, CSVControllerInterface<Pe
         return selectedActivity;
     }
 
+    public HealthLog getSelectedHealthLog() {
+        return selectedHealthLog;
+    }
+
     public LineChartModel getActivityLogSessionsChartModel() {
         if (selectedActivity != null) {
-            return selectedActivity.getAreaModel(Constants.df.format(selectedActivity.getDate()));
+            selectedActivity.calculateSessions(false);
+            return selectedActivity.getAreaModel(Constants.df.format(selectedActivity.getDateLog()));
         }
 
         return null;
@@ -824,7 +1255,16 @@ public class PersonController implements Serializable, CSVControllerInterface<Pe
 
     public LineChartModel getActivityLogLineChartModel() {
         if (selectedActivity != null) {
-            return selectedActivity.getLineModel(selectedActivity.getValues(), Constants.df.format(selectedActivity.getDate()));
+            selectedActivity.setAggregation(Constants.TimeAggregations.Minutes.toString());
+            return selectedActivity.getLineModel(Constants.df.format(selectedActivity.getDateLog()));
+        }
+
+        return null;
+    }
+
+    public LineChartModel getActivityLogDayLineChartModel() {
+        if (selectedActivity != null) {
+            return selectedActivity.getLineModel(Constants.df.format(selectedActivity.getDateLog()));
         }
 
         return null;
@@ -839,6 +1279,31 @@ public class PersonController implements Serializable, CSVControllerInterface<Pe
 //        FacesContext fc = FacesContext.getCurrentInstance();
 //        NavigationHandler nh = fc.getApplication().getNavigationHandler();
 //        nh.handleNavigation(fc, null, "/faces/secured/activityLog/List.xhtml?faces-redirect=true");
+    }
+
+    public void onPathSelect(OverlaySelectEvent event) {
+        // TODO: Mostrar un globo emergente con los datos de esa posición.
+        FacesContext.getCurrentInstance().addMessage(null, new FacesMessage(FacesMessage.SEVERITY_INFO, "Se ha pulsado en la ruta", null));
+    }
+
+    public boolean isAllowNewUsers() {
+        String allowed = Constants.getConfigurationValueByKey("AllowNewUsers");
+        return allowed != null ? Boolean.valueOf(allowed) : false;
+    }
+
+    public int getFitbitNeededRequestsBetweenDates() {
+        return hermesFitbitController != null ? hermesFitbitController.getNeededRequestsBetweenDates(startDate, endDate) : 0;
+    }
+
+    @Override
+    public Person getPerson() {
+        return getSelected();
+    }
+
+    @Override
+    public void updatePerson() {
+        update(false);
+
     }
 
     @FacesConverter(forClass = Person.class)
@@ -882,40 +1347,77 @@ public class PersonController implements Serializable, CSVControllerInterface<Pe
 
     }
 
-    public HermesFitbitController getHermesFitbitController() {
-        return hermesFitbitController;
+    public int getFitbitRemainingRequests() {
+        return (hermesFitbitController != null && selected != null) ? FitbitResetRequestsScheduledTask.getRemainingRequests(selected.getFitbitUserId()) : 0;
     }
 
-    public StreamedContent getFile() {
-        return new CSVUtil<Person>().getData(prepareCreate(), this);
+    public int getFitbitRemainingRequestsAsDays() {
+        return (getFitbitRemainingRequests() / Constants.FitbitServices.values().length) - 1;
     }
 
-    public void handleFileUpload(FileUploadEvent event) {
-        // TODO: INTERNACIONALIZAR!!!
-        FacesMessage msg = new FacesMessage("Succesful", event.getFile().getFileName() + " is uploaded.");
-        FacesContext.getCurrentInstance().addMessage("messages", msg);
+    public Date getSleepStart() {
 
-        new CSVUtil<Person>().setData(prepareCreate(), this, event.getFile());
-
-        selected = null;
-        items = null;
+        return new Date();
     }
 
-    // TODO: PRUEBA!!!!
-    @Override
-    public void processReadElement(Person person) {
+    private BarChartModel getSessionsBarChartModel(LinkedHashMap<String, Integer> activeSessionsSteps, LinkedHashMap<String, Integer> continuousSteps, String title) {
+        BarChartModel model = new BarChartModel();
+        ChartSeries sessionsStepsSeries = new ChartSeries();
+        ChartSeries continuousStepsSeries = new ChartSeries();
 
-        selected = getPerson(person.getPersonId());
-
-        if (selected != null) {
-            person.setPhoto(selected.getPhoto());
-//            person.setRole(selected.getRole());
-            selected = person;
-            update();
-        } else {
-            selected = person;
-            create();
+        // TODO: Ver si quitamos los parámetros para coger los datos directamente de la clase.
+        // TODO: Poner/quitar 'interface' para gráficos de barras.
+        // TODO: Si pasamos los 'hashmaps', que tengan el formato necesario para representarlos y así no hay que hacer estos 3 bucles for.
+        // Rellenamos la serie con las fechas y los totales de pasos de la sesión.
+        for (Map.Entry<String, Integer> entry : activeSessionsSteps.entrySet()) {
+            // FIXME: Cuando arreglen el bug en Primefaces
+//            stepsSeries.set(entry.getKey().getTime(), entry.getValue());
+            sessionsStepsSeries.set(entry.getKey(), entry.getValue() != null ? entry.getValue() : 0);
         }
-    }
 
+        // Rellenamos la serie con las fechas y los pasos en continuo de las sesiones.
+        for (Map.Entry<String, Integer> entry : continuousSteps.entrySet()) {
+            // FIXME: Cuando arreglen el bug en Primefaces
+//            continuousStepsSeries.set(entry.getKey().getTime(), entry.getValue());
+            continuousStepsSeries.set(entry.getKey(), entry.getValue() != null ? entry.getValue() : 0);
+        }
+
+        // Indicamos el texto de la leyenda.
+        sessionsStepsSeries.setLabel(LocaleBean.getBundle().getString("StepsPerSession"));
+        continuousStepsSeries.setLabel(LocaleBean.getBundle().getString("ContinuousSteps"));
+
+        model.setTitle(title);
+        model.setLegendPosition("ne");
+        model.setShowPointLabels(true);
+        model.setShowDatatip(true);
+        model.setMouseoverHighlight(false);
+//        model.setDatatipFormat("%1$s -> %2$d");
+        model.setSeriesColors("AEC6CF, FFB347");
+        model.setAnimate(true);
+        model.setZoom(false);
+//        model.setStacked(true);
+
+        // FIXME: No funciona por un bug de Primefaces. Está marcado como registrado el 16 de abril de 2015.
+//        DateAxis xAxis = new DateAxis(LocaleBean.getBundle().getString("Days"));
+//        xAxis.setTickAngle(-45);
+//        xAxis.setTickFormat("%d/%m/%Y");
+//        model.getAxes().put(AxisType.X, xAxis);
+        CategoryAxis xAxis = new CategoryAxis(LocaleBean.getBundle().getString("Days"));
+        xAxis.setTickAngle(90);
+//        xAxis.setTickFormat("%d/%m/%Y");
+        model.getAxes().put(AxisType.X, xAxis);
+
+        Axis yAxis = model.getAxis(AxisType.Y);
+        yAxis.setLabel(LocaleBean.getBundle().getString("Steps"));
+        yAxis.setMin(0);
+
+        if (!sessionsStepsSeries.getData().isEmpty()) {
+            model.addSeries(sessionsStepsSeries);
+        }
+        if (!continuousStepsSeries.getData().isEmpty()) {
+            model.addSeries(continuousStepsSeries);
+        }
+
+        return model;
+    }
 }

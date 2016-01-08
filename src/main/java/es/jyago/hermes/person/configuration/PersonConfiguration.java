@@ -22,6 +22,8 @@ import javax.persistence.Table;
 import javax.validation.constraints.NotNull;
 import javax.validation.constraints.Size;
 import javax.xml.bind.annotation.XmlRootElement;
+import org.apache.commons.lang.builder.EqualsBuilder;
+import org.apache.commons.lang.builder.HashCodeBuilder;
 
 /**
  *
@@ -35,6 +37,7 @@ import javax.xml.bind.annotation.XmlRootElement;
     @NamedQuery(name = "PersonConfiguration.findByPersonConfigurationId", query = "SELECT p FROM PersonConfiguration p WHERE p.personConfigurationId = :personConfigurationId"),
     @NamedQuery(name = "PersonConfiguration.findByPersonId", query = "SELECT p FROM PersonConfiguration p WHERE p.person.personId = :personId")})
 public class PersonConfiguration implements Serializable {
+
     private static final long serialVersionUID = 1L;
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
@@ -90,27 +93,35 @@ public class PersonConfiguration implements Serializable {
 
     @Override
     public int hashCode() {
-        int hash = 0;
-        hash += (personConfigurationId != null ? personConfigurationId.hashCode() : 0);
-        return hash;
+        return new HashCodeBuilder(19, 29).
+                append(option).
+                toHashCode();
     }
 
     @Override
     public boolean equals(Object object) {
-        // TODO: Warning - this method won't work in the case the id fields are not set
         if (!(object instanceof PersonConfiguration)) {
             return false;
         }
         PersonConfiguration other = (PersonConfiguration) object;
-        if ((this.personConfigurationId == null && other.personConfigurationId != null) || (this.personConfigurationId != null && !this.personConfigurationId.equals(other.personConfigurationId))) {
-            return false;
-        }
-        return true;
+
+        // Dos elementos serán iguales si tienen el mismo id.
+        return new EqualsBuilder().
+                append(this.personConfigurationId, other.personConfigurationId).
+                isEquals();
     }
 
     @Override
     public String toString() {
-        return "es.jyago.hermes.person.configuration.PersonConfiguration[ personConfigurationId=" + personConfigurationId + " ]";
+        StringBuilder sb = new StringBuilder();
+
+        sb.append("[")
+                .append(this.getOption())
+                .append(" -> ")
+                .append(this.getValue())
+                .append("]");
+
+        return sb.toString();
     }
-    
+
 }

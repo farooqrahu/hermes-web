@@ -3,43 +3,42 @@ package es.jyago.hermes.bean;
 import java.io.Serializable;
 import java.util.Map;
 import java.util.TreeMap;
-import javax.faces.bean.ManagedBean;
-
-import javax.faces.bean.SessionScoped;
 import javax.faces.event.AjaxBehaviorEvent;
 
 import org.primefaces.component.themeswitcher.ThemeSwitcher;
 
-// JYFR: Tiene que ser @ManagedBean en lugar de @Named para que pueda gestionarlo PrimeFaces.
-@ManagedBean
-@SessionScoped
-public class ThemeBean implements Serializable{
+public class ThemeBean implements Serializable {
 
     // Temas visuales de PrimeFaces.
-    private Map<String, String> themes;
+    private static Map<String, String> themes;
 
-    // Tema visual por defecto.
-    private String theme = "pepper-grinder";
+    private String themeName;
 
     public ThemeBean() {
+        // Tema visual por defecto.
+        this("pepper-grinder");
+    }
+
+    public ThemeBean(String themeName) {
         super();
-        rellenarTemas();
+        this.themeName = themeName;
+        fillThemes();
     }
 
     public Map<String, String> getThemes() {
         return themes;
     }
 
-    public String getTheme() {
-        return theme;
+    public String getThemeName() {
+        return themeName;
     }
 
-    public void setTheme(String theme) {
-        this.theme = theme;
+    public void setTheme(String themeName) {
+        this.themeName = themeName;
     }
 
-    private void rellenarTemas() {
-        themes = new TreeMap<String, String>();
+    private void fillThemes() {
+        themes = new TreeMap();
         themes.put("Aristo", "aristo");
         themes.put("Black-Tie", "black-tie");
         themes.put("Blitzer", "blitzer");

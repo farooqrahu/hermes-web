@@ -41,7 +41,11 @@ public class ImageStreamer {
             // Ahora el navegador es cuando está pidiendo la imagen. Devolvemos el 'StreamedContent' real con la imagen.
             String id = context.getExternalContext().getRequestParameterMap().get("personId");
             // FIXME: Función alternativa que no coja la imagen de la B.D. sino la que tenga la persona actualmente.
-            return getPhotoImageAsStreamedContent(facade.find(Integer.valueOf(id)));
+            if (id != null && id.length() > 0) {
+                return getPhotoImageAsStreamedContent(facade.find(Integer.valueOf(id)));
+            } else {
+                return null;
+            }
         }
     }
 

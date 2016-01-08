@@ -1,5 +1,5 @@
 <?xml version="1.0" encoding="UTF-8" ?>
-<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.1//EN" "http://www.w3.org/TR/xhtml11/DTD/xhtml11.dtd">
 <html xmlns="http://www.w3.org/1999/xhtml"
       xmlns:ui="http://xmlns.jcp.org/jsf/facelets"
       xmlns:h="http://xmlns.jcp.org/jsf/html"
@@ -15,12 +15,12 @@
         <ui:define name="content">
             <p:confirmDialog header="#{bundle.Confirmation}" message="#{bundle.DeleteElementConfirm}" global="false" severity="alert" widgetVar="DeleteDialog" appendTo="@(body)">
                 <!-- El confirmDialog necesita su propio formulario porque al usar appendTo="@(body)" para evitar que salga el 'dialog' por debajo del fondo, se añade al final del HTML, fuera del formulario principal -->
-                <h:form id="DeletePersonForm">
+                <h:form id="DeleteOptionForm">
                     <p:commandButton value="#{bundle.Yes}" styleClass="ui-confirmdialog-yes" icon="ui-icon-check" oncomplete="PF('DeleteDialog').hide()" update=":OptionListForm:datalist" action="#{configurationController.destroy()}"/>
                     <p:commandButton value="#{bundle.No}" type="button" styleClass="ui-confirmdialog-no" icon="ui-icon-close" onclick="PF('DeleteDialog').hide()" />
                 </h:form>
             </p:confirmDialog>
-            
+
             <h:form id="OptionListForm">
                 <p:panel header="#{bundle.ListOptionTitle}">
                     <p:dataTable id="datalist" value="#{configurationController.items}" var="item"
@@ -32,15 +32,16 @@
                                  emptyMessage="#{bundle.NoRows}"
                                  sortBy="#{bundle[item.optionKey]}"
                                  sortOrder="ascending"
+                                 paginatorPosition="top"
                                  >
 
                         <f:facet name="header">
-                            <p:commandButton id="createButton" icon="ui-icon-plus" style="float: left; margin-top: 7px !important" value="#{bundle.Create}" actionListener="#{configurationController.prepareCreate}" update=":OptionCreateForm, :messages" oncomplete="PF('OptionCreateDialog').show()"/>
+                            <p:commandButton id="createButton" icon="ui-icon-plus" style="position: absolute; left: 28px; margin-top: 7px !important" value="#{bundle.Create}" actionListener="#{configurationController.prepareCreate}" update=":OptionCreateForm, :messages" oncomplete="PF('OptionCreateDialog').show()"/>
                         </f:facet>
 
                         <p:column sortBy="#{bundle[item.optionKey]}" filterBy="#{bundle[item.optionKey]}" style="width:70%">
                             <f:facet name="header">
-                                <h:outputText value="#{bundle.Option}"/>
+                                <h:outputText value="#{bundle.Config}"/>
                             </f:facet>
                             <h:outputText value="#{bundle[item.optionKey]}"/>
                         </p:column>
@@ -50,15 +51,10 @@
                             </f:facet>
                             <h:outputText value="#{item.optionValue}"/>
                         </p:column>
-                        <!--                        <f:facet name="footer">
-                                                    <p:commandButton id="createButton" icon="ui-icon-plus"   value="#{bundle.Create}" actionListener="#{configurationController.prepareCreate}" update=":OptionCreateForm" oncomplete="PF('OptionCreateDialog').show()"/>
-                                                    <p:commandButton id="editButton"   icon="ui-icon-pencil" value="#{bundle.Edit}" update=":OptionEditForm" oncomplete="PF('OptionEditDialog').show()" disabled="#{empty configurationController.selected}"/>
-                                                    <p:commandButton id="deleteButton" icon="ui-icon-trash"  value="#{bundle.Delete}" actionListener="#{configurationController.destroy}" update=":messages,datalist" disabled="#{empty configurationController.selected}"/>
-                                                </f:facet>-->
                     </p:dataTable>
 
                     <!-- Menú contextual -->
-                    <p:contextMenu id="contextMenu" widgetVar="ctxMenu" for="datalist" selectionMode="single">
+                    <p:contextMenu id="contextMenuOption" widgetVar="ctxMenuOption" for="datalist" selectionMode="single">
                         <p:menuitem id="editButton"   icon="ui-icon-pencil" value="#{bundle.Edit}"   update=":OptionEditForm" oncomplete="PF('OptionEditDialog').show()"/>
                         <p:menuitem id="deleteButton" icon="ui-icon-trash"  value="#{bundle.Delete}"                          oncomplete="PF('DeleteDialog').show()"/>
                     </p:contextMenu>

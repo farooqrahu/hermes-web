@@ -1,0 +1,93 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.1//EN" "http://www.w3.org/TR/xhtml11/DTD/xhtml11.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml"
+      xmlns:ui="http://xmlns.jcp.org/jsf/facelets"
+      xmlns:h="http://xmlns.jcp.org/jsf/html"
+      xmlns:p="http://primefaces.org/ui"
+      xmlns:f="http://xmlns.jcp.org/jsf/core">
+
+    <ui:composition>
+
+        <p:dialog id="AlertEditDlg" widgetVar="AlertEditDialog" modal="true" resizable="true" appendTo="@(body)" header="#{bundle.EditAlertTitle}" closeOnEscape="true">
+            <p:confirmDialog header="#{bundle.Confirmation}" message="#{bundle.DeleteElementConfirm}" global="false" severity="alert" widgetVar="DeleteRuleEditDialog" appendTo="@(body)">
+                <!-- El confirmDialog necesita su propio formulario porque al usar appendTo="@(body)" para evitar que salga el 'dialog' por debajo del fondo, se añade al final del HTML, fuera del formulario principal -->
+                <h:form id="DeleteRuleEditForm">
+                    <p:commandButton value="#{bundle.Yes}" styleClass="ui-confirmdialog-yes" icon="ui-icon-check" oncomplete="PF('DeleteRuleEditDialog').hide()" update=":AlertEditForm:datalist" action="#{alertController.destroyRule()}"/>
+                    <p:commandButton value="#{bundle.No}" type="button" styleClass="ui-confirmdialog-no" icon="ui-icon-close" onclick="PF('DeleteRuleEditDialog').hide()" />
+                </h:form>
+            </p:confirmDialog>
+
+            <h:form id="AlertEditForm">
+                <h:panelGroup id="display">
+                    <p:panelGrid columns="1" rendered="#{alertController.selected != null}">
+                        <h:panelGrid columns="2">
+                            <h:panelGrid columns="2">
+                                <p:outputLabel value="#{bundle.Name}" for="name" />
+                                <p:inputText id="name" value="#{alertController.selected.name}" title="#{bundle.Name}" required="true" requiredMessage="#{bundle.RequiredMessage_name}" style="width: 300px;"/>
+                                <p:outputLabel value="#{bundle.Active}" for="active" />
+                                <p:selectBooleanCheckbox id="active" value="#{alertController.selected.active}" />
+                            </h:panelGrid>
+                            <p:selectOneRadio id="ruleOperator" value="#{alertController.selected.rulesOperator}" layout="grid" columns="1">
+                                <f:selectItems value="#{alertController.rulesOperator}"
+                                               var="rulesOperatorItem"
+                                               itemValue="#{rulesOperatorItem}" itemLabel="#{bundle[rulesOperatorItem]}"/>
+                            </p:selectOneRadio>
+                        </h:panelGrid>
+                        <p:panel header="#{bundle.ListRuleTitle}">
+                            <p:dataTable id="datalist" value="#{alertController.selected.ruleList}" var="item"
+                                         selectionMode="single" selection="#{alertController.rule}"
+                                         paginator="true"
+                                         rowKey="#{item.ruleId}"
+                                         resizableColumns="true"
+                                         emptyMessage="#{bundle.NoRows}"
+                                         sortBy="#{item.checkWhat}"
+                                         sortOrder="ascending"
+                                         paginatorPosition="top"
+                                         >
+
+                                <f:facet name="header">
+                                    <p:commandButton id="createButton" icon="ui-icon-plus" style="position: absolute; left: 50px; margin-top: 5px !important" value="#{bundle.Create}" actionListener="#{alertController.prepareCreateRule('AlertEditForm')}" update="RuleCreateForm, :messages" oncomplete="PF('RuleCreateDialog').show()" process="@this"/>
+                                </f:facet>
+
+                                <p:column sortBy="#{bundle[item.checkWhat]}" style="width:30%">
+                                    <f:facet name="header">
+                                        <h:outputText value="#{bundle.CheckWhat}"/>
+                                    </f:facet>
+                                    <h:outputText value="#{bundle[item.checkWhat]}"/>
+                                </p:column>
+                                <p:column sortBy="#{bundle[item.operator]}" style="width:20%">
+                                    <f:facet name="header">
+                                        <h:outputText value="#{bundle.Operator}"/>
+                                    </f:facet>
+                                    <h:outputText value="#{bundle[item.operator]}"/>
+                                </p:column>
+                                <p:column sortBy="#{item.value}" style="width:20%">
+                                    <f:facet name="header">
+                                        <h:outputText value="#{bundle.Value}"/>
+                                    </f:facet>
+                                    <h:outputText value="#{item.value}"/>
+                                </p:column>
+                                <p:column sortBy="#{bundle[item.checkWhen]}" style="width:30%">
+                                    <f:facet name="header">
+                                        <h:outputText value="#{bundle.CheckWhen}"/>
+                                    </f:facet>
+                                    <h:outputText value="#{bundle[item.checkWhen]}"/>
+                                </p:column>
+                            </p:dataTable>
+                        </p:panel>
+                    </p:panelGrid>
+
+                    <!--  Menú contextual -->
+                    <p:contextMenu id="contextMenuEditAlert" widgetVar="ctxMenuEditAlert" for="datalist" selectionMode="single">
+                        <p:menuitem id="editButton"   icon="ui-icon-pencil" value="#{bundle.Edit}" actionListener="#{alertController.selectRefreshForm('AlertEditForm')}" update=":RuleEditForm" oncomplete="PF('RuleEditDialog').show()"/>
+                        <p:menuitem id="deleteButton" icon="ui-icon-trash"  value="#{bundle.Delete}" oncomplete="PF('DeleteRuleEditDialog').show()"/>
+                    </p:contextMenu>
+                    <p:commandButton actionListener="#{alertController.update}" value="#{bundle.Save}" update="display,:AlertListForm:datalist,:messages" oncomplete="handleSubmit(args,'AlertEditDialog');"/>
+                    <p:commandButton value="#{bundle.Cancel}" onclick="PF('AlertEditDialog').hide()"/>
+                </h:panelGroup>
+            </h:form>
+
+        </p:dialog>
+
+    </ui:composition>
+</html>

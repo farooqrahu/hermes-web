@@ -1,31 +1,90 @@
 <?xml version='1.0' encoding='UTF-8'?>
-<!DOCTYPE html>
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.1//EN" "http://www.w3.org/TR/xhtml11/DTD/xhtml11.dtd">
 <ui:composition xmlns="http://www.w3.org/1999/xhtml"
                 xmlns:ui="http://java.sun.com/jsf/facelets"
                 xmlns:h="http://java.sun.com/jsf/html"
                 xmlns:p="http://primefaces.org/ui"
-                xmlns:f="http://java.sun.com/jsf/core">
-    <h:form>
-        <div style="position:absolute; left: 10px;">
-            <p:graphicImage value="/resources/img/university_logo.png" alt="#{bundle.University_logo}" height="85px"/>
-            <p:graphicImage value="/resources/img/etsii_logo.png" alt="#{bundle.ETSII_logo}" height="85px"/>
-            <p:outputLabel value="#{bundle.Title}" class="header"/>
-            <p:outputLabel value="#{constants.version}" class="subheader"/>
-        </div>
-        <div style="position:absolute; right: 10px; padding: 10px;">  
-            <!-- Estilo visual -->
-            <p:themeSwitcher id="defaultSwitcher" style="bottom: 22px">
-                <f:selectItem itemLabel="#{bundle['Theme.ChooseStyle']}" itemValue=""/>
-                <f:selectItems value="#{themeBean.themes}"/>
-                <p:ajax global="false" listener="#{themeBean.saveTheme}"/>
-            </p:themeSwitcher>
-            <!-- Idiomas -->
-            <h:commandLink title="ES" action="#{localeBean.changeLocale('es')}" immediate="true">
-                <p:graphicImage value="/resources/img/es.png" title="#{bundle['Locale.Spanish']}" alt="#{bundle['Locale.Spanish']}"/>
-            </h:commandLink>
-            <h:commandLink title="EN" action="#{localeBean.changeLocale('en')}" immediate="true">
-                <p:graphicImage value="/resources/img/en.png" title="#{bundle['Locale.English']}" alt="#{bundle['Locale.English']}"/>
-            </h:commandLink>
-        </div>
-    </h:form>
+                xmlns:f="http://java.sun.com/jsf/core"
+                xmlns:c="http://xmlns.jcp.org/jsp/jstl/core">
+    <p:outputPanel id="headerPanel" layout="block">
+        <h:form>
+            <p:menubar rendered="#{loginController.loggedIn}">
+                <p:menuitem>
+                    <p:commandLink action="#{templateBean.setPage('/main.xhtml')}" ajax="false">
+                        <!--<p:graphicImage value="/resources/img/logos.png"/>-->
+                        <p:graphicImage value="/resources/img/logoHermesCitizen.png"/>
+                        <p:outputLabel value="#{constants.version}" class="subheader"/>
+                    </p:commandLink>
+                </p:menuitem>
+                <p:submenu label="#{bundle.Menu_myData}" icon="person-icon">
+                    <p:menuitem value="#{bundle.Menu_profile}"        icon="editProfile-icon" onclick="PF('statusDialog').show()" update=":PersonEditForm" actionListener="#{personController.setSelected(loginController.person)}" oncomplete="PF('PersonEditDialog').show()"/>
+                    <p:menuitem value="#{bundle.Authorize}"           icon="fitbit-icon"      update="openWindow" actionListener="#{personController.authorize(loginController.person, '')}" oncomplete="PF('statusDialog').hide()"/>
+                    <p:menuitem value="#{bundle.Synchronize}"         icon="fitbit-sync-icon" onclick="PF('statusDialog').show()" update=":PersonSynchronizeForm, :messages" actionListener="#{personController.openSynchronizationDialog(loginController.person)}" oncomplete="PF('statusDialog').hide()"/>
+                    <p:menuitem value="#{bundle.Alerts}"              icon="alert-icon"       action="#{templateBean.setPage('/secured/alert/List.xhtml')}" onclick="PF('statusDialog').show()" oncomplete="PF('statusDialog').hide()" update=":contentPanel"/>
+                    <p:menuitem value="#{bundle.ImportLocationFiles}" icon="smartDriver-icon"  onclick="PF('statusDialog').show()" update=":PersonImportLocationForm" oncomplete="PF('ImportLocationDialog').show()"/>
+                </p:submenu>
+                <p:submenu label="#{bundle.Graphics}" icon="chart-icon">
+                    <!-- FIXME: Añadir a todos los gráficos una inicialización de las fechas, para que al cambiar de uno a otro se muestren siempre inicializados e iguales -->
+                    <!-- action="#{personController.initChartDates()}" -->
+                    
+                    <p:menuitem value="#{bundle.Steps}"     icon="steps-icon"   action="#{templateBean.setPage('/secured/stepLog/StepLogMonthLineChart.xhtml')}"        onclick="PF('statusDialog').show()" oncomplete="PF('statusDialog').hide()" update=":contentPanel"/>
+                    <p:menuitem value="#{bundle.Sessions}"  icon="session-icon" action="#{templateBean.setPage('/secured/session/SessionDashboard.xhtml')}"             onclick="PF('statusDialog').show()" oncomplete="PF('statusDialog').hide()" update=":contentPanel"/>
+                    <p:menuitem value="#{bundle.Sleep}"     icon="sleep-icon"   action="#{templateBean.setPage('/secured/sleepLog/SleepLogMonthBarChart.xhtml')}"       onclick="PF('statusDialog').show()" oncomplete="PF('statusDialog').hide()" update=":contentPanel"/>
+                    <p:menuitem value="#{bundle.HeartRate}" icon="heart-icon"   action="#{templateBean.setPage('/secured/healthLog/HeartRateLogMonthLineChart.xhtml')}" onclick="PF('statusDialog').show()" oncomplete="PF('statusDialog').hide()" update=":contentPanel" rendered="#{personController.person.healthLogList != null and not empty personController.person.healthLogList}"/>
+                    <p:menuitem value="#{bundle.Map}"       icon="map-icon"     action="#{templateBean.setPage('/secured/locationLog/LocationLogMap.xhtml')}"           onclick="PF('statusDialog').show()" oncomplete="PF('statusDialog').hide()" update=":contentPanel" rendered="#{personController.person.locationLogList != null and not empty personController.person.locationLogList}"/>
+                    
+                    <!--<p:menuitem value="#{bundle.SmartDriver}" icon="smartDriver-icon" onclick="PF('statusDialog').show()" update=":PersonMapForm" oncomplete="PF('PersonMapDialog').show()" action="#{personController.initChartDates()}" rendered="#{loginController.person.admin}"/>-->
+                </p:submenu>
+                <c:if test='#{loginController.person.admin or loginController.person.doctor}'>
+                    <p:submenu label="#{bundle.Menu_people}" icon="people-icon">
+                        <p:menuitem value="#{bundle.Menu_person}" outcome="/secured/person/List.xhtml" icon="people-icon" onclick="PF('statusDialog').show()" oncomplete="PF('statusDialog').hide()"/>
+                    </p:submenu>
+                </c:if>
+                <c:if test='#{loginController.person.admin or loginController.person.doctor}'>
+                    <p:submenu label="#{bundle.Menu_system}" icon="system-icon">
+                        <p:menuitem value="#{bundle.Menu_config}" outcome="/secured/option/List.xhtml" icon="config-icon" onclick="PF('statusDialog').show()" oncomplete="PF('statusDialog').hide()" rendered="#{loginController.person.admin}"/>
+                        <p:menuitem value="#{bundle.Menu_role}" outcome="/secured/role/List.xhtml" icon="role-icon" onclick="PF('statusDialog').show()" oncomplete="PF('statusDialog').hide()"/>
+                        <p:menuitem value="#{bundle.Menu_user_access}" outcome="/secured/person/UserAccess.xhtml" icon="userAccess-icon" onclick="PF('statusDialog').show()" oncomplete="PF('statusDialog').hide()"/>
+                        <p:menuitem value="#{bundle.Menu_report}" outcome="/secured/report/List.xhtml" icon="report-icon" onclick="PF('statusDialog').show()" oncomplete="PF('statusDialog').hide()"/>
+                    </p:submenu>
+                </c:if>
+                <p:submenu label="#{bundle.Menu_languages}" icon="languages-icon">
+                    <p:menuitem value="#{bundle['Locale.Spanish']}" action="#{localeBean.changeLocale('es')}" icon="es-icon" immediate="true" ajax="false"/>
+                    <p:menuitem value="#{bundle['Locale.English']}" action="#{localeBean.changeLocale('en')}" icon="en-icon" immediate="true" ajax="false"/>
+                </p:submenu>
+                <p:submenu label="#{bundle.Menu_theme}" icon="theme-icon">
+                    <c:forEach items="${loginController.person.theme.themes}" var="item">
+                        <p:menuitem title="${item.key}" value="${item.key}" action="#{loginController.setTheme(item.value)}" immediate="true" ajax="false"/>
+                    </c:forEach>
+                </p:submenu>
+                <p:submenu label="#{bundle.Menu_help}" icon="help-icon">
+                    <p:menuitem value="#{bundle.Menu_contact_us}" icon="contact-icon" onclick="PF('statusDialog').show()" update=":ContactForm" oncomplete="PF('ContactDialog').show()"/>
+                    <p:menuitem value="#{bundle.Menu_suggestions}" icon="suggestion-icon" onclick="PF('statusDialog').show()" update=":SuggestionForm" oncomplete="PF('SuggestionDialog').show()"/>
+                </p:submenu>
+                <f:facet name="options">
+                    <h:panelGroup layout="block" style="text-align: center">
+                        <h:outputText value="#{loginController.person.fullName}" style="margin-left: 5px; font-weight: bold;"/>
+                        <br/>
+                        <h:outputText value="(#{loginController.person.role.name})" style="margin-left: 5px; margin-right: 5px;"/>
+                        <br/>
+                        <p:commandButton id="logout" type="submit" value="#{bundle.Logout}"
+                                         icon="logout-icon" action="#{loginController.logout()}" ajax="false"
+                                         title="#{bundle.Logout}" />
+                    </h:panelGroup>
+                </f:facet>
+            </p:menubar>
+        </h:form>
+    </p:outputPanel>
+    <h:panelGroup id="openWindow">
+        <h:outputScript rendered="#{not empty personController.authorizeUrl}">
+            window.open('#{personController.authorizeUrlAndReset}', '_self');
+        </h:outputScript>
+    </h:panelGroup>
+
+    <ui:include src="/secured/person/Edit.xhtml"/>
+    <ui:include src="/secured/person/Synchronize.xhtml"/>
+    <ui:include src="/secured/locationLog/ImportLocationLog.xhtml"/>
+    <!--<ui:include src="/secured/person/SessionsWeekBarChart.xhtml"/>-->
+    <ui:include src="/secured/help/Contact.xhtml"/>
+    <ui:include src="/secured/help/Suggestion.xhtml"/>
 </ui:composition>

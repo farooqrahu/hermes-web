@@ -1,0 +1,207 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.1//EN" "http://www.w3.org/TR/xhtml11/DTD/xhtml11.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml"
+      xmlns:ui="http://xmlns.jcp.org/jsf/facelets"
+      xmlns:h="http://xmlns.jcp.org/jsf/html"
+      xmlns:p="http://primefaces.org/ui"
+      xmlns:f="http://xmlns.jcp.org/jsf/core">
+    <ui:composition>
+        <h:head>
+        </h:head>
+        <h:body>
+            <p:dialog widgetVar="IntervalDataDialog" modal="true" resizable="true" appendTo="@(body)" header="#{bundle.IntervalData}" maximizable="true" closeOnEscape="true" height="auto" width="auto">
+                <h:form id="IntervalDataForm">
+                    <p:dataTable id="datalist" value="#{locationLogController.intervalDataList}" var="item"
+                                 selectionMode="single" 
+                                 selection="#{locationLogController.selectedInterval}"
+                                 paginator="true"
+                                 rows="20"
+                                 rowsPerPageTemplate="10,20,30,40,50"
+                                 emptyMessage="#{bundle.NoRows}"
+                                 paginatorPosition="top"
+                                 rowKey="#{item.intervalId}"
+                                 resizableColumns="true"
+                                 sortBy="#{item.intervalId}"
+                                 sortOrder="ascending"
+                                 scrollable="true"
+                                 >
+
+                        <!-- Para poner 'tooltips' en las cabeceras de las columnas de la tabla -->
+                        <p:tooltip/>
+
+                        <p:column width="25px;">
+                            <f:facet name="header">
+                            </f:facet>
+                            <div style="text-align: center;">
+                                <p:commandButton icon="interval-icon-16" title="#{bundle.Interval} #{item.intervalId}" update=":SelectedIntervalDataForm" oncomplete="PF('SelectedIntervalDataDialog').show()" action="#{locationLogController.generateIntervalDataFromSelected()}">
+                                    <f:setPropertyActionListener value="#{item}" target="#{locationLogController.selectedInterval}" />
+                                </p:commandButton>
+                            </div>
+                        </p:column>
+                        <p:column sortBy="#{item.intervalId}" filterBy="#{item.intervalId}" filterStyle="width: 15px;" filterMatchMode="contains" width="20px;">
+                            <f:facet name="header">
+                                <h:outputText value="I" title="#{bundle.Interval}"/>
+                            </f:facet>
+                            <h:outputText value="#{item.intervalId}" style="float:right"/>
+                        </p:column>
+                        <p:column sortBy="#{item.startDate}" filterBy="#{item.formattedStartDate}" filterStyle="width: 30px;" filterMatchMode="contains" width="50px;">
+                            <f:facet name="header">
+                                <h:outputText value="T0" title="#{bundle.StartHour}" escape="false" style="white-space:pre-line;"/>
+                            </f:facet>
+                            <h:outputText value="#{item.formattedStartDate}" style="float:right"/>
+                        </p:column>
+                        <p:column sortBy="#{item.endDate}" filterBy="#{item.formattedEndDate}" filterStyle="width: 30px;" filterMatchMode="contains" width="50px;">
+                            <f:facet name="header">
+                                <h:outputText value="t1" title="#{bundle.EndHour}" escape="false" style="white-space:pre-line;"/>
+                            </f:facet>
+                            <h:outputText value="#{item.formattedEndDate}" style="float:right"/>
+                        </p:column>
+                        <p:column sortBy="#{item.timeDifference}" filterBy="#{item.timeDifference}" filterStyle="width: 30px;" filterMatchMode="contains" width="50px;">
+                            <f:facet name="header">
+                                <h:outputText value="T1-T0" title="#{bundle.TimeDifference}" escape="false" style="white-space:pre-line;"/>
+                            </f:facet>
+                            <h:outputText value="#{item.timeDifference}" style="float:right"/>
+                        </p:column>
+                        <p:column sortBy="#{item.speedAtStart}" filterBy="#{item.speedAtStart}" filterStyle="width: 30px;" filterMatchMode="contains">
+                            <f:facet name="header">
+                                <h:outputText value="S0" title="#{bundle.SpeedAtStart}" escape="false" style="white-space:pre-line;"/>
+                            </f:facet>
+                            <h:outputText value="#{item.speedAtStart}" style="float:right">
+                                <f:convertNumber pattern="#0.00"/>
+                            </h:outputText>
+                        </p:column>
+                        <p:column sortBy="#{item.speedAtEnd}" filterBy="#{item.speedAtEnd}" filterStyle="width: 30px;" filterMatchMode="contains">
+                            <f:facet name="header">
+                                <h:outputText value="S1" title="#{bundle.SpeedAtEnd}" escape="false" style="white-space:pre-line;"/>
+                            </f:facet>
+                            <h:outputText value="#{item.speedAtEnd}" style="float:right">
+                                <f:convertNumber pattern="#0.00"/>
+                            </h:outputText>
+                        </p:column>
+                        <p:column sortBy="#{item.minSpeed}" filterBy="#{item.minSpeed}" filterStyle="width: 30px;" filterMatchMode="contains">
+                            <f:facet name="header">
+                                <h:outputText value="MinS" title="#{bundle.MinimumSpeed}" escape="false"/>
+                            </f:facet>
+                            <h:outputText value="#{item.minSpeed}" style="float:right">
+                                <f:convertNumber pattern="#0.00"/>
+                            </h:outputText>
+                        </p:column>
+                        <p:column sortBy="#{item.maxSpeed}" filterBy="#{item.maxSpeed}" filterStyle="width: 30px;" filterMatchMode="contains">
+                            <f:facet name="header">
+                                <h:outputText value="MaxS" title="#{bundle.MaximumSpeed}" escape="false"/>
+                            </f:facet>
+                            <h:outputText value="#{item.maxSpeed}" style="float:right">
+                                <f:convertNumber pattern="#0.00"/>
+                            </h:outputText>
+                        </p:column>
+                        <p:column sortBy="#{item.averageSpeed}" filterBy="#{item.averageSpeed}" filterStyle="width: 30px;" filterMatchMode="contains">
+                            <f:facet name="header">
+                                <h:outputText value="AvS" title="#{bundle.AverageSpeed}" escape="false"/>
+                            </f:facet>
+                            <h:outputText value="#{item.averageSpeed}" style="float:right">
+                                <f:convertNumber pattern="#0.00"/>
+                            </h:outputText>
+                        </p:column>
+                        <p:column sortBy="#{item.medianSpeed}" filterBy="#{item.medianSpeed}" filterStyle="width: 30px;" filterMatchMode="contains">
+                            <f:facet name="header">
+                                <h:outputText value="MedS" title="#{bundle.MedianSpeed}" escape="false" style="white-space:pre-line;"/>
+                            </f:facet>
+                            <h:outputText value="#{item.medianSpeed}" style="float:right">
+                                <f:convertNumber pattern="#0.00"/>
+                            </h:outputText>
+                        </p:column>
+                        <p:column sortBy="#{item.standardDeviationSpeed}" filterBy="#{item.standardDeviationSpeed}" filterStyle="width: 30px;" filterMatchMode="contains">
+                            <f:facet name="header">
+                                <h:outputText value="StdDevS" title="#{bundle.StandardDeviationSpeed}" escape="false" style="white-space:pre-line;"/>
+                            </f:facet>
+                            <h:outputText value="#{item.standardDeviationSpeed}" style="float:right">
+                                <f:convertNumber pattern="#0.00"/>
+                            </h:outputText>
+                        </p:column>
+                        <p:column sortBy="#{item.pke}" filterBy="#{item.pke}" filterStyle="width: 30px;" filterMatchMode="contains">
+                            <f:facet name="header">
+                                <h:outputText value="PKE" title="PKE" escape="false" style="white-space:pre-line;"/>
+                            </f:facet>
+                            <h:outputText value="#{item.pke}" style="float:right">
+                                <f:convertNumber pattern="#0.00"/>
+                            </h:outputText>
+                        </p:column>
+                        <p:column sortBy="#{item.heartRateAtStart}" filterBy="#{item.heartRateAtStart}" filterStyle="width: 30px;" filterMatchMode="contains">
+                            <f:facet name="header">
+                                <h:outputText value="HR0" title="#{bundle.HeartRateAtStart}" escape="false" style="white-space:pre-line;"/>
+                            </f:facet>
+                            <h:outputText value="#{item.heartRateAtStart}" style="float:right"/>
+                        </p:column>
+                        <p:column sortBy="#{item.heartRateAtEnd}" filterBy="#{item.heartRateAtEnd}" filterStyle="width: 30px;" filterMatchMode="contains">
+                            <f:facet name="header">
+                                <h:outputText value="HR1" title="#{bundle.HeartRateAtEnd}" escape="false" style="white-space:pre-line;"/>
+                            </f:facet>
+                            <h:outputText value="#{item.heartRateAtEnd}" style="float:right"/>
+                        </p:column>
+                        <p:column sortBy="#{item.minHeartRate}" filterBy="#{item.minHeartRate}" filterStyle="width: 30px;" filterMatchMode="contains">
+                            <f:facet name="header">
+                                <h:outputText value="MinHR" title="#{bundle.MinimumHeartRate}" escape="false"/>
+                            </f:facet>
+                            <h:outputText value="#{item.minHeartRate}" style="float:right"/>
+                        </p:column>
+                        <p:column sortBy="#{item.maxHeartRate}" filterBy="#{item.maxHeartRate}" filterStyle="width: 30px;" filterMatchMode="contains">
+                            <f:facet name="header">
+                                <h:outputText value="MaxHR" title="#{bundle.MaximumHeartRate}" escape="false"/>
+                            </f:facet>
+                            <h:outputText value="#{item.maxHeartRate}" style="float:right"/>
+                        </p:column>
+                        <p:column sortBy="#{item.averageHeartRate}" filterBy="#{item.averageHeartRate}" filterStyle="width: 30px;" filterMatchMode="contains">
+                            <f:facet name="header">
+                                <h:outputText value="AvHR" title="#{bundle.AverageHeartRate}" escape="false"/>
+                            </f:facet>
+                            <h:outputText value="#{item.averageHeartRate}" style="float:right">
+                                <f:convertNumber pattern="#0.00"/>
+                            </h:outputText>
+                        </p:column>
+                        <p:column sortBy="#{item.medianHeartRate}" filterBy="#{item.medianHeartRate}" filterStyle="width: 30px;" filterMatchMode="contains">
+                            <f:facet name="header">
+                                <h:outputText value="MedHR" title="#{bundle.MedianHeartRate}" escape="false" style="white-space:pre-line;"/>
+                            </f:facet>
+                            <h:outputText value="#{item.medianHeartRate}" style="float:right">
+                                <f:convertNumber pattern="#0.00"/>
+                            </h:outputText>
+                        </p:column>
+                        <p:column sortBy="#{item.standardDeviationHeartRate}" filterBy="#{item.standardDeviationHeartRate}" filterStyle="width: 30px;" filterMatchMode="contains">
+                            <f:facet name="header">
+                                <h:outputText value="StdDevHR" title="#{bundle.StandardDeviationHeartRate}" escape="false" style="white-space:pre-line;"/>
+                            </f:facet>
+                            <h:outputText value="#{item.standardDeviationHeartRate}" style="float:right">
+                                <f:convertNumber pattern="#0.00"/>
+                            </h:outputText>
+                        </p:column>
+                        <p:column sortBy="#{item.length}" filterBy="#{item.length}" filterStyle="width: 30px;" filterMatchMode="contains">
+                            <f:facet name="header">
+                                <h:outputText value="L" title="#{bundle.Length}" escape="false"/>
+                            </f:facet>
+                            <h:outputText value="#{item.length}" style="float:right">
+                                <f:convertNumber pattern="#0.00"/>
+                            </h:outputText>
+                        </p:column>
+                        <p:column sortBy="#{item.cummulativeLength}" filterBy="#{item.cummulativeLength}" filterStyle="width: 30px;" filterMatchMode="contains">
+                            <f:facet name="header">
+                                <h:outputText value="SumL" title="#{bundle.CummulativeLength}" escape="false" style="white-space:pre-line;"/>
+                            </f:facet>
+                            <h:outputText value="#{item.cummulativeLength}" style="float:right">
+                                <f:convertNumber pattern="#0.00"/>
+                            </h:outputText>
+                        </p:column>
+                    </p:dataTable>
+
+                    <h:outputText value="#{bundle.DownloadableFormats}"/>
+                    <h:commandLink>
+                        <p:graphicImage value="/resources/img/csv.png" alt="#{bundle.ExportCSV}"/>
+                        <p:dataExporter type="csv" target="datalist" fileName="data" pageOnly="false" />
+                    </h:commandLink>
+
+                    <p:commandButton value="#{bundle.Close}" onclick="PF('IntervalDataDialog').hide()" style="float: right"/>
+                </h:form>
+            </p:dialog>
+        </h:body>
+        <ui:include src="SelectedIntervalData.xhtml"/>
+    </ui:composition>
+</html>

@@ -309,6 +309,22 @@
     width: 16px !important;
 }
 
+.intervals-icon-16 {
+    background: url(img/intervals16.png) no-repeat !important;
+    height: 16px !important;
+    width: 16px !important;
+}
+
+.zip-icon-24 {
+    background: url(img/zip24.png) no-repeat !important;
+    height: 24px !important;
+    width: 24px !important;
+    border-style: none !important;
+    padding: 0px !important;
+    margin-left: 10px;
+    cursor:pointer;
+}
+
 /* JYFR - Inicio */
 /* Para que los tooltips de los gráficos jqPlot no se mezclen con los textos del gráfico */
 .jqplot-highlighter-tooltip, .jqplot-canvasOverlay-tooltip {

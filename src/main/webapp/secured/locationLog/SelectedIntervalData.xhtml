@@ -9,8 +9,52 @@
         <h:head>
         </h:head>
         <h:body>
-            <p:dialog widgetVar="SelectedIntervalDataDialog" modal="true" resizable="true" appendTo="@(body)" header="#{bundle.SelectedIntervalAllDays} (#{bundle.Interval} #{locationLogController.selectedInterval.intervalId})" maximizable="true" closeOnEscape="true" height="auto" width="auto">
+            <p:dialog widgetVar="SelectedIntervalDataDialog" modal="true" resizable="true" appendTo="@(body)" header="#{bundle.SelectedIntervalAllDays}" maximizable="true" closeOnEscape="true" height="auto" width="auto">
                 <h:form id="SelectedIntervalDataForm">
+                    <p:panelGrid columns="6">
+                        <p:column>
+                            <p:outputLabel for="selectedInterval" value="#{bundle.Interval}: "/>
+                            <strong>
+                                <h:outputText id="selectedInterval" value="#{locationLogController.selectedInterval.intervalId}"/>
+                            </strong>                            
+                        </p:column>
+                        <p:column>
+                            <p:outputLabel value="T0: " for="t0" style="padding-right: 5px;" title="#{bundle.StartHour}"/>
+                            <strong>
+                                <h:outputText id="t0" value="#{locationLogController.selectedInterval.formattedStartDate}" style="float:right"/>
+                            </strong>
+                        </p:column>
+                        <p:column>
+                            <p:outputLabel value="T1: " for="t1" style="padding-right: 5px;" title="#{bundle.EndHour}"/>
+                            <strong>
+                                <h:outputText id="t1" value="#{locationLogController.selectedInterval.formattedEndDate}" style="float:right"/>
+                            </strong>
+                        </p:column>
+                        <p:column>
+                            <p:outputLabel value="S0: " for="s1" style="padding-right: 5px;" title="#{bundle.SpeedAtEnd}"/>
+                            <strong>
+                                <h:outputText id="s0" value="#{locationLogController.selectedInterval.speedAtStart}" style="float:right">
+                                    <f:convertNumber pattern="#0.00"/>
+                                </h:outputText>
+                            </strong>
+                        </p:column>
+                        <p:column>
+                            <p:outputLabel value="S1: " for="s1" style="padding-right: 5px;" title="#{bundle.SpeedAtEnd}"/>
+                            <strong>
+                                <h:outputText id="s1" value="#{locationLogController.selectedInterval.speedAtEnd}" style="float:right">
+                                    <f:convertNumber pattern="#0.00"/>
+                                </h:outputText>
+                            </strong>
+                        </p:column>
+                        <p:column>
+                            <p:outputLabel value="L: " for="l" style="padding-right: 5px;" title="#{bundle.Length}"/>
+                            <strong>
+                                <h:outputText id="l" value="#{locationLogController.selectedInterval.length}" style="float:right">
+                                    <f:convertNumber pattern="#0.00"/>
+                                </h:outputText>
+                            </strong>
+                        </p:column>
+                    </p:panelGrid>
                     <p:dataTable id="datalist" value="#{locationLogController.selectedIntervalDataList}" var="item"
                                  paginator="true"
                                  rows="20"
@@ -163,6 +207,14 @@
                                 <f:convertNumber pattern="#0.00"/>
                             </h:outputText>
                         </p:column>
+                        <p:column sortBy="#{item.stress}" filterBy="#{item.stress}" filterStyle="width: 30px;" filterMatchMode="contains">
+                            <f:facet name="header">
+                                <h:outputText value="Stress" title="#{bundle.Stress}" escape="false" style="white-space:pre-line;"/>
+                            </f:facet>
+                            <h:outputText style="color : #{locationLogController.getStressColor(item.stress)}; float: right;" value="#{item.stress}">
+                                <f:convertNumber pattern="#0.00"/>
+                            </h:outputText>
+                        </p:column>
                         <p:column sortBy="#{item.length}" filterBy="#{item.length}" filterStyle="width: 30px;" filterMatchMode="contains">
                             <f:facet name="header">
                                 <h:outputText value="L" title="#{bundle.Length}"/>
@@ -173,7 +225,7 @@
                         </p:column>
 
                         <!-- Datos del intervalo anterior -->
-                        
+
                         <p:column sortBy="#{item.previousIntervalData.startDate}" filterBy="#{item.previousIntervalData.formattedStartDate}" filterStyle="width: 30px;" filterMatchMode="contains" width="50px;" visible="false">
                             <f:facet name="header">
                                 <h:outputText value="PT0" title="#{bundle.StartHour}" escape="false" style="white-space:pre-line;"/>

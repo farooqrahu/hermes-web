@@ -12,6 +12,7 @@ import java.io.FileWriter;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
+import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.logging.Level;
@@ -83,6 +84,49 @@ public class CSVUtil<T> {
         return file;
     }
 
+    public void getFileData(ICSVBean bean, ICSVController<T> ci, CsvPreference csvPreference, boolean ignoreHeaders, File file) {
+        ICsvBeanWriter beanWriter = null;
+        InputStream is;
+
+        try {
+            beanWriter = new CsvBeanWriter(new FileWriter(file), csvPreference);
+
+            // Seleccionamos los atributos que vamos a exportar.
+            final String[] fields = bean.getFields();
+
+            // Aplicamos las características de los campos.
+            final CellProcessor[] processors = bean.getProcessors();
+
+            if (!ignoreHeaders) {
+                // Ponemos la cabecerra con los nombres de los atributos.
+                if (bean.getHeaders() != null) {
+                    beanWriter.writeHeader(bean.getHeaders());
+                } else {
+                    beanWriter.writeHeader(fields);
+                }
+            }
+
+            // Procesamos los elementos.
+            for (final T elemento : ci.getItems()) {
+                beanWriter.write(elemento, fields, processors);
+            }
+
+            // Creamos el archivo con los datos que vamos a devolver.
+            is = new FileInputStream(file);
+        } catch (Exception ex) {
+            log.log(Level.SEVERE, "getFileData() - Error al exportar a CSV", ex);
+        } finally {
+            // Cerramos.
+            if (beanWriter != null) {
+                try {
+                    beanWriter.close();
+                } catch (IOException ex) {
+                    log.log(Level.SEVERE, "getFileData() - Error al cerrar el 'writer'", ex);
+                }
+            }
+        }
+    }
+
     public void setData(ICSVBean bean, ICSVController<T> ci, UploadedFile file, CsvPreference csvPreference, boolean hasHeader) throws HermesException {
 
         ICsvBeanReader beanReader = null;
@@ -107,7 +151,7 @@ public class CSVUtil<T> {
                         log.log(Level.WARNING, "setData() - Número de columnas distintas a las esperadas");
                         // Lanzamos una excepción básica para intentar procesar el archivo de otra forma.
                         throw new HermesException();
-                        
+
 //                        List<CellProcessor> customCellProcessor = new ArrayList();
 //                        List<String> customFields = new ArrayList();
 //

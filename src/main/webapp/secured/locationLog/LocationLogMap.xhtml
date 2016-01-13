@@ -39,7 +39,7 @@
                         </p:gmapInfoWindow>
                     </p:gmap>
                     <div style="width: 100%; display: flex;">
-                        <h:panelGrid columns="2" style="width: 300px;">
+                        <h:panelGrid columns="2" style="width: 300px;" columnClasses="alignTop, alignTop">
                             <h:panelGroup>
                                 <!--<p:calendar id="mapDate" value="#{locationLogController.mapDate}" mindate="#{locationLogController.locationLogList[0].dateLog}" maxdate="#{locationLogController.locationLogList[locationLogController.locationLogList.size()-1].dateLog}" mode="inline" title="#{bundle.Date}">-->
                                 <p:calendar id="mapDate" value="#{locationLogController.mapDate}" mode="inline" title="#{bundle.Date}" beforeShowDay="enableAllTheseDays">
@@ -56,7 +56,8 @@
                                     <h:outputText value="#{bundle.IntervalsOf}"/>
                                     <p:spinner value="#{locationLogController.intervalLength}" title="#{bundle.IntervalLength}" min="100" max="20000" size="4" stepFactor="10"/>
                                     <h:outputText value=" m"/>
-                                    <p:commandButton process="@this PersonMapForm:analysis" value="#{bundle.IntervalData}" title="#{bundle.IntervalData}" actionListener="#{locationLogController.generateIntervalData()}" update=":IntervalDataForm" oncomplete="PF('IntervalDataDialog').show()"/>
+                                    <p:commandButton process="@this PersonMapForm:analysis" value="#{bundle.Intervals}" title="#{bundle.IntervalData}" actionListener="#{locationLogController.generateIntervalData()}" update=":IntervalDataForm" oncomplete="PF('IntervalDataDialog').show()" icon="intervals-icon-16"/>
+                                    <h:commandButton title="#{bundle.DownloadAllMonthIntervalData}" action="#{locationLogController.generateAllMonthIntervalData()}" immediate="true" styleClass="zip-icon-24" style="padding: 10px"/>
                                 </p:panel>
                             </h:panelGroup>
 
@@ -119,7 +120,7 @@
 
                         <div style="width: 100%">
                             <p:chart type="line" id="speedLineChart" widgetVar="speedLineChart" model="#{locationLogController.speedLineChartModel}" style="height:150px" responsive="true">
-                                 <p:ajax event="itemSelect" listener="#{locationLogController.speedItemSelect}" update="gmap" />
+                                <p:ajax event="itemSelect" listener="#{locationLogController.speedItemSelect}" update="gmap" />
                             </p:chart>
                             <p:chart type="line" id="heartRateLineChart" widgetVar="heartRateLineChart" model="#{locationLogController.heartRateLineChartModel}" style="height:150px" responsive="true">
                                 <p:ajax event="itemSelect" listener="#{locationLogController.heartRateItemSelect}" update="gmap" />

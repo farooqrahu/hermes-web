@@ -6,12 +6,21 @@
 package es.jyago.hermes.location;
 
 import es.jyago.hermes.bean.LocaleBean;
+import es.jyago.hermes.csv.CSVUtil;
+import es.jyago.hermes.csv.ICSVController;
 import es.jyago.hermes.location.detail.LocationLogDetail;
 import es.jyago.hermes.person.Person;
 import es.jyago.hermes.util.Constants;
 import es.jyago.hermes.util.HermesException;
 import es.jyago.hermes.util.JsfUtil;
+import es.jyago.hermes.util.Util;
+import java.io.File;
+import java.io.FileInputStream;
+import java.io.IOException;
 import java.io.Serializable;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.nio.file.Paths;
 import java.text.MessageFormat;
 import java.util.ArrayList;
 import java.util.Collections;
@@ -22,12 +31,21 @@ import java.util.Set;
 import java.util.TreeMap;
 import java.util.logging.Level;
 import java.util.logging.Logger;
+import java.util.zip.ZipEntry;
+import java.util.zip.ZipOutputStream;
 import javax.ejb.EJB;
 import javax.enterprise.context.SessionScoped;
 import javax.faces.component.UIOutput;
+import javax.faces.context.ExternalContext;
+import javax.faces.context.FacesContext;
 import javax.faces.event.AjaxBehaviorEvent;
 import javax.inject.Named;
+import javax.servlet.ServletContext;
+import javax.servlet.ServletOutputStream;
+import javax.servlet.http.HttpServletResponse;
 import org.apache.commons.math3.stat.descriptive.DescriptiveStatistics;
+import org.joda.time.Days;
+import org.joda.time.LocalDate;
 import org.primefaces.component.selectonemenu.SelectOneMenu;
 import org.primefaces.event.FileUploadEvent;
 import org.primefaces.event.ItemSelectEvent;
@@ -44,6 +62,7 @@ import org.primefaces.model.map.LatLng;
 import org.primefaces.model.map.MapModel;
 import org.primefaces.model.map.Marker;
 import org.primefaces.model.map.Polyline;
+import org.supercsv.prefs.CsvPreference;
 
 /**
  *
@@ -51,7 +70,7 @@ import org.primefaces.model.map.Polyline;
  */
 @Named("locationLogController")
 @SessionScoped
-public class LocationLogController implements Serializable {
+public class LocationLogController implements Serializable, ICSVController<IntervalData> {
 
     private static final Logger log = Logger.getLogger(LocationLogController.class.getName());
 
@@ -77,7 +96,6 @@ public class LocationLogController implements Serializable {
     private LineChartModel speedLineChartModel;
     private LineChartModel heartRateLineChartModel;
 
-    private Date selectedTime;
     private int intervalLength;
     private List<IntervalData> intervalDataList;
     private IntervalData selectedInterval;
@@ -85,7 +103,7 @@ public class LocationLogController implements Serializable {
     @EJB
     private LocationLogFacade ejbFacade;
     private Person person;
-    
+
     private int stressPercentThreshold;
 
     public LocationLogController() {
@@ -105,7 +123,6 @@ public class LocationLogController implements Serializable {
         mapModel = null;
         speedLineChartModel = null;
         heartRateLineChartModel = null;
-        selectedTime = null;
         intervalLength = 100;
         intervalDataList = null;
         selectedInterval = null;
@@ -325,9 +342,11 @@ public class LocationLogController implements Serializable {
                     globalStats.addValue(lld.getSpeed());
                     speedStats.addValue(lld.getSpeed());
                     heartRateStats.addValue(lld.getHeartRate());
-                    length += distFrom(lldPrev.getLatitude(), lldPrev.getLongitude(), lld.getLatitude(), lld.getLongitude());
-                    // Análisis del PKE (Positive Kinetic Energy)
-                    cummulativePositiveSpeeds += analyzePKE(lld, lldPrev);
+                    if (lldPrev.getLatitude() != 0.0d && lldPrev.getLongitude() != 0.0d) {
+                        length += distFrom(lldPrev.getLatitude(), lldPrev.getLongitude(), lld.getLatitude(), lld.getLongitude());
+                        // Análisis del PKE (Positive Kinetic Energy)
+                        cummulativePositiveSpeeds += analyzePKE(lld, lldPrev);
+                    }
                     lldPrev = lld;
 
                     if (length > intervalLength) {
@@ -359,9 +378,9 @@ public class LocationLogController implements Serializable {
                         intervalData.setStandardDeviationHeartRate(heartRateStats.getStandardDeviation());
                         intervalData.setHeartRateAtStart(heartRateAtStart);
                         intervalData.setHeartRateAtEnd(lld.getHeartRate());
-                        
+
                         // Nivel de estrés
-                        intervalData.setStress(getHeartRateAverageDeviation(intervalData.getAverageHeartRate()));
+                        intervalData.setStress(getHeartRateAverageDeviation(selectedLocationLog, intervalData.getAverageHeartRate()));
 
                         intervalDataList.add(intervalData);
                         newInterval = true;
@@ -381,7 +400,6 @@ public class LocationLogController implements Serializable {
             double length = 0.0d;
             double cummulativePositiveSpeeds = 0.0d;
             LocationLogDetail lldPrev = ll.getLocationLogDetailList().get(0);
-            double margin = 50.0d;
             double currentMinDistance = distFrom(lldPrev.getLatitude(), lldPrev.getLongitude(), selectedInterval.getStartLatitude(), selectedInterval.getStartLongitude());
             Date timeAtStart = lldPrev.getTimeLog();
             double speedAtStart = lldPrev.getSpeed();
@@ -392,7 +410,7 @@ public class LocationLogController implements Serializable {
                 LocationLogDetail lld = ll.getLocationLogDetailList().get(i);
 
                 if (!enterInterval) {
-                    currentMinDistance = checkInOutInterval(lld, selectedInterval.getStartLatitude(), selectedInterval.getStartLongitude(), margin, currentMinDistance);
+                    currentMinDistance = checkInOutInterval(lld, selectedInterval.getStartLatitude(), selectedInterval.getStartLongitude(), currentMinDistance);
                     // Si la distancia es 0, quiere decir que ya estamos en el tramo.
                     if (currentMinDistance == 0.0d) {
                         enterInterval = true;
@@ -402,13 +420,13 @@ public class LocationLogController implements Serializable {
                         speedAtStart = lld.getSpeed();
                         heartRateAtStart = lld.getHeartRate();
                         // Consideraremos ahora la distancia con el punto de salida.
-                        currentMinDistance = checkInOutInterval(lld, selectedInterval.getEndLatitude(), selectedInterval.getEndLongitude(), margin, Double.MAX_VALUE);
+                        currentMinDistance = checkInOutInterval(lld, selectedInterval.getEndLatitude(), selectedInterval.getEndLongitude(), Double.MAX_VALUE);
                     }
                 }
 
                 // Comprobamos si hemos entrado en un tramo, por el criterio anterior.
                 if (enterInterval) {
-                    currentMinDistance = checkInOutInterval(lld, selectedInterval.getEndLatitude(), selectedInterval.getEndLongitude(), margin, currentMinDistance);
+                    currentMinDistance = checkInOutInterval(lld, selectedInterval.getEndLatitude(), selectedInterval.getEndLongitude(), currentMinDistance);
                     if (currentMinDistance != 0.0d && length <= selectedInterval.getLength()) {
                         length += distFrom(lldPrev.getLatitude(), lldPrev.getLongitude(), lld.getLatitude(), lld.getLongitude());
                         // Análisis del PKE (Positive Kinetic Energy)
@@ -438,6 +456,9 @@ public class LocationLogController implements Serializable {
                         intervalData.setHeartRateAtStart(heartRateAtStart);
                         intervalData.setHeartRateAtEnd(lld.getHeartRate());
 
+                        // Nivel de estrés
+                        intervalData.setStress(getHeartRateAverageDeviation(ll, intervalData.getAverageHeartRate()));
+
                         // Añadimos la información del intervalo previo.
                         intervalData.setPreviousIntervalData(previousInterval);
 
@@ -448,6 +469,99 @@ public class LocationLogController implements Serializable {
                 }
                 lldPrev = lld;
             }
+        }
+    }
+
+    public void generateAllMonthIntervalData() {
+        try {
+            // Creamos un directorio temporal para contener los archivos generados.
+            Path tempDir = Files.createTempDirectory("Hermes_web");
+            String tempDirPath = tempDir.toAbsolutePath().toString() + File.separator;
+            log.log(Level.INFO, "generateAllMonthIntervalData() - Directorio temporal para almacenar los CSV: {0}", tempDirPath);
+
+            // Procesamos todos los días del mes actual.
+            LocalDate firstDayMonth = new LocalDate(mapDate).dayOfMonth().withMinimumValue();
+            int days = Days.daysBetween(firstDayMonth, firstDayMonth.dayOfMonth().withMaximumValue()).getDays() + 1;
+            for (int i = 0; i < days; i++) {
+                LocalDate currentDay = new LocalDate(firstDayMonth).plusDays(i);
+                List<LocationLog> locationLogList = locationLogMap.get(currentDay.toDate());
+                if (locationLogList != null && !locationLogList.isEmpty()) {
+                    CSVUtil<IntervalData> csvUtil = new CSVUtil<IntervalData>();
+                    for (LocationLog ll : locationLogList) {
+                        selectedLocationLog = ll;
+                        generateIntervalData();
+                        // Creamos un archivo temporal por cada lista de intervalos.
+                        String fileName = Constants.dfSmartDriver.format(ll.getDateLog()) + "_" + Constants.dfTimeSmartDriver.format(ll.getLocationLogDetailList().get(0).getTimeLog()) + ".csv";
+                        log.log(Level.INFO, "generateAllMonthIntervalData() - Generando archivo CSV: {0}", fileName);
+                        File file = new File(tempDir.toUri().getPath(), fileName);
+                        csvUtil.getFileData(new IntervalData(), this, CsvPreference.EXCEL_NORTH_EUROPE_PREFERENCE, false, file);
+                    }
+                }
+            }
+
+            // Creamos el archivo ZIP.
+            Path zipFile = Files.createTempFile(Constants.dfMonth.format(mapDate) + "_", ".zip");
+            ZipOutputStream zs = new ZipOutputStream(Files.newOutputStream(zipFile));
+            try {
+                log.log(Level.INFO, "generateAllMonthIntervalData() - Generando ZIP: {0}", zipFile.getFileName().toString());
+
+                // Recorremos los archivos CSV del directorio temporal.
+                Files.walk(Paths.get(tempDirPath)).filter(p -> p.toString().endsWith(".csv")).forEach(filePath -> {
+                    if (Files.isRegularFile(filePath)) {
+                        // Para almacenar los archivos en el ZIP, sin directorio.
+                        String sp = filePath.toAbsolutePath().toString().replace(tempDirPath, "");
+                        ZipEntry zipEntry = new ZipEntry(sp);
+                        try {
+                            zs.putNextEntry(zipEntry);
+                            zs.write(Files.readAllBytes(filePath));
+                            zs.closeEntry();
+                        } catch (Exception e) {
+                            log.log(Level.SEVERE, "generateAllMonthIntervalData() - No se ha podido meter el archivo: {0}", sp);
+                        }
+                    }
+                });
+            } finally {
+                zs.close();
+            }
+
+            FacesContext facesContext = FacesContext.getCurrentInstance();
+            ExternalContext externalContext = facesContext.getExternalContext();
+            HttpServletResponse response = (HttpServletResponse) externalContext.getResponse();
+            ServletContext servletContext = (ServletContext) externalContext.getContext();
+
+            response.reset();
+            response.setContentType(servletContext.getMimeType(zipFile.getFileName().toString()));
+            response.setContentLength((int) zipFile.toFile().length());
+            response.setHeader("Content-Disposition", "attachment; filename=\"" + (zipFile.getFileName().toString()).split("_")[0] + "\"");
+
+            ServletOutputStream out = null;
+
+            try {
+                FileInputStream input = new FileInputStream(zipFile.toFile());
+                byte[] buffer = new byte[1024];
+                out = response.getOutputStream();
+                int i = 0;
+                while ((i = input.read(buffer)) != -1) {
+                    out.write(buffer);
+                    out.flush();
+                }
+                FacesContext.getCurrentInstance().getResponseComplete();
+            } catch (IOException err) {
+                err.printStackTrace();
+            } finally {
+                try {
+                    if (out != null) {
+                        out.close();
+                    }
+                } catch (IOException err) {
+                    err.printStackTrace();
+                }
+            }
+
+            facesContext.responseComplete();
+
+        } catch (IOException ex) {
+            Logger.getLogger(Util.class.getName()).log(Level.SEVERE, null, ex);
         }
     }
 
@@ -463,7 +577,9 @@ public class LocationLogController implements Serializable {
             LocationLogDetail lld = ll.getLocationLogDetailList().get(i);
             // Sólo consideramos el registro si tiene datos válidos.
             if (lld.getLatitude() != 0.0d && lld.getLongitude() != 0.0d) {
-                cummulativeLength += distFrom(lldPrev.getLatitude(), lldPrev.getLongitude(), lld.getLatitude(), lld.getLongitude());
+                if (lldPrev.getLatitude() != 0.0d && lldPrev.getLongitude() != 0.0d) {
+                    cummulativeLength += distFrom(lldPrev.getLatitude(), lldPrev.getLongitude(), lld.getLatitude(), lld.getLongitude());
+                }
                 if (cummulativeLength >= length) {
                     // Ya se ha recorrido la distancia del tramo hacia atrás.
                     // Creamos el intervalo y salimos del bucle.
@@ -506,11 +622,12 @@ public class LocationLogController implements Serializable {
         return previousIntervalData;
     }
 
-    private double checkInOutInterval(LocationLogDetail lld, double latitude, double longitude, double margin, double currentMinDistance) {
+    private double checkInOutInterval(LocationLogDetail lld, double latitude, double longitude, double currentMinDistance) {
         double distanceFromIntervalStart = distFrom(lld.getLatitude(), lld.getLongitude(), latitude, longitude);
 
-        // Si la distancia hasta el inicio del tramo es menor que el margen, comenzamos a analizar los puntos.
-        if (distanceFromIntervalStart <= margin) {
+        // Definimos un margen de 50m para empezar a analizar las posiciones, es decir, si la distancia hasta el inicio del tramo es menor que este margen,
+        // comenzamos a analizar los puntos.
+        if (distanceFromIntervalStart <= 50.0d) {
             // Analizamos las localizaciones en búsqueda de la más cercana al inicio del tramo seleccionado.
             if (distanceFromIntervalStart < currentMinDistance) {
                 return distanceFromIntervalStart;
@@ -984,22 +1101,34 @@ public class LocationLogController implements Serializable {
     public void setStressPercentThreshold(int stressPercentThreshold) {
         this.stressPercentThreshold = stressPercentThreshold;
     }
-    
-    private double getHeartRateAverageDeviation(double intervalAverageHeartRate)
-    {
-        if (selectedLocationLog.getAvgHeartRate() == 0.0d)
+
+    private double getHeartRateAverageDeviation(LocationLog locationLog, double intervalAverageHeartRate) {
+        if (locationLog.getAvgHeartRate() == 0.0d) {
             return Double.NaN;
-        
-        return 100.0d - (intervalAverageHeartRate*100.0d/this.selectedLocationLog.getAvgHeartRate());
+        }
+
+        return 100.0d - (intervalAverageHeartRate * 100.0d / locationLog.getAvgHeartRate());
     }
-    
-    public String getStressColor(double value)
-    {
-        if (value >= stressPercentThreshold)
+
+    public String getStressColor(double value) {
+        if (value >= stressPercentThreshold) {
             return "red";
-        else if (value <= -stressPercentThreshold)
+        } else if (value <= -stressPercentThreshold) {
             return "green";
-        
+        }
+
         return "black";
+    }
+
+    @Override
+    public void processReadElement(IntervalData element) throws HermesException {
+        // No se usará porque sólo vamos a exportar los datos de los intervalos, no a importarlos.
+        throw new UnsupportedOperationException("Not supported yet."); //To change body of generated methods, choose Tools | Templates.
+    }
+
+    @Override
+    public List<IntervalData> getItems() {
+        // Devolvemos la lista de intervalos para poder generar el CSV de intervalos.
+        return this.intervalDataList;
     }
 }

@@ -70,6 +70,7 @@ public class Constants {
     public static final SimpleDateFormat dfFitbitFull = new SimpleDateFormat("yyyy-MM-dd'T'HH:mm:SSS");
     public static final SimpleDateFormat dfMonthYear = new SimpleDateFormat("MMMM yyyy");
     public static final SimpleDateFormat dfTimeGMT = new SimpleDateFormat("HH:mm:ss");
+    public static final SimpleDateFormat dfMonth = new SimpleDateFormat("yyyy-MM");
     
     public static final Date FITBIT_RELEASE_DATE = new Date(1367366400000l); // 01/05/2013 Fitbit estrenó su pulsera en mayo de 2013. No puede haber datos anteriores a esa fecha.
 

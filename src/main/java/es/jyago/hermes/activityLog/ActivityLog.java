@@ -47,7 +47,6 @@ import org.primefaces.model.chart.Axis;
 import org.primefaces.model.chart.AxisType;
 import org.primefaces.model.chart.ChartModel;
 import org.primefaces.model.chart.DateAxis;
-import org.primefaces.model.chart.LegendPlacement;
 import org.primefaces.model.chart.LineChartModel;
 import org.primefaces.model.chart.LineChartSeries;
 import org.primefaces.model.chart.MeterGaugeChartModel;
@@ -229,6 +228,11 @@ public class ActivityLog implements Serializable, ICSVBean {
     @Override
     public String[] getFields() {
         return new String[]{"date"};
+    }
+
+    @Override
+    public String[] getHeaders() {
+        return null;
     }
 
     public PieChartModel getPieModel(Map<String, Integer> values) {

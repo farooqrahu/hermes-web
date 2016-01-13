@@ -46,7 +46,7 @@
                         <!-- Para poner 'tooltips' en las cabeceras de las columnas de la tabla -->
                         <p:tooltip/>
 
-                        <p:column width="25px;">
+                        <p:column width="25px;" exportable="false">
                             <f:facet name="header">
                             </f:facet>
                             <div style="text-align: center;">
@@ -69,7 +69,7 @@
                         </p:column>
                         <p:column sortBy="#{item.endDate}" filterBy="#{item.formattedEndDate}" filterStyle="width: 30px;" filterMatchMode="contains" width="50px;">
                             <f:facet name="header">
-                                <h:outputText value="t1" title="#{bundle.EndHour}" escape="false" style="white-space:pre-line;"/>
+                                <h:outputText value="T1" title="#{bundle.EndHour}" escape="false" style="white-space:pre-line;"/>
                             </f:facet>
                             <h:outputText value="#{item.formattedEndDate}" style="float:right"/>
                         </p:column>
@@ -180,7 +180,7 @@
                                 <h:outputText value="MedHR" title="#{bundle.MedianHeartRate}" escape="false" style="white-space:pre-line;"/>
                             </f:facet>
                             <h:outputText value="#{item.medianHeartRate}" style="float:right">
-                                <f:convertNumber pattern="#0.00"/>
+                                     <f:convertNumber pattern="#0.00"/>
                             </h:outputText>
                         </p:column>
                         <p:column sortBy="#{item.standardDeviationHeartRate}" filterBy="#{item.standardDeviationHeartRate}" filterStyle="width: 30px;" filterMatchMode="contains">

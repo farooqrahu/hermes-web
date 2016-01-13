@@ -88,4 +88,8 @@ public class LocationLogCSV implements Serializable, ICSVBean {
         return new String[]{"dateTimeLog", "latitude", "longitude", null, "speed", "heartRate", null, null, null};
     }
 
+    @Override
+    public String[] getHeaders() {
+        return null;
+    }
 }

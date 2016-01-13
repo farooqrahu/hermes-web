@@ -479,6 +479,11 @@ public class Person implements Serializable, ICSVBean {
         return new String[]{"fullName", "email", "phone", "comments"};
     }
 
+    @Override
+    public String[] getHeaders() {
+        return null;
+    }
+
     public Date getFirstSynchronization() {
         Date firstSyncDate = null;
 

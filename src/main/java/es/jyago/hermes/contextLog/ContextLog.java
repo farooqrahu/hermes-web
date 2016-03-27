@@ -31,7 +31,6 @@ import javax.persistence.Table;
 import javax.persistence.Temporal;
 import javax.persistence.TemporalType;
 import javax.validation.constraints.NotNull;
-import javax.validation.constraints.Size;
 import javax.xml.bind.annotation.XmlRootElement;
 import javax.xml.bind.annotation.XmlTransient;
 import org.apache.commons.lang.builder.EqualsBuilder;
@@ -49,6 +48,7 @@ import org.primefaces.model.chart.PieChartModel;
     @NamedQuery(name = "ContextLog.findAll", query = "SELECT c FROM ContextLog c"),
     @NamedQuery(name = "ContextLog.findByContextLogId", query = "SELECT c FROM ContextLog c WHERE c.contextLogId = :contextLogId"),
     @NamedQuery(name = "ContextLog.findByDateLog", query = "SELECT c FROM ContextLog c WHERE c.dateLog = :dateLog"),
+    @NamedQuery(name = "ContextLog.findBySent", query = "SELECT c FROM ContextLog c WHERE c.sent = :sent"),
     @NamedQuery(name = "ContextLog.findByPersonAndDateLog", query = "SELECT c FROM ContextLog c WHERE c.person.personId = :personId AND c.dateLog = :dateLog")})
 public class ContextLog implements Serializable {
 
@@ -70,10 +70,8 @@ public class ContextLog implements Serializable {
     @ManyToOne(optional = false)
     private Person person;
     @Basic(optional = false)
-    @NotNull
-    @Size(max = 20)
-    @Column(name = "device_id")
-    private String deviceId;
+    @Column(name = "sent")
+    private boolean sent;
 
     public ContextLog() {
     }
@@ -120,14 +118,6 @@ public class ContextLog implements Serializable {
         this.person = person;
     }
 
-    public String getDeviceId() {
-        return deviceId;
-    }
-
-    public void setDeviceId(String deviceId) {
-        this.deviceId = deviceId;
-    }
-
     @Override
     public int hashCode() {
         return new HashCodeBuilder(19, 29).
@@ -155,7 +145,7 @@ public class ContextLog implements Serializable {
         sb.append("[")
                 .append(Constants.df.format(this.dateLog))
                 .append(" -> ")
-                .append(this.deviceId)
+                .append(this.person.getFullName())
                 .append("]");
 
         return sb.toString();
@@ -178,16 +168,21 @@ public class ContextLog implements Serializable {
     }
 
     public Map<String, Number> getActivitiesMap() {
+
         ResourceBundle bundle = ResourceBundle.getBundle("/Bundle");
         Map<String, Integer> tempValues = new HashMap<>();
 
         int total = 0;
-        for (ContextLogDetail cld : contextLogDetailList) {
-            String key = bundle.getString("Context_" + cld.getDetectedActivity());
-            Integer value = tempValues.get(key);
-            value = value != null ? value + 1 : 1;
-            tempValues.put(key, value);
-            total++;
+        if (contextLogDetailList != null) {
+            for (ContextLogDetail cld : contextLogDetailList) {
+                if (cld.getDetectedActivity() != null) {
+                    String key = bundle.getString(cld.getDetectedActivity());
+                    Integer value = tempValues.get(key);
+                    value = value != null ? value + 1 : 1;
+                    tempValues.put(key, value);
+                    total++;
+                }
+            }
         }
 
         Map<String, Number> values = new HashMap<>();
@@ -198,5 +193,13 @@ public class ContextLog implements Serializable {
         }
 
         return values;
+    }
+
+    public boolean isSent() {
+        return sent;
+    }
+
+    public void setSent(boolean sent) {
+        this.sent = sent;
     }
 }

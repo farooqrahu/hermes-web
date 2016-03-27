@@ -27,6 +27,8 @@ import javax.faces.bean.ManagedProperty;
 import javax.faces.bean.SessionScoped;
 import javax.faces.context.FacesContext;
 import javax.persistence.NoResultException;
+import javax.servlet.ServletException;
+import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpSession;
 import org.primefaces.extensions.component.gchart.model.GChartModel;
 import org.primefaces.extensions.component.gchart.model.GChartModelBuilder;
@@ -40,7 +42,7 @@ import org.primefaces.model.chart.PieChartModel;
 @SessionScoped
 public class LoginController implements Serializable {
 
-    private static final Logger log = Logger.getLogger(LoginController.class.getName());
+    private static final Logger LOG = Logger.getLogger(LoginController.class.getName());
     private String username;
     private String password;
     private Person person;
@@ -114,18 +116,18 @@ public class LoginController implements Serializable {
                 templateBean.setPage("/main.xhtml");
                 FacesContext.getCurrentInstance().addMessage("messages", new FacesMessage(FacesMessage.SEVERITY_INFO, bundle.getString("Welcome"), person.getFullName()));
             } else {
-                log.log(Level.SEVERE, "login() - Credenciales de acceso incorrectas");
+                LOG.log(Level.SEVERE, "login() - Credenciales de acceso incorrectas");
             }
         } catch (HermesException ex) {
-            log.log(Level.SEVERE, "login() - Credenciales de acceso incorrectas");
+            LOG.log(Level.SEVERE, "login() - Credenciales de acceso incorrectas");
             FacesContext.getCurrentInstance().validationFailed();
             FacesContext.getCurrentInstance().addMessage("messages", new FacesMessage(FacesMessage.SEVERITY_ERROR, bundle.getString("InvalidCredentials"), ""));
         } catch (Exception ex) {
-            log.log(Level.SEVERE, "login() - Error al acceder al sistema", ex);
+            LOG.log(Level.SEVERE, "login() - Error al acceder al sistema", ex);
             FacesContext.getCurrentInstance().validationFailed();
             FacesContext.getCurrentInstance().addMessage("messages", new FacesMessage(FacesMessage.SEVERITY_ERROR, bundle.getString("InvalidCredentials"), ""));
         }
-        
+
         return "index?faces-redirect=true";
     }
 
@@ -165,8 +167,8 @@ public class LoginController implements Serializable {
 
         chartBuilder.addColumns(bundle.getString("AccessToPages"), bundle.getString("WelcomePage"), bundle.getString("RegisterPage"));
 
-        Integer welcomeHitsValue = Integer.parseInt(Constants.getConfigurationValueByKey("WelcomeHits"));
-        Integer registerHitsValue = Integer.parseInt(Constants.getConfigurationValueByKey("RegisterHits"));
+        Integer welcomeHitsValue = Integer.parseInt(Constants.getInstance().getConfigurationValueByKey("WelcomeHits"));
+        Integer registerHitsValue = Integer.parseInt(Constants.getInstance().getConfigurationValueByKey("RegisterHits"));
 
         chartBuilder.addRow(bundle.getString("Access"), welcomeHitsValue, registerHitsValue);
         chartBuilder.addOption("legend", legend);
@@ -272,14 +274,14 @@ public class LoginController implements Serializable {
                 if (person != null) {
                     ok = true;
                 } else {
-                    log.log(Level.SEVERE, "getUserFromDatabase() - Usuario nulo");
+                    LOG.log(Level.SEVERE, "getUserFromDatabase() - Usuario nulo");
                     throw new HermesException("InvalidCredentials");
                 }
             } catch (NoResultException ex) {
-                log.log(Level.INFO, "getUserFromDatabase() - No existe el usuario: {0}", username);
+                LOG.log(Level.INFO, "getUserFromDatabase() - No existe el usuario: {0}", username);
                 throw new HermesException("InvalidCredentials");
             } catch (Exception ex) {
-                log.log(Level.SEVERE, "getUserFromDatabase() - Error al acceder al sistema", ex);
+                LOG.log(Level.SEVERE, "getUserFromDatabase() - Error al acceder al sistema", ex);
                 throw new HermesException("InvalidCredentials");
             }
         }
@@ -288,12 +290,24 @@ public class LoginController implements Serializable {
     }
 
     public String logout() {
-        FacesContext.getCurrentInstance().getExternalContext().invalidateSession();
+        FacesContext facesContext = FacesContext.getCurrentInstance();
+        HttpSession session = (HttpSession) facesContext.getExternalContext().getSession(false);
+        if (session != null) {
+            session.invalidate();
+        }
+        HttpServletRequest request = (HttpServletRequest) facesContext.getExternalContext().getRequest();
+        if (request != null) {
+            try {
+                request.logout();
+            } catch (ServletException ex) {
+                ;
+            }
+        }
         return "/index?faces-redirect=true";
     }
 
     public void keepSessionAlive() {
-        log.log(Level.INFO, "keepSessionAlive() - Mantener activa la sesiónn del usuario: {0}", username);
+        LOG.log(Level.INFO, "keepSessionAlive() - Mantener activa la sesiónn del usuario: {0}", username);
     }
 
     public boolean isLoggedIn() {
@@ -347,8 +361,8 @@ public class LoginController implements Serializable {
         if (activityLog != null) {
             sb.append("<b>").append(activityLog.getTotal() != null ? activityLog.getTotal() : bundle.getString("NoData")).append("</b>");
             if (person.isAdmin()) {
-                if (activityLog.getSendDate() != null) {
-                    sb.append(" - ").append(bundle.getString("Sent")).append(": ").append("<b>").append(Constants.df.format(activityLog.getSendDate())).append("</b>");
+                if (activityLog.isSent()) {
+                    sb.append(" - ").append(bundle.getString("Sent"));
                 }
             }
             sb.append("<br/>");
@@ -361,8 +375,8 @@ public class LoginController implements Serializable {
         if (sleepLog != null) {
             sb.append("<b>").append(Util.minutesToTimeString(sleepLog.getMinutesAsleep())).append("</b>");
             if (person.isAdmin()) {
-                if (sleepLog.getSendDate() != null) {
-                    sb.append(" - ").append(bundle.getString("Sent")).append(": ").append("<b>").append(Constants.df.format(sleepLog.getSendDate())).append("</b>");
+                if (sleepLog.isSent()) {
+                    sb.append(" - ").append(bundle.getString("Sent"));
                 }
             }
             sb.append("<br/>");
@@ -375,8 +389,8 @@ public class LoginController implements Serializable {
         if (healthLog != null) {
             sb.append("<b>").append(healthLog.getAverage() != null ? healthLog.getAverage() : bundle.getString("NoData")).append("</b>");
             if (person.isAdmin()) {
-                if (healthLog.getSendDate() != null) {
-                    sb.append(" - ").append(bundle.getString("Sent")).append(": ").append("<b>").append(Constants.df.format(healthLog.getSendDate())).append("</b>");
+                if (healthLog.isSent()) {
+                    sb.append(" - ").append(bundle.getString("Sent"));
                 }
             }
             sb.append("<br/>");

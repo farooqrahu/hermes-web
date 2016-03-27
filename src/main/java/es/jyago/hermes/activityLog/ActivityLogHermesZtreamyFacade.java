@@ -34,7 +34,7 @@ import ztreamy.Event;
 public class ActivityLogHermesZtreamyFacade extends AbstractHermesZtreamyFacade<ActivityLog> {
 
     private static final String STEPS_DATA = "Steps Data";
-    private static final Logger log = Logger.getLogger(ActivityLogHermesZtreamyFacade.class.getName());
+    private static final Logger LOG = Logger.getLogger(ActivityLogHermesZtreamyFacade.class.getName());
 
     public ActivityLogHermesZtreamyFacade(ActivityLog activityLog, Person person, String url) throws MalformedURLException, HermesException {
         super(activityLog, person, url);
@@ -52,21 +52,32 @@ public class ActivityLogHermesZtreamyFacade extends AbstractHermesZtreamyFacade<
             List<ZtreamyActivityLog> listZtreamyActivityLog = new ArrayList<>();
 
             for (ActivityLog activityLog : collectionActivityLog) {
-                List<ZtreamyStepLog> listZtreanyStepLog = new ArrayList<>();
+                List<ZtreamyStepLog> listZtreamyStepLog = new ArrayList<>();
 
-                for (StepLog stepLog : activityLog.getAggregatedValues()) {
-                    ZtreamyStepLog ztreamyStepLog = new ZtreamyStepLog(stepLog.getTimeLog(), stepLog.getSteps());
-                    listZtreanyStepLog.add(ztreamyStepLog);
+                // Enviamos los datos que no tengan la marca de enviados.
+                for (StepLog stepLog : activityLog.getStepLogList()) {
+                    if (!stepLog.isSent()) {
+                        // JYFR: 17-11-2015: Se limita el envío a únicamente los que tengan información distinta de cero.
+                        if (stepLog.getSteps() > 0) {
+                            ZtreamyStepLog ztreamyStepLog = new ZtreamyStepLog(stepLog.getTimeLog(), stepLog.getSteps());
+                            listZtreamyStepLog.add(ztreamyStepLog);
+                        }
+                    }
                 }
 
-                ZtreamyActivityLog ztreanyActivityLog = new ZtreamyActivityLog(activityLog.getDateLog(), listZtreanyStepLog);
-                listZtreamyActivityLog.add(ztreanyActivityLog);
+                if (!listZtreamyStepLog.isEmpty()) {
+                    ZtreamyActivityLog ztreamyActivityLog = new ZtreamyActivityLog(activityLog.getDateLog(), listZtreamyStepLog);
+                    listZtreamyActivityLog.add(ztreamyActivityLog);
+                }
             }
-            bodyObject = new HashMap<>();
-            if (listZtreamyActivityLog.size() == 1) {
-                bodyObject.put(STEPS_DATA, listZtreamyActivityLog.get(0));
-            } else {
-                bodyObject.put(STEPS_DATA, listZtreamyActivityLog);
+
+            if (!listZtreamyActivityLog.isEmpty()) {
+                bodyObject = new HashMap<>();
+                if (listZtreamyActivityLog.size() == 1) {
+                    bodyObject.put(STEPS_DATA, listZtreamyActivityLog.get(0));
+                } else {
+                    bodyObject.put(STEPS_DATA, listZtreamyActivityLog);
+                }
             }
         }
 
@@ -84,12 +95,12 @@ public class ActivityLogHermesZtreamyFacade extends AbstractHermesZtreamyFacade<
 
     @Override
     public Event prepareEvent() {
-        log.log(Level.INFO, "init() - Preparando el envío de datos de pasos por Ztreamy de: {0}", getPerson().getFullName());
+        LOG.log(Level.INFO, "init() - Preparando el envío de datos de pasos por Ztreamy de: {0}", getPerson().getFullName());
         String sha = getPerson().getSha();
         if (sha == null || sha.length() == 0) {
             sha = new String(Hex.encodeHex(DigestUtils.sha256(getPerson().getEmail())));
         }
-        return new Event(sha, MediaType.APPLICATION_JSON, getUrl(), STEPS_DATA);
+        return new Event(sha, MediaType.APPLICATION_JSON, Constants.getInstance().getConfigurationValueByKey("ZtreamyContextApplicationId"), STEPS_DATA);
     }
 
     @Override
@@ -104,14 +115,14 @@ public class ActivityLogHermesZtreamyFacade extends AbstractHermesZtreamyFacade<
         if (collection != null && !collection.isEmpty()) {
 
             for (ActivityLog activityLog : collection) {
-                List<ZtreamyStepLog> listZtreanyStepLog = new ArrayList<>();
+                List<ZtreamyStepLog> listZtreamyStepLog = new ArrayList<>();
 
                 for (StepLog stepLog : activityLog.getAggregatedValues()) {
                     ZtreamyStepLog ztreamyStepLog = new ZtreamyStepLog(stepLog.getTimeLog(), stepLog.getSteps());
-                    listZtreanyStepLog.add(ztreamyStepLog);
+                    listZtreamyStepLog.add(ztreamyStepLog);
                 }
 
-                ZtreamyActivityLog ztreamyActivityLog = new ZtreamyActivityLog(activityLog.getDateLog(), listZtreanyStepLog);
+                ZtreamyActivityLog ztreamyActivityLog = new ZtreamyActivityLog(activityLog.getDateLog(), listZtreamyStepLog);
                 listZtreamyActivityLog.add(ztreamyActivityLog);
             }
         }

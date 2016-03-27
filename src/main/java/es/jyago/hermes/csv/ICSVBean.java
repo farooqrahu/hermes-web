@@ -12,6 +12,8 @@ import org.supercsv.cellprocessor.ift.CellProcessor;
  * @author Jorge Yago
  */
 public interface ICSVBean {
+    
+    public void init(Integer columns);
 
     public CellProcessor[] getProcessors();
 

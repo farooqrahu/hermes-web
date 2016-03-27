@@ -55,6 +55,9 @@ public class HeartLog implements Serializable {
     @NotNull
     @Column(name = "rate")
     private int rate;
+    @Basic(optional = false)
+    @Column(name = "sent")
+    private boolean sent;
     @JoinColumn(name = "health_log_id", referencedColumnName = "health_log_id")
     @ManyToOne(optional = false)
     private HealthLog healthLog;
@@ -94,6 +97,14 @@ public class HeartLog implements Serializable {
 
     public void setRate(int rate) {
         this.rate = rate;
+    }
+
+    public boolean isSent() {
+        return sent;
+    }
+
+    public void setSent(boolean sent) {
+        this.sent = sent;
     }
 
     public HealthLog getHealthLog() {

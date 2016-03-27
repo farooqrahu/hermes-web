@@ -6,14 +6,15 @@
 package es.jyago.hermes.location;
 
 import es.jyago.hermes.csv.ICSVBean;
+import es.jyago.hermes.sleepLog.SleepLog;
 import es.jyago.hermes.util.Constants;
 import java.io.Serializable;
+import java.util.ArrayList;
 import java.util.Date;
+import java.util.List;
 import org.supercsv.cellprocessor.FmtNumber;
-import org.supercsv.cellprocessor.ParseDate;
 import org.supercsv.cellprocessor.ParseDouble;
 import org.supercsv.cellprocessor.ParseInt;
-import org.supercsv.cellprocessor.Truncate;
 import org.supercsv.cellprocessor.ift.CellProcessor;
 
 /**
@@ -34,6 +35,8 @@ public class IntervalData implements Serializable, ICSVBean {
     private double pke;
     private double speedAtStart;
     private double speedAtEnd;
+    private double averageAcceleration;
+    private double averageDeceleration;
 
     // Datos de posición.
     private double startLatitude;
@@ -56,9 +59,19 @@ public class IntervalData implements Serializable, ICSVBean {
     private int heartRateAtStart;
     private int heartRateAtEnd;
     private double stress;
+    private int minRRTime;
+    private int maxRRTime;
+    private double averageRRTime;
 
     // Tramo previo. Servirá para analizar la tendencia.
     private IntervalData previousIntervalData;
+
+    // Datos de sueño
+    private SleepLog sleepLog;
+
+    protected CellProcessor[] cellProcessors;
+    protected String[] fields;
+    protected String[] headers;
 
     public IntervalData() {
         intervalId = 0;
@@ -72,6 +85,8 @@ public class IntervalData implements Serializable, ICSVBean {
         pke = 0.0d;
         speedAtStart = 0.0d;
         speedAtEnd = 0.0d;
+        averageAcceleration = 0.0d;
+        averageDeceleration = 0.0d;
 
         startLatitude = 0.0d;
         startLongitude = 0.0d;
@@ -87,10 +102,152 @@ public class IntervalData implements Serializable, ICSVBean {
         standardDeviationHeartRate = 0.0d;
         heartRateAtStart = 0;
         heartRateAtEnd = 0;
+        minRRTime = 0;
+        maxRRTime = 0;
+        averageRRTime = 0.0d;
 
         stress = 0.0d;
 
         previousIntervalData = null;
+
+        sleepLog = null;
+    }
+
+    @Override
+    public void init(Integer columns) {
+        // Si el número de columnas es 'null', se establecen las que se definan internamente en este método.
+
+        List<CellProcessor> cpl = new ArrayList();
+
+        cpl.add(new org.supercsv.cellprocessor.constraint.NotNull(new ParseInt())); // número de intervalo
+        cpl.add(new org.supercsv.cellprocessor.constraint.NotNull()); // hora de inicio
+        cpl.add(new org.supercsv.cellprocessor.constraint.NotNull()); // hora de final
+        cpl.add(new org.supercsv.cellprocessor.constraint.NotNull()); // diferencia de tiempo
+        cpl.add(new org.supercsv.cellprocessor.constraint.NotNull(new ParseDouble(new FmtNumber("0.00")))); // velocidad al inicio
+        cpl.add(new org.supercsv.cellprocessor.constraint.NotNull(new ParseDouble(new FmtNumber("0.00")))); // velocidad al final
+        cpl.add(new org.supercsv.cellprocessor.constraint.NotNull(new ParseDouble(new FmtNumber("0.00")))); // velocidad mínima
+        cpl.add(new org.supercsv.cellprocessor.constraint.NotNull(new ParseDouble(new FmtNumber("0.00")))); // velocidad máxima
+        cpl.add(new org.supercsv.cellprocessor.constraint.NotNull(new ParseDouble(new FmtNumber("0.00")))); // velocidad media
+        cpl.add(new org.supercsv.cellprocessor.constraint.NotNull(new ParseDouble(new FmtNumber("0.00")))); // mediana de la velocidad
+        cpl.add(new org.supercsv.cellprocessor.constraint.NotNull(new ParseDouble(new FmtNumber("0.00")))); // desviación típica de la velocidad
+        cpl.add(new org.supercsv.cellprocessor.constraint.NotNull(new ParseDouble(new FmtNumber("0.00")))); // aceleración
+        cpl.add(new org.supercsv.cellprocessor.constraint.NotNull(new ParseDouble(new FmtNumber("0.00")))); // deceleración
+        cpl.add(new org.supercsv.cellprocessor.constraint.NotNull(new ParseDouble(new FmtNumber("0.00")))); // pke
+        cpl.add(new org.supercsv.cellprocessor.constraint.NotNull(new ParseInt())); // pulso al inicio
+        cpl.add(new org.supercsv.cellprocessor.constraint.NotNull(new ParseInt())); // pulso al final
+        cpl.add(new org.supercsv.cellprocessor.constraint.NotNull(new ParseInt())); // pulso mínimo
+        cpl.add(new org.supercsv.cellprocessor.constraint.NotNull(new ParseInt())); // pulso máximo
+        cpl.add(new org.supercsv.cellprocessor.constraint.NotNull(new ParseDouble(new FmtNumber("0.00")))); // pulso media
+        cpl.add(new org.supercsv.cellprocessor.constraint.NotNull(new ParseDouble(new FmtNumber("0.00")))); // mediana del pulso
+        cpl.add(new org.supercsv.cellprocessor.constraint.NotNull(new ParseDouble(new FmtNumber("0.00")))); // desviación típica del pulso
+        cpl.add(new org.supercsv.cellprocessor.Optional(new ParseInt())); // intervalo RR mínimo
+        cpl.add(new org.supercsv.cellprocessor.Optional(new ParseInt())); // intervalo RR máximo
+        cpl.add(new org.supercsv.cellprocessor.Optional(new ParseDouble(new FmtNumber("0.00")))); // intervalo RR medio
+        cpl.add(new org.supercsv.cellprocessor.constraint.NotNull(new ParseDouble(new FmtNumber("0.00")))); // estrés
+        cpl.add(new org.supercsv.cellprocessor.Optional()); // hora de inicio del sueño
+        cpl.add(new org.supercsv.cellprocessor.Optional()); // hora de fin del sueño
+        cpl.add(new org.supercsv.cellprocessor.Optional(new ParseInt())); // minutos en la cama
+        cpl.add(new org.supercsv.cellprocessor.Optional(new ParseInt())); // minutos durmiendo
+        cpl.add(new org.supercsv.cellprocessor.Optional(new ParseInt())); // despertares
+        cpl.add(new org.supercsv.cellprocessor.constraint.NotNull(new ParseDouble(new FmtNumber("0.00")))); // longitud del tramo
+        cpl.add(new org.supercsv.cellprocessor.constraint.NotNull(new ParseDouble(new FmtNumber("0.00")))); // longitud acumulada
+
+        if (columns != null) {
+            cellProcessors = new CellProcessor[columns];
+            for (int i = 0; i < columns; i++) {
+                cellProcessors[i] = cpl.get(i);
+            }
+        } else {
+            cellProcessors = cpl.toArray(new CellProcessor[cpl.size()]);
+        }
+
+        List<String> f = new ArrayList();
+
+        f.add("intervalId");
+        f.add("formattedStartDate");
+        f.add("formattedEndDate");
+        f.add("timeDifference");
+        f.add("speedAtStart");
+        f.add("speedAtEnd");
+        f.add("minSpeed");
+        f.add("maxSpeed");
+        f.add("averageSpeed");
+        f.add("medianSpeed");
+        f.add("standardDeviationSpeed");
+        f.add("averageAcceleration");
+        f.add("averageDeceleration");
+        f.add("pke");
+        f.add("heartRateAtStart");
+        f.add("heartRateAtEnd");
+        f.add("minHeartRate");
+        f.add("maxHeartRate");
+        f.add("averageHeartRate");
+        f.add("medianHeartRate");
+        f.add("standardDeviationHeartRate");
+        f.add("minRRTime");
+        f.add("maxRRTime");
+        f.add("averageRRTime");
+        f.add("stress");
+        f.add("sleepLogFormattedStartTime");
+        f.add("sleepLogFormattedEndTime");
+        f.add("sleepLogMinutesInBed");
+        f.add("sleepLogMinutesAsleep");
+        f.add("sleepLogAwakenings");
+        f.add("length");
+        f.add("cummulativeLength");
+
+        if (columns != null) {
+            fields = new String[columns];
+            for (int i = 0; i < columns; i++) {
+                fields[i] = f.get(i);
+            }
+        } else {
+            fields = f.toArray(new String[f.size()]);
+        }
+
+        List<String> h = new ArrayList();
+
+        h.add("I");
+        h.add("T0");
+        h.add("T1");
+        h.add("T1-T0");
+        h.add("S0");
+        h.add("S1");
+        h.add("MinS");
+        h.add("MaxS");
+        h.add("AvS");
+        h.add("MedS");
+        h.add("StdDevS");
+        h.add("AvACC");
+        h.add("AvDEC");
+        h.add("PKE");
+        h.add("HR0");
+        h.add("HR1");
+        h.add("MinHR");
+        h.add("MaxHR");
+        h.add("AvHR");
+        h.add("MedHR");
+        h.add("StdDevHR");
+        h.add("MinRR");
+        h.add("MaxRR");
+        h.add("AvRR");
+        h.add("Stress");
+        h.add("SL0");
+        h.add("SL1");
+        h.add("MB");
+        h.add("MA");
+        h.add("AW");
+        h.add("L");
+        h.add("SumL");
+
+        if (columns != null) {
+            headers = new String[columns];
+            for (int i = 0; i < columns; i++) {
+                headers[i] = h.get(i);
+            }
+        } else {
+            headers = h.toArray(new String[h.size()]);
+        }
     }
 
     public int getIntervalId() {
@@ -330,62 +487,94 @@ public class IntervalData implements Serializable, ICSVBean {
         this.stress = stress;
     }
 
+    public double getAverageAcceleration() {
+        return averageAcceleration;
+    }
+
+    public void setAverageAcceleration(double averageAcceleration) {
+        this.averageAcceleration = averageAcceleration;
+    }
+
+    public double getAverageDeceleration() {
+        return averageDeceleration;
+    }
+
+    public void setAverageDeceleration(double averageDeceleration) {
+        this.averageDeceleration = averageDeceleration;
+    }
+
+    public int getMinRRTime() {
+        return minRRTime;
+    }
+
+    public void setMinRRTime(int minRRTime) {
+        this.minRRTime = minRRTime;
+    }
+
+    public int getMaxRRTime() {
+        return maxRRTime;
+    }
+
+    public void setMaxRRTime(int maxRRTime) {
+        this.maxRRTime = maxRRTime;
+    }
+
+    public double getAverageRRTime() {
+        return averageRRTime;
+    }
+
+    public void setAverageRRTime(double averageRRTime) {
+        this.averageRRTime = averageRRTime;
+    }
+
+    public SleepLog getSleepLog() {
+        return sleepLog;
+    }
+
+    public void setSleepLog(SleepLog sleepLog) {
+        this.sleepLog = sleepLog;
+    }
+
+    public String getSleepLogFormattedStartTime() {
+        return sleepLog != null ? sleepLog.getFormattedStartTime() : "";
+    }
+
+    public String getSleepLogFormattedEndTime() {
+        return sleepLog != null ? sleepLog.getFormattedEndTime() : "";
+    }
+
+    public Integer getSleepLogMinutesInBed() {
+        return sleepLog != null ? sleepLog.getMinutesInBed() : null;
+    }
+
+    public Integer getSleepLogMinutesAsleep() {
+        return sleepLog != null ? sleepLog.getMinutesAsleep() : null;
+    }
+
+    public Integer getSleepLogAwakenings() {
+        return sleepLog != null ? sleepLog.getAwakenings() : null;
+    }
+
+    public CellProcessor[] getCellProcessors() {
+        return cellProcessors;
+    }
+
+    public void setCellProcessors(CellProcessor[] cellProcessors) {
+        this.cellProcessors = cellProcessors;
+    }
+
     @Override
     public CellProcessor[] getProcessors() {
-        return new CellProcessor[]{
-            new org.supercsv.cellprocessor.constraint.NotNull(new ParseInt()), // número de intervalo
-            new org.supercsv.cellprocessor.constraint.NotNull(), // hora de inicio
-            new org.supercsv.cellprocessor.constraint.NotNull(), // hora de final
-            new org.supercsv.cellprocessor.constraint.NotNull(), // diferencia de tiempo
-            new org.supercsv.cellprocessor.constraint.NotNull(new ParseDouble(new FmtNumber("0.00"))), // velocidad al inicio
-            new org.supercsv.cellprocessor.constraint.NotNull(new ParseDouble(new FmtNumber("0.00"))), // velocidad al final
-            new org.supercsv.cellprocessor.constraint.NotNull(new ParseDouble(new FmtNumber("0.00"))), // velocidad mínima
-            new org.supercsv.cellprocessor.constraint.NotNull(new ParseDouble(new FmtNumber("0.00"))), // velocidad máxima
-            new org.supercsv.cellprocessor.constraint.NotNull(new ParseDouble(new FmtNumber("0.00"))), // velocidad media
-            new org.supercsv.cellprocessor.constraint.NotNull(new ParseDouble(new FmtNumber("0.00"))), // mediana de la velocidad
-            new org.supercsv.cellprocessor.constraint.NotNull(new ParseDouble(new FmtNumber("0.00"))), // desviación típica de la velocidad
-            new org.supercsv.cellprocessor.constraint.NotNull(new ParseDouble(new FmtNumber("0.00"))), // pke
-            new org.supercsv.cellprocessor.constraint.NotNull(new ParseInt()), // pulso al inicio
-            new org.supercsv.cellprocessor.constraint.NotNull(new ParseInt()), // pulso al final
-            new org.supercsv.cellprocessor.constraint.NotNull(new ParseInt()), // pulso mínimo
-            new org.supercsv.cellprocessor.constraint.NotNull(new ParseInt()), // pulso máximo
-            new org.supercsv.cellprocessor.constraint.NotNull(new ParseDouble(new FmtNumber("0.00"))), // pulso media
-            new org.supercsv.cellprocessor.constraint.NotNull(new ParseDouble(new FmtNumber("0.00"))), // mediana del pulso
-            new org.supercsv.cellprocessor.constraint.NotNull(new ParseDouble(new FmtNumber("0.00"))), // desviación típica del pulso
-            new org.supercsv.cellprocessor.constraint.NotNull(new ParseDouble(new FmtNumber("0.00"))), // estrés
-            new org.supercsv.cellprocessor.constraint.NotNull(new ParseDouble(new FmtNumber("0.00"))), // longitud del tramo
-            new org.supercsv.cellprocessor.constraint.NotNull(new ParseDouble(new FmtNumber("0.00"))) // longitud acumulada
-        };
+        return cellProcessors;
     }
 
     @Override
     public String[] getFields() {
-        return new String[]{"intervalId",
-            "formattedStartDate",
-            "formattedEndDate",
-            "timeDifference",
-            "speedAtStart",
-            "speedAtEnd",
-            "minSpeed",
-            "maxSpeed",
-            "averageSpeed",
-            "medianSpeed",
-            "standardDeviationSpeed",
-            "pke",
-            "heartRateAtStart",
-            "heartRateAtEnd",
-            "minHeartRate",
-            "maxHeartRate",
-            "averageHeartRate",
-            "medianHeartRate",
-            "standardDeviationHeartRate",
-            "stress",
-            "length",
-            "cummulativeLength"};
+        return fields;
     }
 
     @Override
     public String[] getHeaders() {
-        return new String[]{"I", "T0", "T1", "T1-T0", "S0", "S1", "MinS", "MaxS", "AvS", "MedS", "StdDevS", "PKE", "HR0", "HR1", "MinHR", "MaxHR", "AvHR", "MedHR", "StdDevHR", "Stress", "L", "SumL"};
+        return headers;
     }
 }

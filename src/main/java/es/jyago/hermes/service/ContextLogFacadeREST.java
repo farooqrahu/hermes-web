@@ -1,12 +1,14 @@
 package es.jyago.hermes.service;
 
+import es.jyago.hermes.AbstractFacade;
 import es.jyago.hermes.contextLog.ContextLog;
 import es.jyago.hermes.contextLog.ContextLogDetail;
-import es.jyago.hermes.contextLog.ContextLogFacade;
 import es.jyago.hermes.person.Person;
 import es.jyago.hermes.person.PersonFacade;
+import es.jyago.hermes.util.Constants;
 import es.jyago.hermes.util.HermesException;
 import java.util.ArrayList;
+import java.util.Calendar;
 import java.util.Date;
 import java.util.List;
 import java.util.logging.Level;
@@ -21,6 +23,10 @@ import javax.ws.rs.Consumes;
 import javax.ws.rs.POST;
 import javax.ws.rs.Path;
 import javax.ws.rs.core.MediaType;
+import org.joda.time.DateTime;
+import org.joda.time.Days;
+import org.joda.time.DurationFieldType;
+import org.joda.time.Interval;
 import org.joda.time.LocalDate;
 
 /**
@@ -32,15 +38,9 @@ import org.joda.time.LocalDate;
  */
 @Stateless
 @Path("hermes.citizen.context")
-public class ContextLogFacadeREST extends ContextLogFacade {
+public class ContextLogFacadeREST extends AbstractFacade<ContextLog> {
 
-    private static final int ERROR = 0;
-    private static final int OK = 1;
-    private static final int USER_NOT_FOUND = 2;
-    private static final int ERROR_IN_DATA = 3;
-    private static final int NO_CONTEXT_DATA = 4;
-
-    private static final Logger log = Logger.getLogger(ContextLogFacadeREST.class.getName());
+    private static final Logger LOG = Logger.getLogger(ContextLogFacadeREST.class.getName());
 
     @PersistenceContext(unitName = "HermesWeb_PU")
     private EntityManager em;
@@ -52,7 +52,7 @@ public class ContextLogFacadeREST extends ContextLogFacade {
     private SessionContext ctx;
 
     public ContextLogFacadeREST() {
-        super();
+        super(ContextLog.class);
     }
 
     @POST
@@ -62,17 +62,81 @@ public class ContextLogFacadeREST extends ContextLogFacade {
         try {
             if (androidContext != null) {
                 processAndroidContexts(androidContext);
-                return OK;
+                return Constants.REST_OK;
             }
         } catch (HermesException ex) {
+            LOG.log(Level.SEVERE, "create() - Error controlado", ex);
             ctx.setRollbackOnly();
             return ex.getCode();
         } catch (Exception ex) {
+            LOG.log(Level.SEVERE, "create() - Error no controlado", ex);
             ctx.setRollbackOnly();
-            return ERROR;
+            return Constants.REST_ERROR;
         }
 
-        return ERROR;
+        return Constants.REST_ERROR;
+    }
+
+    @POST
+    @Path("/createRange")
+    @Consumes(MediaType.APPLICATION_JSON)
+    public int createRange(AndroidContext androidContext) {
+        try {
+            if (androidContext != null && androidContext.getItems() != null && !androidContext.getItems().isEmpty()) {
+                LocalDate start = new LocalDate(androidContext.getItems().get(0).startTime);
+                LOG.log(Level.INFO, "createRange() - Recepción de contexto de: {0} del día {1}", new Object[]{androidContext.getUser(), start});
+                int days = Days.daysBetween(start, new LocalDate(androidContext.getItems().get(androidContext.getItems().size() - 1).endTime)).getDays() + 1;
+                for (int i = 0; i < days; i++) {
+                    Calendar c = Calendar.getInstance();
+                    c.setTimeInMillis(start.toDate().getTime());
+                    c.set(Calendar.HOUR_OF_DAY, 0);
+                    c.set(Calendar.MINUTE, 0);
+                    c.set(Calendar.SECOND, 0);
+                    c.set(Calendar.MILLISECOND, 0);
+
+                    DateTime firstMinute = new DateTime(c);
+                    firstMinute = firstMinute.plusDays(i);
+                    DateTime lastMinute = firstMinute.plusDays(1);
+                    Interval dayInterval = new Interval(firstMinute, lastMinute);
+
+                    AndroidContext clone = (AndroidContext) androidContext.clone();
+                    for (int j = clone.getItems().size() - 1; j >= 0; j--) {
+                        AndroidContextDetail acd = clone.getItems().get(j);
+
+                        Interval itemInterval = new Interval(acd.getStartTime(), acd.getEndTime());
+                        if (!dayInterval.overlaps(itemInterval)) {
+                            // Eliminamos los intervalos que no estén en el día.
+                            clone.getItems().remove(acd);
+                        } else {
+                            if (itemInterval.getStart().isBefore(dayInterval.getStart()) || itemInterval.getStart().isEqual(dayInterval.getStart())) {
+                                // El intervalo comienza antes, lo redefinimos.
+                                acd.setStartTime(dayInterval.getStartMillis());
+                            }
+                            if (itemInterval.getEnd().isAfter(dayInterval.getEnd())) {
+                                // El intervalo acaba después, lo redefinimos.
+                                acd.setEndTime(dayInterval.getEndMillis());
+                            }
+                        }
+                    }
+
+                    if (!clone.getItems().isEmpty()) {
+                        processAndroidContexts(clone);
+                    }
+                }
+
+                return Constants.REST_OK;
+            }
+        } catch (HermesException ex) {
+            LOG.log(Level.SEVERE, "create() - Error controlado", ex);
+            ctx.setRollbackOnly();
+            return ex.getCode();
+        } catch (Exception ex) {
+            LOG.log(Level.SEVERE, "create() - Error no controlado", ex);
+            ctx.setRollbackOnly();
+            return Constants.REST_ERROR;
+        }
+
+        return Constants.REST_ERROR;
     }
 
     private void processAndroidContexts(AndroidContext androidContext) throws HermesException {
@@ -85,87 +149,115 @@ public class ContextLogFacadeREST extends ContextLogFacade {
                     .getSingleResult();
 
         } catch (Exception ex) {
-            log.log(Level.SEVERE, "processAndroidContext() - No se ha encontrado el usuario por email: {0}", androidContext.getUser());
-            throw new HermesException(USER_NOT_FOUND);
+            LOG.log(Level.SEVERE, "processAndroidContexts() - No se ha encontrado el usuario por email: {0}", androidContext.getUser());
+            throw new HermesException(Constants.REST_ERROR_USER_NOT_FOUND);
         }
 
-        // Procesamos los datos de los contextos, ya que pueden venir de varios días, no sólo de 1.
+        // Cada objeto traerá información de 1 día.
         try {
             // En la B.D. tenemos una estructura maestro-detalle, mientras que de Android nos llegan los datos como elementos individuales.
             // Comprobamos si contiene contextos.
-            if (androidContext.getContexts() != null && !androidContext.getContexts().isEmpty()) {
-                AndroidContextDetail acd = androidContext.getContexts().get(0);
+            if (androidContext.getItems() != null && !androidContext.getItems().isEmpty()) {
 
                 ContextLog contextLog;
-                LocalDate parentDate = new LocalDate(acd.getTime());
+                // Los datos de Android nos llegan por intervalos temporales.
+                // Tomamos la fecha de inicio del intervalo.
+                LocalDate parentDate = new LocalDate(androidContext.getItems().get(0).getStartTime());
+
                 // Buscamos por si existe un contexto previo registrado en la B.D.
-                List<ContextLog> contextLogList = super.findByPersonAndDate(person, parentDate.toDate());
+                List<ContextLog> contextLogList = em.createNamedQuery("ContextLog.findByPersonAndDateLog").setParameter("personId", person.getPersonId()).setParameter("dateLog", parentDate.toDate()).getResultList();
                 if (contextLogList != null && !contextLogList.isEmpty()) {
+                    // Actualizamos los datos del registro de contexto.
                     contextLog = contextLogList.get(0);
-                } else {
-                    contextLog = new ContextLog();
-                }
-                // Al menos, nos está llegando un elemento, creamos el registro padre para almacenarlo en la B.D.
-                contextLog.setDeviceId(androidContext.deviceId);
-                contextLog.setPerson(person);
-                contextLog.setDateLog(parentDate.toDate());
-                // Creamos el listado de detalles.
-                List<ContextLogDetail> contextLogDetailList = new ArrayList();
-
-                ContextLogDetail cld = createContextLogDetail(acd);
-                cld.setContextLog(contextLog);
-                contextLogDetailList.add(cld);
-
-                // Procesamos el resto de elementos, si los hubiera, teniendo en cuenta que si cambia de fecha, habrá que crear un elemento padre nuevo.
-                for (int i = 1; i < androidContext.getContexts().size(); i++) {
-                    acd = androidContext.getContexts().get(i);
-                    LocalDate currentDate = new LocalDate(acd.getTime());
-                    // Si tienen la misma fecha, serán del mismo elemento padre.
-                    if (!parentDate.equals(currentDate)) {
-                        // Tienen fecha distinta -> Registramos el contexto padre actual con todos los detalles y creamos uno nuevo.
-                        // Asignamos la lista de detalles actual.
-                        contextLog.setContextLogDetailList(contextLogDetailList);
-                        // Lo registramos en la B.D.
-                        super.create(contextLog);
-
-                        // Creamos un nuevo elemento padre con un detalle.
-                        contextLog = new ContextLog();
-                        contextLog.setDeviceId(androidContext.deviceId);
-                        contextLog.setPerson(person);
-                        parentDate = new LocalDate(acd.getTime());
-                        contextLog.setDateLog(parentDate.toDate());
-                        // Creamos el listado de detalles.
-                        contextLogDetailList = new ArrayList();
+                    List<ContextLogDetail> acdList = new ArrayList<>();
+                    // Procesamos el conjunto de datos.
+                    for (AndroidContextDetail acd : androidContext.getItems()) {
+                        acdList.addAll(createContextLogDetail(acd, contextLog));
                     }
-                    cld = createContextLogDetail(acd);
-                    cld.setContextLog(contextLog);
-                    contextLogDetailList.add(cld);
+                    for (ContextLogDetail cld : contextLog.getContextLogDetailList()) {
+                        for (int i = acdList.size() - 1; i >= 0; i--) {
+                            ContextLogDetail newAcd = acdList.get(i);
+                            if (Constants.dfSimpleTime.format(newAcd.getTimeLog()).equals(Constants.dfSimpleTime.format(cld.getTimeLog()))) {
+                                if (cld.getAccuracy() == null) {
+                                    cld.setAccuracy(newAcd.getAccuracy());
+                                    cld.setSent(false);
+                                }
+                                if (cld.getLatitude() == null) {
+                                    cld.setLatitude(newAcd.getLatitude());
+                                    cld.setSent(false);
+                                }
+                                if (cld.getLongitude() == null) {
+                                    cld.setLongitude(newAcd.getLongitude());
+                                    cld.setSent(false);
+                                }
+                                if (cld.getDetectedActivity() == null) {
+                                    cld.setDetectedActivity(newAcd.getDetectedActivity());
+                                    cld.setSent(false);
+                                }
+                                acdList.remove(i);
+                                break;
+                            }
+                        }
+                    }
+                    contextLog.getContextLogDetailList().addAll(acdList);
+                    contextLog.setSent(false);
+                } else {
+                    // Es un registro de contexto nuevo.
+                    contextLog = new ContextLog();
+                    // Creamos el registro padre para almacenarlo en la B.D.
+                    contextLog.setPerson(person);
+                    contextLog.setDateLog(parentDate.toDate());
+                    contextLog.setContextLogDetailList(new ArrayList());
+                    contextLog.setSent(false);
+                    // Procesamos el conjunto de datos.
+                    for (AndroidContextDetail acd : androidContext.getItems()) {
+                        contextLog.getContextLogDetailList().addAll(createContextLogDetail(acd, contextLog));
+                    }
                 }
-
-                // Asignamos la lista de detalles.
-                contextLog.setContextLogDetailList(contextLogDetailList);
 
                 // Lo registramos en la B.D.
                 super.create(contextLog);
             } else {
-                log.log(Level.SEVERE, "processAndroidContext() - No hay datos de contextos");
-                throw new HermesException(NO_CONTEXT_DATA);
+                LOG.log(Level.SEVERE, "processAndroidContexts() - No hay datos de contextos");
+                throw new HermesException(Constants.REST_ERROR_NO_CONTEXT_DATA);
             }
         } catch (Exception ex) {
-            log.log(Level.SEVERE, "processAndroidContext() - Error al procesar los contextos", ex.getMessage());
-            throw new HermesException(ERROR_IN_DATA);
+            LOG.log(Level.SEVERE, "processAndroidContexts() - Error al procesar los contextos", ex);
+            throw new HermesException(Constants.REST_ERROR_IN_DATA);
         }
     }
 
-    private ContextLogDetail createContextLogDetail(AndroidContextDetail acd) {
-        ContextLogDetail cld = new ContextLogDetail();
+    private List<ContextLogDetail> createContextLogDetail(AndroidContextDetail acd, ContextLog contextLog) {
+        Calendar start = Calendar.getInstance();
+        start.setTime(new Date(acd.getStartTime()));
+        start.set(Calendar.MILLISECOND, 0);
+        start.set(Calendar.SECOND, 0);
+        Calendar end = Calendar.getInstance();
+        end.setTime(new Date(acd.getEndTime()));
+        end.set(Calendar.MILLISECOND, 0);
+        end.set(Calendar.SECOND, 0);
+        DateTime min = new DateTime(start);
+        DateTime max = new DateTime(end);
+        int minutes = org.joda.time.Minutes.minutesBetween(min, max).getMinutes();
+        List<ContextLogDetail> cldList = new ArrayList<>();
 
-        cld.setDetectedActivity(acd.getActivity());
-        cld.setLatitude(acd.getLatitude());
-        cld.setLongitude(acd.getLongitude());
-        cld.setTimeLog(new Date(acd.getTime()));
+        for (int i = 0; i < minutes; i++) {
+            DateTime t = min.withFieldAdded(DurationFieldType.minutes(), i);
+            ContextLogDetail cld = new ContextLogDetail();
 
-        return cld;
+            cld.setDetectedActivity(acd.getName());
+            cld.setLatitude(acd.getLatitude());
+            cld.setLongitude(acd.getLongitude());
+            cld.setAccuracy(acd.getAccuracy());
+            cld.setDetectedActivity(acd.getName());
+            cld.setTimeLog(new Date(t.getMillis()));
+
+            cld.setContextLog(contextLog);
+
+            cldList.add(cld);
+        }
+
+        return cldList;
     }
 
     @Override
@@ -174,19 +266,10 @@ public class ContextLogFacadeREST extends ContextLogFacade {
     }
 
     // JYFR: Para usarlo con Jersey, la clase interna debe ser pública y estática.
-    public static class AndroidContext {
+    public static class AndroidContext implements Cloneable {
 
-        private String deviceId;
         private String user;
-        private List<AndroidContextDetail> contexts;
-
-        public String getDeviceId() {
-            return deviceId;
-        }
-
-        public void setDeviceId(String deviceId) {
-            this.deviceId = deviceId;
-        }
+        private List<AndroidContextDetail> items;
 
         public String getUser() {
             return user;
@@ -196,28 +279,47 @@ public class ContextLogFacadeREST extends ContextLogFacade {
             this.user = user;
         }
 
-        public List<AndroidContextDetail> getContexts() {
-            return contexts;
+        public List<AndroidContextDetail> getItems() {
+            return items;
         }
 
-        public void setContexts(List<AndroidContextDetail> contexts) {
-            this.contexts = contexts;
+        public void setItems(List<AndroidContextDetail> items) {
+            this.items = items;
         }
+
+        @Override
+        protected Object clone() throws CloneNotSupportedException {
+            AndroidContext obj = null;
+            try {
+                obj = (AndroidContext) super.clone();
+                List<AndroidContextDetail> details = new ArrayList<AndroidContextDetail>(this.getItems().size());
+                for (AndroidContextDetail item : getItems()) {
+                    details.add((AndroidContextDetail) item.clone());
+                }
+                obj.setItems(details);
+            } catch (CloneNotSupportedException ex) {
+                LOG.log(Level.SEVERE, "clone() - Error al clonar el objeto de tipo 'AndroidContext", ex);
+            }
+            return obj;
+        }
+
     }
 
-    public static class AndroidContextDetail {
+    public static class AndroidContextDetail implements Cloneable {
 
-        private Integer activity;
+        private String name;
         private Double latitude;
         private Double longitude;
-        private Long time;
+        private Float accuracy;
+        private Long startTime;
+        private Long endTime;
 
-        public Integer getActivity() {
-            return activity;
+        public String getName() {
+            return name;
         }
 
-        public void setActivity(Integer activity) {
-            this.activity = activity;
+        public void setName(String name) {
+            this.name = name;
         }
 
         public Double getLatitude() {
@@ -236,13 +338,41 @@ public class ContextLogFacadeREST extends ContextLogFacade {
             this.longitude = longitude;
         }
 
-        public Long getTime() {
-            return time;
+        public Float getAccuracy() {
+            return accuracy;
         }
 
-        public void setTime(Long time) {
-            this.time = time;
+        public void setAccuracy(Float accuracy) {
+            this.accuracy = accuracy;
         }
 
+        public Long getStartTime() {
+            return startTime;
+        }
+
+        public void setStartTime(Long startTime) {
+            this.startTime = startTime;
+        }
+
+        public Long getEndTime() {
+            return endTime;
+        }
+
+        public void setEndTime(Long endTime) {
+            this.endTime = endTime;
+        }
+
+        @Override
+        protected Object clone() throws CloneNotSupportedException {
+            AndroidContextDetail obj = null;
+
+            try {
+                obj = (AndroidContextDetail) super.clone();
+            } catch (CloneNotSupportedException ex) {
+                LOG.log(Level.SEVERE, "clone() - Error al clonar el objeto de tipo 'AndroidContextDetail", ex);
+            }
+
+            return obj;
+        }
     }
 }

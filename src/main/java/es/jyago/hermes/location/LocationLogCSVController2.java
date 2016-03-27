@@ -24,7 +24,7 @@ import org.supercsv.prefs.CsvPreference;
  */
 public class LocationLogCSVController2 implements ICSVController<LocationLogCSV2> {
 
-    private static final Logger log = Logger.getLogger(LocationLogCSVController2.class.getName());
+    private static final Logger LOG = Logger.getLogger(LocationLogCSVController2.class.getName());
 
     private UploadedFile locationLogFile;
     private final LocationLog locationLog;
@@ -42,24 +42,24 @@ public class LocationLogCSVController2 implements ICSVController<LocationLogCSV2
                 // Obtenemos la fecha.
                 locationLog.setDateLog(Constants.dfSmartDriver.parse(locationLogFile.getFileName().replaceAll("_.*", "")));
                 // Intentamos leer el archivo usando ';' como separador.
-                log.log(Level.INFO, "processFile() - Lectura usando ';' como separador");
+                LOG.log(Level.INFO, "processFile() - Lectura usando ';' como separador");
                 new CSVUtil<LocationLogCSV2>().setData(new LocationLogCSV2(), this, locationLogFile, CsvPreference.EXCEL_NORTH_EUROPE_PREFERENCE, true);
             } catch (Exception ex) {
                 if (ex instanceof HermesException) {
                     try {
                         // Como no hemos podido leerlo, probamos esta vez con ',' como separador.
-                        log.log(Level.INFO, "processFile() - Lectura usando ',' como separador ");
+                        LOG.log(Level.INFO, "processFile() - Lectura usando ',' como separador ");
                         new CSVUtil<LocationLogCSV2>().setData(new LocationLogCSV2(), this, locationLogFile, CsvPreference.STANDARD_PREFERENCE, true);
                     } catch (Exception ex2) {
                         if (ex2 instanceof HermesException) {
                             throw new HermesException("InvalidFile", file.getFileName());
                         } else {
-                            log.log(Level.SEVERE, MessageFormat.format("processFile() - Error al importar el archivo: {0}", file.getFileName()), ex.getMessage());
+                            LOG.log(Level.SEVERE, MessageFormat.format("processFile() - Error al importar el archivo: {0}", file.getFileName()), ex2.getMessage());
                             throw new HermesException("InvalidFile", file.getFileName());
                         }
                     }
                 } else {
-                    log.log(Level.SEVERE, MessageFormat.format("processFile() - Error al importar el archivo: {0}", file.getFileName()), ex.getMessage());
+                    LOG.log(Level.SEVERE, MessageFormat.format("processFile() - Error al importar el archivo: {0}", file.getFileName()), ex.getMessage());
                     throw new HermesException("InvalidFile", file.getFileName());
                 }
             }
@@ -75,7 +75,7 @@ public class LocationLogCSVController2 implements ICSVController<LocationLogCSV2
     @Override
     public void processReadElement(LocationLogCSV2 element) throws HermesException {
         try {
-            log.log(Level.FINEST, "processReadElement() - Procesando elemento {0}", element.getDateTimeLog());
+            LOG.log(Level.FINEST, "processReadElement() - Procesando elemento {0}", element.getDateTimeLog());
             LocationLogDetail locationLogDetail = new LocationLogDetail();
             if (element.getDateTimeLog().split(",").length > 1) {
                 throw new HermesException();
@@ -92,7 +92,7 @@ public class LocationLogCSVController2 implements ICSVController<LocationLogCSV2
             locationLog.getLocationLogDetailList().add(locationLogDetail);
 
         } catch (ParseException ex) {
-            log.log(Level.SEVERE, "processReadElement() - Error al procesar el elemento: {0}", ex.getMessage());
+            LOG.log(Level.SEVERE, "processReadElement() - Error al procesar el elemento: {0}", ex.getMessage());
         }
     }
 

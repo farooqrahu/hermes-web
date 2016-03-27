@@ -26,7 +26,7 @@ import org.joda.time.LocalTime;
 @Startup
 public class AlertScheduledTask implements IFitbitFacade {
 
-    private static final Logger log = Logger.getLogger(AlertScheduledTask.class.getName());
+    private static final Logger LOG = Logger.getLogger(AlertScheduledTask.class.getName());
     @EJB
     private PersonFacade personFacade;
 
@@ -34,14 +34,14 @@ public class AlertScheduledTask implements IFitbitFacade {
 
     @PostConstruct
     public void onStartup() {
-        log.log(Level.INFO, "onStartup() - Inicialización del temporizador programado de comprobación de alertas");
+        LOG.log(Level.INFO, "onStartup() - Inicialización del temporizador programado de comprobación de alertas");
     }
 
     // Las comprobaciones de las condiciones de las alertas se harán cada hora,
     // para poder notificar a cada person a la hora que haya establecido.
     @Schedule(hour = "*", minute = "0", persistent = false)
     public void run() {
-        log.log(Level.INFO, "run() - Comprobación de las alertas");
+        LOG.log(Level.INFO, "run() - Comprobación de las alertas");
 
         for (Person person : personFacade.findAll()) {
             this.person = person;
@@ -51,12 +51,17 @@ public class AlertScheduledTask implements IFitbitFacade {
                     // Comprobamos si se puede sincronizar correctamente.
                     hermesFitbitController.refreshFitbitTokens();
                 } catch (HermesFitbitException ex) {
-                    log.log(Level.SEVERE, "run() - Error al comprobar si se puede sincronizar los datos con Fitbit", ex);
-                    try {
-                        // No es posible sincronizar con Fitbit -> Se envía una notificación.
-                        Email.generateAndSendEmail(person.getEmail(), LocaleBean.getBundle().getString("Fitbit.error.noAuthorization"), LocaleBean.getBundle().getString("EmailUnableToSynchronizeNotificationText"));
-                    } catch (MessagingException e) {
-                        log.log(Level.SEVERE, "run() - Error al enviar el e-mail de la alerta", e);
+                    LOG.log(Level.SEVERE, "run() - Error al comprobar si se puede sincronizar los datos con Fitbit", ex);
+                    if (person.isAlertIfUnableToSynchronize()) {
+                        try {
+                            // No es posible sincronizar con Fitbit -> Se envía una notificación., si así lo tiene configurado el usuario.
+                            LOG.log(Level.FINE, "run() - Se notifica por e-mail que no ha sido posible la sincronización");
+                            Email.generateAndSendEmail(person.getEmail(), LocaleBean.getBundle().getString("Fitbit.error.noAuthorization"), LocaleBean.getBundle().getString("EmailUnableToSynchronizeNotificationText"));
+                        } catch (MessagingException e) {
+                            LOG.log(Level.SEVERE, "run() - Error al enviar el e-mail de la alerta", e);
+                        }
+                    } else {
+                        LOG.log(Level.FINE, "run() - No se notifica que no ha sido posible la sincronización, porque tiene desactivados los avisos");
                     }
                 }
 
@@ -70,7 +75,7 @@ public class AlertScheduledTask implements IFitbitFacade {
                                 // Se cumplen las condiciones de la alerta -> Se envía la notificación.
                                 Email.generateAndSendEmail(person.getEmail(), alert.getName(), LocaleBean.getBundle().getString("EmailNotificationText"));
                             } catch (MessagingException ex) {
-                                log.log(Level.SEVERE, "run() - Error al enviar el e-mail de la alerta", ex);
+                                LOG.log(Level.SEVERE, "run() - Error al enviar el e-mail de la alerta", ex);
                             }
                         }
                     }

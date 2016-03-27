@@ -1,17 +1,3 @@
-function customColor(date) {
-    date.setHours(0, 0, 0, 0);
-    var sentDates = "#{loginController.person.daysSentToZtreamy()}".split(",");
-    var cssclass = 'receivedFromFitbit';
-    if (sentDates) {
-        for (var d in sentDates) {
-            if ((date.getTime() === (new Date(sentDates[d])).getTime())) {
-                cssclass = 'sentToZtreamy';
-            }
-        }
-    }
-    return [true, cssclass];
-}
-
 function userSleepBarChartExtender() {
     this.cfg.axes.xaxis = {
         ticks: ['0', '1', '2'],

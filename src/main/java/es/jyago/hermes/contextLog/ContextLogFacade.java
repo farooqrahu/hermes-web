@@ -1,9 +1,8 @@
 package es.jyago.hermes.contextLog;
 
 import es.jyago.hermes.AbstractFacade;
-import es.jyago.hermes.person.Person;
-import java.util.Date;
 import java.util.List;
+import javax.ejb.Stateless;
 import javax.persistence.EntityManager;
 import javax.persistence.PersistenceContext;
 
@@ -11,6 +10,7 @@ import javax.persistence.PersistenceContext;
  *
  * @author Jorge Yago
  */
+@Stateless
 public class ContextLogFacade extends AbstractFacade<ContextLog> {
 
     @PersistenceContext(unitName = "HermesWeb_PU")
@@ -24,8 +24,10 @@ public class ContextLogFacade extends AbstractFacade<ContextLog> {
     public ContextLogFacade() {
         super(ContextLog.class);
     }
-
-    public List<ContextLog> findByPersonAndDate(Person person, Date dateLog) {
-        return em.createNamedQuery("ContextLog.findByPersonAndDateLog").setParameter("personId", person.getPersonId()).setParameter("dateLog", dateLog).getResultList();
+    
+    public List<ContextLog> findNotSent() {
+        // FIXME: No debería ser necesario.
+//        em.clear();
+        return em.createNamedQuery("ContextLog.findBySent").setParameter("sent", false).getResultList();
     }
 }

@@ -8,7 +8,6 @@ package es.jyago.hermes.person;
 import es.jyago.hermes.contextLog.ContextLog;
 import es.jyago.hermes.activityLog.ActivityLog;
 import es.jyago.hermes.configuration.Configuration;
-import es.jyago.hermes.csv.ICSVBean;
 import es.jyago.hermes.healthLog.HealthLog;
 import es.jyago.hermes.person.configuration.PersonConfiguration;
 import es.jyago.hermes.location.LocationLog;
@@ -57,7 +56,6 @@ import org.apache.commons.lang.builder.HashCodeBuilder;
 import org.joda.time.LocalDate;
 import org.primefaces.event.FileUploadEvent;
 import org.primefaces.model.UploadedFile;
-import org.supercsv.cellprocessor.ift.CellProcessor;
 
 /**
  *
@@ -77,9 +75,9 @@ import org.supercsv.cellprocessor.ift.CellProcessor;
     @NamedQuery(name = "Person.findByComments", query = "SELECT p FROM Person p WHERE p.comments = :comments"),
     @NamedQuery(name = "Person.findByUsernamePassword", query = "SELECT p FROM Person p WHERE p.username = :username AND p.password = :password"),
     @NamedQuery(name = "Person.findByUsername", query = "SELECT p FROM Person p WHERE p.username = :username")})
-public class Person implements Serializable, ICSVBean {
+public class Person implements Serializable {
 
-    private static final Logger log = Logger.getLogger(Person.class.getName());
+    private static final Logger LOG = Logger.getLogger(Person.class.getName());
 
     private static final long serialVersionUID = 1L;
     @OneToMany(cascade = CascadeType.ALL, mappedBy = "person", orphanRemoval = true)
@@ -183,6 +181,11 @@ public class Person implements Serializable, ICSVBean {
     @Column(name = "sha")
     private String sha;
 
+    @Transient
+    private String daysReceivedFromFitbit;
+    @Transient
+    private String daysSentToZtreamy;
+
     public Person() {
         super();
         this.registrationDate = new Date();
@@ -231,33 +234,61 @@ public class Person implements Serializable, ICSVBean {
     }
 
     public void addSleepLogList(List<SleepLog> sleepLogList) {
+        // En el caso del sueño, el registro se va modificando conforme avanza el día (la madrugada o la franja en la que duerme el usuario),
+        // por tanto, comparamos el registro obtenido de Fitbit con el que tenemos registrado y si son iguales, no se hace nada.
         if (sleepLogList != null && !sleepLogList.isEmpty()) {
             if (sleepLogMap == null) {
                 prepareSleepLogMap();
             }
 
             for (SleepLog sleepLog : sleepLogList) {
-                SleepLog old = sleepLogMap.remove(sleepLog.getDateLog());
+                SleepLog old = sleepLogMap.get(sleepLog.getDateLog());
+
                 if (old != null) {
-                    sleepLog.setSleepLogId(old.getSleepLogId());
+                    // Comprobamos si los datos recogidos son iguales.
+                    // No uso el equals porque ya está implementado comparando los identificadores.
+                    if (!old.equalsByAttributes(sleepLog)) {
+                        sleepLogMap.remove(sleepLog.getDateLog());
+                        sleepLog.setSleepLogId(old.getSleepLogId());
+                        sleepLogMap.put(sleepLog.getDateLog(), sleepLog);
+                    }
+                } else {
+                    sleepLogMap.put(sleepLog.getDateLog(), sleepLog);
                 }
-                sleepLogMap.put(sleepLog.getDateLog(), sleepLog);
             }
 
             this.sleepLogList = new ArrayList<>(sleepLogMap.values());
         }
     }
 
-    public String daysSentToZtreamy() {
+    private void daysReceivedFromFitbit() {
+        List<String> received = new ArrayList();
+
+        for (ActivityLog activityLog : activityLogList) {
+            received.add(Constants.dfus.format(activityLog.getDateLog()));
+        }
+
+        daysReceivedFromFitbit = String.join(",", received.toArray(new String[received.size()]));
+    }
+
+    private void daysSentToZtreamy() {
         List<String> sent = new ArrayList();
 
         for (ActivityLog activityLog : activityLogList) {
-            if (activityLog.getSendDate() != null) {
+            if (activityLog.isSent()) {
                 sent.add(Constants.dfus.format(activityLog.getDateLog()));
             }
         }
 
-        return String.join(",", sent.toArray(new String[sent.size()]));
+        daysSentToZtreamy = String.join(",", sent.toArray(new String[sent.size()]));
+    }
+
+    public String getDaysReceivedFromFitbit() {
+        return daysReceivedFromFitbit;
+    }
+
+    public String getDaysSentToZtreamy() {
+        return daysSentToZtreamy;
     }
 
     @Override
@@ -370,20 +401,6 @@ public class Person implements Serializable, ICSVBean {
         return filteredList;
     }
 
-    public List<ActivityLog> getActivityLogPendingToSendToZtreamy(String aggregation) {
-        List activityLogPendingToSendToZtreamy = new ArrayList();
-
-        for (ActivityLog activityLog : activityLogList) {
-            // Si no tiene fecha de envío es que aún no se ha enviado por Ztreamy.
-            if (activityLog.getSendDate() == null) {
-                activityLog.setAggregation(aggregation);
-                activityLogPendingToSendToZtreamy.add(activityLog);
-            }
-        }
-
-        return activityLogPendingToSendToZtreamy;
-    }
-
     @XmlTransient
     public List<Alert> getAlertList() {
         return alertList;
@@ -415,9 +432,9 @@ public class Person implements Serializable, ICSVBean {
 
         try {
             stringValue = configurationHashMap.get(key).getValue();
-            value = stringValue != null ? Boolean.getBoolean(stringValue) : Boolean.parseBoolean(Constants.getConfigurationValueByKey(key));
+            value = stringValue != null ? Boolean.getBoolean(stringValue) : Boolean.parseBoolean(Constants.getInstance().getConfigurationValueByKey(key));
         } catch (NumberFormatException e) {
-            log.log(Level.WARNING, "getConfigurationBooleanValue() - El valor [{0}] de la clave [{1}] no es un booleano. Se devolverá un 'false'", new Object[]{stringValue, key});
+            LOG.log(Level.WARNING, "getConfigurationBooleanValue() - El valor [{0}] de la clave [{1}] no es un booleano. Se devolverá un 'false'", new Object[]{stringValue, key});
         }
 
         return value;
@@ -433,9 +450,9 @@ public class Person implements Serializable, ICSVBean {
 
         try {
             stringValue = configurationHashMap.get(key).getValue();
-            value = stringValue != null ? Integer.parseInt(stringValue) : Integer.parseInt(Constants.getConfigurationValueByKey(key));
+            value = stringValue != null ? Integer.parseInt(stringValue) : Integer.parseInt(Constants.getInstance().getConfigurationValueByKey(key));
         } catch (NumberFormatException e) {
-            log.log(Level.WARNING, "getConfigurationIntValue() - El valor [{0}] de la clave [{1}] no es un entero. Se devolverá un '0'", new Object[]{stringValue, key});
+            LOG.log(Level.WARNING, "getConfigurationIntValue() - El valor [{0}] de la clave [{1}] no es un entero. Se devolverá un '0'", new Object[]{stringValue, key});
         }
 
         return value;
@@ -472,16 +489,6 @@ public class Person implements Serializable, ICSVBean {
 
     public void setSha(String sha) {
         this.sha = sha;
-    }
-
-    @Override
-    public String[] getFields() {
-        return new String[]{"fullName", "email", "phone", "comments"};
-    }
-
-    @Override
-    public String[] getHeaders() {
-        return null;
     }
 
     public Date getFirstSynchronization() {
@@ -627,20 +634,6 @@ public class Person implements Serializable, ICSVBean {
         return filteredList;
     }
 
-    public List<HealthLog> getHealthLogPendingToSendToZtreamy(String aggregation) {
-        List healthLogPendingToSendToZtreamy = new ArrayList();
-
-        for (HealthLog healthLog : healthLogList) {
-            // Si no tiene fecha de envío es que aún no se ha enviado por Ztreamy.
-            if (healthLog.getSendDate() == null) {
-                healthLog.setAggregation(aggregation);
-                healthLogPendingToSendToZtreamy.add(healthLog);
-            }
-        }
-
-        return healthLogPendingToSendToZtreamy;
-    }
-
     public String getIp() {
         return ip;
     }
@@ -731,18 +724,6 @@ public class Person implements Serializable, ICSVBean {
         this.photo = photo;
     }
 
-    @Override
-    public CellProcessor[] getProcessors() {
-        return new CellProcessor[]{
-            new org.supercsv.cellprocessor.constraint.NotNull(), // nombre
-            new org.supercsv.cellprocessor.constraint.NotNull(), // apellido1
-            new org.supercsv.cellprocessor.constraint.NotNull(), // apellido2
-            new org.supercsv.cellprocessor.Optional(), // email
-            new org.supercsv.cellprocessor.Optional(), // telefono
-            new org.supercsv.cellprocessor.Optional(), // observaciones
-        };
-    }
-
     public String getRegion() {
         return region;
     }
@@ -779,7 +760,7 @@ public class Person implements Serializable, ICSVBean {
         return sleepLogList;
     }
 
-//    public void deleteSleepLogList(Date startDate, Date endDate) {
+//    public void deleteSleepLogList(Date startDate, Date endDate) {    
 //        LocalDate startLocalDate;
 //        LocalDate endLocalDate;
 //
@@ -885,8 +866,7 @@ public class Person implements Serializable, ICSVBean {
         List sleepLogPendingToSendToZtreamy = new ArrayList();
 
         for (SleepLog sleepLog : sleepLogList) {
-            // Si no tiene fecha de envío es que aún no se ha enviado por Ztreamy.
-            if (sleepLog.getSendDate() == null) {
+            if (!sleepLog.isSent()) {
                 sleepLogPendingToSendToZtreamy.add(sleepLog);
             }
         }
@@ -967,7 +947,7 @@ public class Person implements Serializable, ICSVBean {
     private void prepareConfiguration() {
         // Analizamos las configuraciones que tiene asignadas la persona, por si faltan.
         if (configurationList == null || configurationList.size() < PersonOptions.values().length) {
-            log.log(Level.INFO, "prepareConfiguration() - Analizando las configuraciones de la persona: {0}", getFullName());
+            LOG.log(Level.INFO, "prepareConfiguration() - Analizando las configuraciones de la persona: {0}", getFullName());
             for (Person.PersonOptions option : Person.PersonOptions.values()) {
                 boolean found = false;
                 for (PersonConfiguration pc : configurationList) {
@@ -979,15 +959,15 @@ public class Person implements Serializable, ICSVBean {
 
                 // Si es una opción que no tiene la persona, la añadimos, con el valor por defecto.
                 if (!found) {
-                    log.log(Level.WARNING, "prepareConfiguration() - No se ha encontrado la configuración: {0}. Se creará y se asignará el valor por defecto global del sistema", option.name());
+                    LOG.log(Level.WARNING, "prepareConfiguration() - No se ha encontrado la configuración: {0}. Se creará y se asignará el valor por defecto global del sistema", option.name());
                     try {
                         PersonConfiguration pc = new PersonConfiguration();
-                        pc.setOption(Constants.getConfigurationByKey(option.name()));
+                        pc.setOption(Constants.getInstance().getConfigurationByKey(option.name()));
                         pc.setPerson(this);
                         pc.setValue(pc.getOption().getOptionValue());
                         this.getConfigurationList().add(pc);
                     } catch (NullPointerException ex) {
-                        log.log(Level.SEVERE, "prepareConfiguration() - No se ha encontrado la configuración global {0}. Debe ser definida en la configuración por el administrador.", option.name());
+                        LOG.log(Level.SEVERE, "prepareConfiguration() - No se ha encontrado la configuración global {0}. Debe ser definida en la configuración por el administrador.", option.name());
                     }
                 }
             }
@@ -1030,7 +1010,7 @@ public class Person implements Serializable, ICSVBean {
         try {
             photo = IOUtils.toByteArray(file.getInputstream());
         } catch (IOException ex) {
-            log.log(Level.SEVERE, "uploadPhoto() - Error al subir la foto", ex);
+            LOG.log(Level.SEVERE, "uploadPhoto() - Error al subir la foto", ex);
         }
     }
 
@@ -1045,25 +1025,25 @@ public class Person implements Serializable, ICSVBean {
         }
     }
 
-    private void calculateSessions() {
-        thisWeekSessions = 0;
-
-        Calendar cal = Calendar.getInstance();
-        int currentWeek = cal.get(Calendar.WEEK_OF_YEAR);
-
-        for (ActivityLog al : activityLogList) {
-            cal.setTime(al.getDateLog());
-            int week = cal.get(Calendar.WEEK_OF_YEAR);
-            if (week == currentWeek) {
-                // Vamos sumando las sesiones de cada día de la semana.
-                thisWeekSessions += al.getSessionsTotal();
-            } else {
-                // Como la colección de actividades viene ordenada por fecha descendentemente,
-                // cuando sea otra semana podemos salir del bucle.
-                break;
-            }
-        }
-    }
+//    private void calculateSessions() {
+//        thisWeekSessions = 0;
+//
+//        Calendar cal = Calendar.getInstance();
+//        int currentWeek = cal.get(Calendar.WEEK_OF_YEAR);
+//
+//        for (ActivityLog al : activityLogList) {
+//            cal.setTime(al.getDateLog());
+//            int week = cal.get(Calendar.WEEK_OF_YEAR);
+//            if (week == currentWeek) {
+//                // Vamos sumando las sesiones de cada día de la semana.
+//                thisWeekSessions += al.getSessionsTotal();
+//            } else {
+//                // Como la colección de actividades viene ordenada por fecha descendentemente,
+//                // cuando sea otra semana podemos salir del bucle.
+//                break;
+//            }
+//        }
+//    }
 
     private Date getFirstSynchronization(Constants.HermesServices service) {
         switch (service) {
@@ -1218,7 +1198,7 @@ public class Person implements Serializable, ICSVBean {
     private void init() {
         // TODO: Ver si pasa al crear una persona nueva.
         prepareConfiguration();
-        calculateSessions();
+//        calculateSessions();
     }
 
     private void prepareActivityLogMap() {
@@ -1231,6 +1211,8 @@ public class Person implements Serializable, ICSVBean {
                 }
             }
         }
+        daysReceivedFromFitbit();
+        daysSentToZtreamy();
     }
 
     private void prepareHealthLogMap() {
@@ -1297,5 +1279,48 @@ public class Person implements Serializable, ICSVBean {
 
     public void setTheme(ThemeBean theme) {
         this.theme = theme;
+    }
+
+    /**
+     * Método para obtener los datos de contexto desde una fecha de inicio a una
+     * fecha de fin, agregados según la forma indicada. Si la agregación es nula
+     * o un valor no válido, los datos se devolverán por minuto.
+     *
+     * @param startDate Fecha de inicio (incluida)
+     * @param endDate Fecha de fin (incluida)
+     * @param aggregation Modo de agregación. Si el valor es nulo o un valor no
+     * válido, los datos se devolverán por minuto.
+     * @return
+     */
+    public List<ContextLog> getContextLogList(Date startDate, Date endDate, String aggregation) {
+        List<ContextLog> filteredList = new ArrayList<>();
+        LocalDate startLocalDate;
+        LocalDate endLocalDate;
+
+        if (startDate == null) {
+            startLocalDate = new LocalDate(Long.MIN_VALUE);
+        } else {
+            startLocalDate = new LocalDate(startDate);
+        }
+        if (endDate == null) {
+            endLocalDate = new LocalDate(Long.MAX_VALUE);
+        } else {
+            endLocalDate = new LocalDate(endDate);
+        }
+        if (contextLogList != null) {
+            for (ContextLog contextLog : contextLogList) {
+                // Comprobamos si la fecha del contecto está en el rango de fechas que solicita el usuario.
+                LocalDate tempLocalDate = new LocalDate(contextLog.getDateLog());
+                if ((tempLocalDate.isAfter(startLocalDate) && tempLocalDate.isBefore(endLocalDate))
+                        || tempLocalDate.isEqual(startLocalDate)
+                        || tempLocalDate.isEqual(endLocalDate)) {
+                    // TODO: Agregaciones
+//                    contextLog.setAggregation(aggregation);
+                    filteredList.add(contextLog);
+                }
+            }
+        }
+
+        return filteredList;
     }
 }

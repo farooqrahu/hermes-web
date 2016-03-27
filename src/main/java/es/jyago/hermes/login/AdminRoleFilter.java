@@ -27,7 +27,7 @@ import javax.servlet.http.HttpServletResponse;
 public class AdminRoleFilter implements Filter {
 
     // TODO: Cambiar la ruta filtrada, para adaptarla a los cambios de URL de PrettyFaces.
-    private static final Logger log = Logger.getLogger(AdminRoleFilter.class.getName());
+    private static final Logger LOG = Logger.getLogger(AdminRoleFilter.class.getName());
 
     @Override
     public void doFilter(ServletRequest request, ServletResponse response, FilterChain chain) throws IOException, ServletException {
@@ -39,7 +39,7 @@ public class AdminRoleFilter implements Filter {
             chain.doFilter(request, response);
         } else {
             // El usuario no está registrado o no es ADMINISTRADOR, lo redirigimos a la página de inicio.
-            log.log(Level.SEVERE, "doFilter() - El usuario no tiene permiso");
+            LOG.log(Level.SEVERE, "doFilter() - El usuario no tiene permiso");
             HttpServletResponse res = (HttpServletResponse) response;
             res.sendRedirect(req.getContextPath() + "/faces/index.xhtml");
         }

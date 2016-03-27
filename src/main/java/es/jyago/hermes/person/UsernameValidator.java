@@ -20,7 +20,7 @@ import javax.faces.validator.ValidatorException;
 @FacesValidator("es.jyago.hermes.person.UsernameValidator")
 public class UsernameValidator implements Validator {
 
-    private static final Logger log = Logger.getLogger(UsernameValidator.class.getName());
+    private static final Logger LOG = Logger.getLogger(UsernameValidator.class.getName());
 
     @EJB
     private es.jyago.hermes.person.PersonFacade ejbFacade;

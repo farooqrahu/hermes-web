@@ -5,6 +5,7 @@
  */
 package es.jyago.hermes.location;
 
+import com.google.gson.Gson;
 import es.jyago.hermes.bean.LocaleBean;
 import es.jyago.hermes.csv.CSVUtil;
 import es.jyago.hermes.csv.ICSVController;
@@ -13,11 +14,11 @@ import es.jyago.hermes.person.Person;
 import es.jyago.hermes.util.Constants;
 import es.jyago.hermes.util.HermesException;
 import es.jyago.hermes.util.JsfUtil;
-import es.jyago.hermes.util.Util;
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.IOException;
 import java.io.Serializable;
+import java.net.URL;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
@@ -43,6 +44,7 @@ import javax.inject.Named;
 import javax.servlet.ServletContext;
 import javax.servlet.ServletOutputStream;
 import javax.servlet.http.HttpServletResponse;
+import org.apache.commons.io.IOUtils;
 import org.apache.commons.math3.stat.descriptive.DescriptiveStatistics;
 import org.joda.time.Days;
 import org.joda.time.LocalDate;
@@ -72,7 +74,7 @@ import org.supercsv.prefs.CsvPreference;
 @SessionScoped
 public class LocationLogController implements Serializable, ICSVController<IntervalData> {
 
-    private static final Logger log = Logger.getLogger(LocationLogController.class.getName());
+    private static final Logger LOG = Logger.getLogger(LocationLogController.class.getName());
 
     private boolean showMaximumSpeedLocation;
     private boolean showMinimumHeartRateLocation;
@@ -312,6 +314,9 @@ public class LocationLogController implements Serializable, ICSVController<Inter
             DescriptiveStatistics globalStats = new DescriptiveStatistics();
             DescriptiveStatistics speedStats = new DescriptiveStatistics();
             DescriptiveStatistics heartRateStats = new DescriptiveStatistics();
+            DescriptiveStatistics rrTimeRateStats = new DescriptiveStatistics();
+            DescriptiveStatistics accelerationStats = new DescriptiveStatistics();
+            DescriptiveStatistics decelerationStats = new DescriptiveStatistics();
             LocationLogDetail lldPrev = selectedLocationLog.getLocationLogDetailList().get(0);
 
             // Los datos del primer intervalo los definimos antes de entrar al bucle.
@@ -329,6 +334,9 @@ public class LocationLogController implements Serializable, ICSVController<Inter
                     cummulativePositiveSpeeds = 0.0d;
                     speedStats = new DescriptiveStatistics();
                     heartRateStats = new DescriptiveStatistics();
+                    rrTimeRateStats = new DescriptiveStatistics();
+                    accelerationStats = new DescriptiveStatistics();
+                    decelerationStats = new DescriptiveStatistics();
                     stitchLatitude = lld.getLatitude();
                     stitchLongitude = lld.getLongitude();
                     speedAtStart = lld.getSpeed();
@@ -342,6 +350,14 @@ public class LocationLogController implements Serializable, ICSVController<Inter
                     globalStats.addValue(lld.getSpeed());
                     speedStats.addValue(lld.getSpeed());
                     heartRateStats.addValue(lld.getHeartRate());
+                    rrTimeRateStats.addValue(lld.getRrTime());
+                    // Pasamos la aceleración a m/s2.
+                    double currentAcceleration = (double) ((lld.getSpeed() - lldPrev.getSpeed()) * (1000d / 3600d)) / ((lld.getTimeLog().getTime() - lldPrev.getTimeLog().getTime()) / 1000d);
+                    if (currentAcceleration > 0.0d) {
+                        accelerationStats.addValue(currentAcceleration);
+                    } else if (currentAcceleration < 0.0d) {
+                        decelerationStats.addValue(currentAcceleration);
+                    }
                     if (lldPrev.getLatitude() != 0.0d && lldPrev.getLongitude() != 0.0d) {
                         length += distFrom(lldPrev.getLatitude(), lldPrev.getLongitude(), lld.getLatitude(), lld.getLongitude());
                         // Análisis del PKE (Positive Kinetic Energy)
@@ -353,6 +369,8 @@ public class LocationLogController implements Serializable, ICSVController<Inter
                         intervalId++;
                         cummulativeLength += length;
                         IntervalData intervalData = new IntervalData();
+
+                        intervalData.init(null);
 
                         intervalData.setIntervalId(intervalId);
                         intervalData.setLength(length);
@@ -378,9 +396,17 @@ public class LocationLogController implements Serializable, ICSVController<Inter
                         intervalData.setStandardDeviationHeartRate(heartRateStats.getStandardDeviation());
                         intervalData.setHeartRateAtStart(heartRateAtStart);
                         intervalData.setHeartRateAtEnd(lld.getHeartRate());
+                        intervalData.setMinRRTime((int) rrTimeRateStats.getMin());
+                        intervalData.setMaxRRTime((int) rrTimeRateStats.getMax());
+                        intervalData.setAverageRRTime(rrTimeRateStats.getMean());
+                        intervalData.setAverageAcceleration(accelerationStats.getMean());
+                        intervalData.setAverageDeceleration(decelerationStats.getMean());
 
                         // Nivel de estrés
                         intervalData.setStress(getHeartRateAverageDeviation(selectedLocationLog, intervalData.getAverageHeartRate()));
+
+                        // Datos de sueño
+                        intervalData.setSleepLog(selectedLocationLog.getPerson().getSleepLog(selectedLocationLog.getDateLog()));
 
                         intervalDataList.add(intervalData);
                         newInterval = true;
@@ -396,6 +422,10 @@ public class LocationLogController implements Serializable, ICSVController<Inter
         for (LocationLog ll : locationLogList) {
             DescriptiveStatistics speedStats = new DescriptiveStatistics();
             DescriptiveStatistics heartRateStats = new DescriptiveStatistics();
+            DescriptiveStatistics rrTimeRateStats = new DescriptiveStatistics();
+            DescriptiveStatistics accelerationStats = new DescriptiveStatistics();
+            DescriptiveStatistics decelerationStats = new DescriptiveStatistics();
+
             boolean enterInterval = false;
             double length = 0.0d;
             double cummulativePositiveSpeeds = 0.0d;
@@ -432,9 +462,19 @@ public class LocationLogController implements Serializable, ICSVController<Inter
                         // Análisis del PKE (Positive Kinetic Energy)
                         speedStats.addValue(lld.getSpeed());
                         heartRateStats.addValue(lld.getHeartRate());
+                        rrTimeRateStats.addValue(lld.getRrTime());
+                        // Pasamos la aceleración a m/s2.
+                        double currentAcceleration = (double) ((lld.getSpeed() - lldPrev.getSpeed()) * (1000d / 3600d)) / ((lld.getTimeLog().getTime() - lldPrev.getTimeLog().getTime()) / 1000d);
+                        if (currentAcceleration > 0.0d) {
+                            accelerationStats.addValue(currentAcceleration);
+                        } else if (currentAcceleration < 0.0d) {
+                            decelerationStats.addValue(currentAcceleration);
+                        }
                         cummulativePositiveSpeeds += analyzePKE(lld, lldPrev);
                     } else {
                         IntervalData intervalData = new IntervalData();
+
+                        intervalData.init(null);
 
                         intervalData.setDate(ll.getDateLog());
                         intervalData.setLength(length);
@@ -455,9 +495,17 @@ public class LocationLogController implements Serializable, ICSVController<Inter
                         intervalData.setStandardDeviationHeartRate(heartRateStats.getStandardDeviation());
                         intervalData.setHeartRateAtStart(heartRateAtStart);
                         intervalData.setHeartRateAtEnd(lld.getHeartRate());
+                        intervalData.setMinRRTime((int) rrTimeRateStats.getMin());
+                        intervalData.setMaxRRTime((int) rrTimeRateStats.getMax());
+                        intervalData.setAverageRRTime(rrTimeRateStats.getMean());
+                        intervalData.setAverageAcceleration(accelerationStats.getMean());
+                        intervalData.setAverageDeceleration(decelerationStats.getMean());
 
                         // Nivel de estrés
                         intervalData.setStress(getHeartRateAverageDeviation(ll, intervalData.getAverageHeartRate()));
+
+                        // Datos de sueño
+                        intervalData.setSleepLog(ll.getPerson().getSleepLog(ll.getDateLog()));
 
                         // Añadimos la información del intervalo previo.
                         intervalData.setPreviousIntervalData(previousInterval);
@@ -477,7 +525,7 @@ public class LocationLogController implements Serializable, ICSVController<Inter
             // Creamos un directorio temporal para contener los archivos generados.
             Path tempDir = Files.createTempDirectory("Hermes_web");
             String tempDirPath = tempDir.toAbsolutePath().toString() + File.separator;
-            log.log(Level.INFO, "generateAllMonthIntervalData() - Directorio temporal para almacenar los CSV: {0}", tempDirPath);
+            LOG.log(Level.INFO, "generateAllMonthIntervalData() - Directorio temporal para almacenar los CSV: {0}", tempDirPath);
 
             // Procesamos todos los días del mes actual.
             LocalDate firstDayMonth = new LocalDate(mapDate).dayOfMonth().withMinimumValue();
@@ -492,7 +540,7 @@ public class LocationLogController implements Serializable, ICSVController<Inter
                         generateIntervalData();
                         // Creamos un archivo temporal por cada lista de intervalos.
                         String fileName = Constants.dfSmartDriver.format(ll.getDateLog()) + "_" + Constants.dfTimeSmartDriver.format(ll.getLocationLogDetailList().get(0).getTimeLog()) + ".csv";
-                        log.log(Level.INFO, "generateAllMonthIntervalData() - Generando archivo CSV: {0}", fileName);
+                        LOG.log(Level.INFO, "generateAllMonthIntervalData() - Generando archivo CSV: {0}", fileName);
                         File file = new File(tempDir.toUri().getPath(), fileName);
                         csvUtil.getFileData(new IntervalData(), this, CsvPreference.EXCEL_NORTH_EUROPE_PREFERENCE, false, file);
                     }
@@ -503,7 +551,7 @@ public class LocationLogController implements Serializable, ICSVController<Inter
             Path zipFile = Files.createTempFile(Constants.dfMonth.format(mapDate) + "_", ".zip");
             ZipOutputStream zs = new ZipOutputStream(Files.newOutputStream(zipFile));
             try {
-                log.log(Level.INFO, "generateAllMonthIntervalData() - Generando ZIP: {0}", zipFile.getFileName().toString());
+                LOG.log(Level.INFO, "generateAllMonthIntervalData() - Generando ZIP: {0}", zipFile.getFileName().toString());
 
                 // Recorremos los archivos CSV del directorio temporal.
                 Files.walk(Paths.get(tempDirPath)).filter(p -> p.toString().endsWith(".csv")).forEach(filePath -> {
@@ -516,7 +564,7 @@ public class LocationLogController implements Serializable, ICSVController<Inter
                             zs.write(Files.readAllBytes(filePath));
                             zs.closeEntry();
                         } catch (Exception e) {
-                            log.log(Level.SEVERE, "generateAllMonthIntervalData() - No se ha podido meter el archivo: {0}", sp);
+                            LOG.log(Level.SEVERE, "generateAllMonthIntervalData() - No se ha podido meter el archivo: {0}", sp);
                         }
                     }
                 });
@@ -532,7 +580,7 @@ public class LocationLogController implements Serializable, ICSVController<Inter
             response.reset();
             response.setContentType(servletContext.getMimeType(zipFile.getFileName().toString()));
             response.setContentLength((int) zipFile.toFile().length());
-            response.setHeader("Content-Disposition", "attachment; filename=\"" + (zipFile.getFileName().toString()).split("_")[0] + "\"");
+            response.setHeader("Content-Disposition", "attachment; filename=\"" + (zipFile.getFileName().toString()).split("_")[0] + ".zip\"");
 
             ServletOutputStream out = null;
 
@@ -546,31 +594,37 @@ public class LocationLogController implements Serializable, ICSVController<Inter
                     out.flush();
                 }
                 FacesContext.getCurrentInstance().getResponseComplete();
-            } catch (IOException err) {
-                err.printStackTrace();
+            } catch (IOException ex) {
+                LOG.log(Level.SEVERE, "generateAllMonthIntervalData() - No se ha podido crear el archivo ZIP", ex);
             } finally {
                 try {
                     if (out != null) {
                         out.close();
                     }
-                } catch (IOException err) {
-                    err.printStackTrace();
+                } catch (IOException ex) {
+                    LOG.log(Level.SEVERE, "generateAllMonthIntervalData() - No se ha podido cerrar el archivo ZIP", ex);
                 }
             }
 
             facesContext.responseComplete();
 
         } catch (IOException ex) {
-            Logger.getLogger(Util.class.getName()).log(Level.SEVERE, null, ex);
+            LOG.log(Level.SEVERE, "generateAllMonthIntervalData() - No se ha podido generar el archivo con los datos de todos los intervalos del mes", ex);
         }
     }
 
     private IntervalData analyzePreviousInterval(LocationLog ll, int pos, double length) {
         IntervalData previousIntervalData = new IntervalData();
+
+        previousIntervalData.init(null);
+
         double cummulativeLength = 0.0d;
         LocationLogDetail lldPrev = ll.getLocationLogDetailList().get(pos);
         DescriptiveStatistics speedStats = new DescriptiveStatistics();
         DescriptiveStatistics heartRateStats = new DescriptiveStatistics();
+        DescriptiveStatistics rrTimeRateStats = new DescriptiveStatistics();
+        DescriptiveStatistics accelerationStats = new DescriptiveStatistics();
+        DescriptiveStatistics decelerationStats = new DescriptiveStatistics();
         double cummulativePositiveSpeeds = 0.0d;
 
         for (int i = pos - 1; i > 0; i--) {
@@ -607,11 +661,24 @@ public class LocationLogController implements Serializable, ICSVController<Inter
                     previousIntervalData.setStandardDeviationHeartRate(heartRateStats.getStandardDeviation());
                     previousIntervalData.setHeartRateAtStart(lld.getHeartRate());
                     previousIntervalData.setHeartRateAtEnd(ll.getLocationLogDetailList().get(pos).getHeartRate());
+                    previousIntervalData.setMinRRTime((int) rrTimeRateStats.getMin());
+                    previousIntervalData.setMaxRRTime((int) rrTimeRateStats.getMax());
+                    previousIntervalData.setAverageRRTime(rrTimeRateStats.getMean());
+                    previousIntervalData.setAverageAcceleration(accelerationStats.getMean());
+                    previousIntervalData.setAverageDeceleration(decelerationStats.getMean());
                     break;
                 } else {
                     // Análisis del PKE (Positive Kinetic Energy)
                     speedStats.addValue(lld.getSpeed());
                     heartRateStats.addValue(lld.getHeartRate());
+                    rrTimeRateStats.addValue(lld.getRrTime());
+                    // Pasamos la aceleración a m/s2.
+                    double currentAcceleration = (double) ((lld.getSpeed() - lldPrev.getSpeed()) * (1000d / 3600d)) / ((lld.getTimeLog().getTime() - lldPrev.getTimeLog().getTime()) / 1000d);
+                    if (currentAcceleration > 0.0d) {
+                        accelerationStats.addValue(currentAcceleration);
+                    } else if (currentAcceleration < 0.0d) {
+                        decelerationStats.addValue(currentAcceleration);
+                    }
                     cummulativePositiveSpeeds += analyzePKE(lld, lldPrev);
                 }
             }
@@ -1016,14 +1083,14 @@ public class LocationLogController implements Serializable, ICSVController<Inter
         // Procesamos el archivo CSV.
         if (file != null) {
             try {
-                log.log(Level.INFO, "handleImportLocationFileUpload() - Archivo de localizaciones: {0}", file.getFileName());
+                LOG.log(Level.INFO, "handleImportLocationFileUpload() - Archivo de localizaciones: {0}", file.getFileName());
                 // En primer lugar, probamos a hacer la lectura del CSV con el 'parser' de la versión más moderna de SmartDriver.
                 try {
                     LocationLogCSVController2 llc2 = new LocationLogCSVController2();
                     llc2.processFile(file);
                     LocationLog locationLog = llc2.getLocationLog();
                     if (locationLog != null && locationLog.getDateLog() != null) {
-                        log.log(Level.INFO, "handleImportLocationFileUpload() - Archivo correcto: {0}", file.getFileName());
+                        LOG.log(Level.INFO, "handleImportLocationFileUpload() - Archivo correcto: {0}", file.getFileName());
                         locationLog.setPerson(person);
                         locationLog.setFilename(file.getFileName());
                         // Comprobamos si existe previamente, para borrarlo e insertar el nuevo.
@@ -1038,12 +1105,12 @@ public class LocationLogController implements Serializable, ICSVController<Inter
                         throw new HermesException();
                     }
                 } catch (HermesException ex) {
-                    log.log(Level.SEVERE, "handleImportLocationFileUpload() - Error al procesar el archivo de localizaciones con el formato moderno, probamos con el formato antiguo");
+                    LOG.log(Level.SEVERE, "handleImportLocationFileUpload() - Error al procesar el archivo de localizaciones con el formato moderno, probamos con el formato antiguo");
                     LocationLogCSVController llc = new LocationLogCSVController();
                     llc.processFile(file);
                     LocationLog locationLog = llc.getLocationLog();
                     if (locationLog != null && locationLog.getDateLog() != null) {
-                        log.log(Level.INFO, "handleImportLocationFileUpload() - Archivo correcto: {0}", file.getFileName());
+                        LOG.log(Level.INFO, "handleImportLocationFileUpload() - Archivo correcto: {0}", file.getFileName());
                         locationLog.setPerson(person);
                         locationLog.setFilename(file.getFileName());
                         // Comprobamos si existe previamente, para borrarlo e insertar el nuevo.
@@ -1055,16 +1122,16 @@ public class LocationLogController implements Serializable, ICSVController<Inter
                         }
                         getFacade().edit(locationLog);
                     } else {
-                        log.log(Level.SEVERE, "handleImportLocationFileUpload() - Localizaciones nulas");
+                        LOG.log(Level.SEVERE, "handleImportLocationFileUpload() - Localizaciones nulas");
                         JsfUtil.addErrorMessageTag("importMessages", MessageFormat.format(LocaleBean.getBundle().getString("InvalidFile"), file.getFileName()));
                     }
                 }
             } catch (HermesException ex) {
-                log.log(Level.SEVERE, "handleImportLocationFileUpload() - Error al procesar el archivo de localizaciones", ex);
+                LOG.log(Level.SEVERE, "handleImportLocationFileUpload() - Error al procesar el archivo de localizaciones", ex);
                 JsfUtil.addErrorMessage(ex, ex.getMessage());
             }
         } else {
-            log.log(Level.SEVERE, "handleImportLocationFileUpload() - Archivo no válido");
+            LOG.log(Level.SEVERE, "handleImportLocationFileUpload() - Archivo no válido");
             JsfUtil.addErrorMessage(MessageFormat.format(LocaleBean.getBundle().getString("InvalidFile"), ""));
         }
     }
@@ -1130,5 +1197,37 @@ public class LocationLogController implements Serializable, ICSVController<Inter
     public List<IntervalData> getItems() {
         // Devolvemos la lista de intervalos para poder generar el CSV de intervalos.
         return this.intervalDataList;
+    }
+
+    public void generateSimulatedTrack() {
+        String json;
+        try {
+            json = IOUtils.toString(new URL("http://www.javascriptkit.com/dhtmltutors/javascriptkit.json"));
+            Gson gson = new Gson();
+            Page page = gson.fromJson(json, Page.class);
+
+            System.out.println(page.title);
+            for (Item item : page.items) {
+                System.out.println("    " + item.title);
+            }
+        } catch (IOException ex) {
+            Logger.getLogger(LocationLogController.class.getName()).log(Level.SEVERE, null, ex);
+        }
+    }
+
+    static class Item {
+
+        String title;
+        String link;
+        String description;
+    }
+
+    static class Page {
+
+        String title;
+        String link;
+        String description;
+        String language;
+        List<Item> items;
     }
 }

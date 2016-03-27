@@ -4,6 +4,9 @@ import es.jyago.hermes.activityLog.ActivityLog;
 import es.jyago.hermes.activityLog.ActivityLogController;
 import es.jyago.hermes.activityLog.ActivityLogHermesZtreamyFacade;
 import es.jyago.hermes.bean.LocaleBean;
+import es.jyago.hermes.contextLog.ContextLog;
+import es.jyago.hermes.contextLog.ContextLogDetail;
+import es.jyago.hermes.contextLog.ContextLogHermesZtreamyFacade;
 import es.jyago.hermes.util.Constants;
 import es.jyago.hermes.util.JsfUtil;
 import es.jyago.hermes.util.JsfUtil.PersistAction;
@@ -14,25 +17,19 @@ import es.jyago.hermes.fitbit.IFitbitFacade;
 import es.jyago.hermes.healthLog.HealthLog;
 import es.jyago.hermes.healthLog.HealthLogHermesZtreamyFacade;
 import es.jyago.hermes.heartLog.HeartLog;
-import es.jyago.hermes.location.LocationLog;
-import es.jyago.hermes.location.LocationLogCSVController;
-import es.jyago.hermes.location.LocationLogCSVController2;
 import es.jyago.hermes.location.LocationLogController;
-import es.jyago.hermes.location.detail.LocationLogDetail;
 import es.jyago.hermes.login.LoginController;
 import es.jyago.hermes.sleepLog.SleepLog;
 import es.jyago.hermes.sleepLog.SleepLogHermesZtreamyFacade;
+import es.jyago.hermes.stepLog.StepLog;
 import es.jyago.hermes.util.HermesException;
 import es.jyago.hermes.util.Util;
 import java.io.IOException;
 import java.io.Serializable;
 import java.net.MalformedURLException;
-import java.text.MessageFormat;
 import java.util.ArrayList;
 import java.util.Calendar;
-import java.util.Collections;
 import java.util.Date;
-import java.util.HashMap;
 import java.util.Iterator;
 import java.util.LinkedHashMap;
 import java.util.List;
@@ -41,7 +38,6 @@ import java.util.Map;
 import java.util.TreeMap;
 import java.util.logging.Level;
 import java.util.logging.Logger;
-import javax.ejb.EJB;
 import javax.ejb.EJBException;
 import javax.enterprise.context.SessionScoped;
 import javax.faces.application.FacesMessage;
@@ -62,11 +58,9 @@ import org.joda.time.Days;
 import org.joda.time.LocalDate;
 import org.joda.time.LocalTime;
 import org.primefaces.context.RequestContext;
-import org.primefaces.event.FileUploadEvent;
 import org.primefaces.event.ItemSelectEvent;
 import org.primefaces.event.SelectEvent;
 import org.primefaces.event.map.OverlaySelectEvent;
-import org.primefaces.model.UploadedFile;
 import org.primefaces.model.chart.Axis;
 import org.primefaces.model.chart.AxisType;
 import org.primefaces.model.chart.BarChartModel;
@@ -81,9 +75,9 @@ import org.primefaces.model.chart.LineChartSeries;
 @SessionScoped
 public class PersonController implements Serializable, IFitbitFacade {
 
-    private static final Logger log = Logger.getLogger(PersonController.class.getName());
+    private static final Logger LOG = Logger.getLogger(PersonController.class.getName());
 
-    @EJB
+    @Inject
     private PersonFacade ejbFacade;
     private List<Person> items;
     private Person selected;
@@ -99,8 +93,8 @@ public class PersonController implements Serializable, IFitbitFacade {
     private List<HealthLog> chartMonthHealthLogList;
     private int dateSelector;
 
-    @Inject
-    private ActivityLogController activityLogController;
+//    @Inject
+//    private ActivityLogController activityLogController;
     @Inject
     private LocationLogController locationLogController;
     private String lastCode;
@@ -109,16 +103,15 @@ public class PersonController implements Serializable, IFitbitFacade {
     private LineChartModel stepsLogLineChartModel;
     private BarChartModel sleepLogBarChartModel;
     private LineChartModel heartLogLineChartModel;
+    private LineChartModel sessionsLineChartModel;
 
     public PersonController() {
-        log.log(Level.INFO, "PersonController() - Inicialización del controlador de personas");
+        LOG.log(Level.INFO, "PersonController() - Inicialización del controlador de personas");
 
         selected = null;
         authorizeUrl = null;
         items = null;
         hermesFitbitController = null;
-        startDate = Calendar.getInstance().getTime();
-        endDate = Calendar.getInstance().getTime();
         dateSelector = 1;
         lastCode = null;
     }
@@ -145,6 +138,7 @@ public class PersonController implements Serializable, IFitbitFacade {
         initSleepLogChartModel();
         initHeartRateChartModel();
         initMap();
+        initSessionsLineChartModel();
     }
 
     private void initMap() {
@@ -216,39 +210,6 @@ public class PersonController implements Serializable, IFitbitFacade {
         update(true);
     }
 
-//    public void updateWithImports() {
-//        if (selected.getLocationLogList() == null) {
-//            selected.setLocationLogList(new ArrayList<>());
-//        }
-//
-//        // Sustituimos los coincidentes.
-//        for (int i = selected.getLocationLogList().size() - 1; i >= 0; i--) {
-//            LocationLog existingLocationLog = selected.getLocationLogList().get(i);
-//            // Si tenemos registrado el mismo archivo, lo eliminamos.
-//            LocationLog importedLocationLog = importedLocationLogs.get(existingLocationLog.getFilename());
-//            if (importedLocationLog != null) {
-//                selected.getLocationLogList().remove(i);
-//            }
-//        }
-//        // FIXME: Solucionar UniqueConstrain
-//
-////        List<LocationLog> locationLogList = selected.getLocationLogList();
-////        selected.setLocationLogList(null);
-//
-////        update(false);
-//        // Añadimos los no coincidentes y los que se sustituyen.
-////        locationLogList.addAll(importedLocationLogs.values());
-//        selected.getLocationLogList().addAll(importedLocationLogs.values());
-//        // Actualizamos el listado con las nuevas importaciones.
-////        selected.setLocationLogList(locationLogList);
-//        update(true);
-//        // Vaciamos el contenedor de los archivos importados.
-//        this.importedLocationLogs.clear();
-//    }
-//
-//    public boolean hasImportedLocationLogs() {
-//        return !this.importedLocationLogs.isEmpty();
-//    }
     public void update(boolean showMessage) {
         String message = null;
         if (showMessage) {
@@ -328,7 +289,7 @@ public class PersonController implements Serializable, IFitbitFacade {
                 JsfUtil.showDetailedExceptionCauseMessage(ex);
             } catch (Exception ex) {
                 FacesContext.getCurrentInstance().validationFailed();
-                log.log(Level.SEVERE, "persist() - Error al registrar los cambios", ex);
+                LOG.log(Level.SEVERE, "persist() - Error al registrar los cambios", ex);
                 // TODO: Usar esta forma para mostrar los mensajes!
                 // TODO: Incluso poner el 'bundle' en JsfUtil y enviar sólo la key.
                 JsfUtil.addErrorMessage(ex, LocaleBean.getBundle().getString("PersistenceErrorOccured"));
@@ -381,8 +342,8 @@ public class PersonController implements Serializable, IFitbitFacade {
     }
 
     public void checkEmail() {
-        if (!Util.validateEmail(selected.getEmail())) {
-            log.log(Level.SEVERE, "checkEmail() - El email de la persona no es válido: {0}", selected.getEmail());
+        if (!Util.isValidEmail(selected.getEmail())) {
+            LOG.log(Level.SEVERE, "checkEmail() - El email de la persona no es válido: {0}", selected.getEmail());
             FacesContext.getCurrentInstance().validationFailed();
             JsfUtil.addErrorMessage(LocaleBean.getBundle().getString("CheckEmail"));
             RequestContext.getCurrentInstance().execute("PF('PersonEditDialog').show()");
@@ -391,7 +352,7 @@ public class PersonController implements Serializable, IFitbitFacade {
                 ExternalContext ec = FacesContext.getCurrentInstance().getExternalContext();
                 ec.redirect(ec.getRequestContextPath() + "/faces/secured/alert/List.xhtml");
             } catch (IOException ex) {
-                log.log(Level.SEVERE, "checkEmail() - Error al redirigir al listado de alertas", ex);
+                LOG.log(Level.SEVERE, "checkEmail() - Error al redirigir al listado de alertas", ex);
             }
         }
     }
@@ -401,7 +362,7 @@ public class PersonController implements Serializable, IFitbitFacade {
         checkEmail();
     }
 
-    private void initStartSyncDate() {
+    private Date initStartSyncDate() {
         // La fecha de inicio de sincronización será la más antigua entre la última registrada para la persona
         // y la última sincronización de la pulsera de Fitbit.
         // Si la persona no tuviera ninguna sincronización, tomamos como fecha de partida el primer día del año actual.
@@ -414,25 +375,23 @@ public class PersonController implements Serializable, IFitbitFacade {
             personLastSynchronization = firstDayOfYear.getTime();
         }
 
-        startDate = personLastSynchronization.before(lastFitbitSynchronization) ? personLastSynchronization : lastFitbitSynchronization;
+        return personLastSynchronization.before(lastFitbitSynchronization) ? personLastSynchronization : lastFitbitSynchronization;
     }
 
     private void initEndSyncDate() {
-        endDate = new Date();
         fitbitEndDate = new Date();
 
         try {
             if (hermesFitbitController != null) {
                 // La sincronización se hará hasta el último día de sincronización de la pulsera de Fitbit.
-                endDate = hermesFitbitController.getLastSyncDate();
-                fitbitEndDate = endDate;
+                fitbitEndDate = hermesFitbitController.getLastSyncDate();;
             }
         } catch (HermesFitbitException ex) {
-            log.log(Level.SEVERE, "getEndSyncDate() - Error al autorizar la petición a Fitbit");
+            LOG.log(Level.SEVERE, "getEndSyncDate() - Error al autorizar la petición a Fitbit");
             FacesContext.getCurrentInstance().validationFailed();
             redirectToFitbit();
         } catch (HermesException ex) {
-            log.log(Level.SEVERE, "getEndSyncDate() - Error al obtener la fecha de fin de sincronización");
+            LOG.log(Level.SEVERE, "getEndSyncDate() - Error al obtener la fecha de fin de sincronización");
             FacesContext.getCurrentInstance().validationFailed();
             FacesContext.getCurrentInstance().addMessage("messages", new FacesMessage(FacesMessage.SEVERITY_ERROR, ex.getMessage(), LocaleBean.getBundle().getString("PleaseTryAgainLater")));
             // Para que se mantenga el mensaje.
@@ -441,7 +400,7 @@ public class PersonController implements Serializable, IFitbitFacade {
     }
 
     private void redirectToFitbit() {
-        log.log(Level.INFO, "redirectToFitbit() - Redirigir a la página de autorización de Fitbit");
+        LOG.log(Level.INFO, "redirectToFitbit() - Redirigir a la página de autorización de Fitbit");
 
         FacesContext.getCurrentInstance().validationFailed();
         authorize("");
@@ -449,7 +408,7 @@ public class PersonController implements Serializable, IFitbitFacade {
         try {
             ec.redirect(getAuthorizeUrlAndReset());
         } catch (IOException e) {
-            log.log(Level.SEVERE, "redirectToFitbit() - Error al redirigir a la página de autorización de Fitbit");
+            LOG.log(Level.SEVERE, "redirectToFitbit() - Error al redirigir a la página de autorización de Fitbit");
         }
     }
 
@@ -462,7 +421,7 @@ public class PersonController implements Serializable, IFitbitFacade {
             initFitbitController(selected);
             authorizeUrl = hermesFitbitController.getAuthorizeURL((HttpServletRequest) FacesContext.getCurrentInstance().getExternalContext().getRequest(), nextPage);
         } catch (HermesException ex) {
-            log.log(Level.SEVERE, "authorize() - Error al autorizar a la persona {0}", selected.getFullName());
+            LOG.log(Level.SEVERE, "authorize() - Error al autorizar a la persona {0}", selected.getFullName());
             FacesContext.getCurrentInstance().addMessage("messages", new FacesMessage(FacesMessage.SEVERITY_ERROR, ex.getMessage(), LocaleBean.getBundle().getString("PleaseTryAgainLater")));
         }
     }
@@ -478,7 +437,7 @@ public class PersonController implements Serializable, IFitbitFacade {
             initFitbitController(selected);
             authorize("/reg");
         } else {
-            log.log(Level.SEVERE, "prepareRegister() - Error al preparar el registro de la persona {0}", selected.getFullName());
+            LOG.log(Level.SEVERE, "prepareRegister() - Error al preparar el registro de la persona {0}", selected.getFullName());
             FacesContext.getCurrentInstance().addMessage("messages", new FacesMessage(FacesMessage.SEVERITY_ERROR, LocaleBean.getBundle().getString("Error"), LocaleBean.getBundle().getString("Fitbit.error.noCredentials")));
         }
     }
@@ -486,18 +445,18 @@ public class PersonController implements Serializable, IFitbitFacade {
     public void onWelcomePageLoad() {
         // JYFR: Controlamos que sólo se ejecute la primera vez que se carga la página de registro y no por un cambio de pestaña de un formulario, por ejemplo.
         if (!FacesContext.getCurrentInstance().isPostback()) {
-            String configValue = Constants.getConfigurationValueByKey("WelcomeHits");
+            String configValue = Constants.getInstance().getConfigurationValueByKey("WelcomeHits");
             Integer hits = configValue != null ? Integer.parseInt(configValue) : 0;
-            Constants.setConfigurationValueByKey("WelcomeHits", Integer.toString(++hits));
+            Constants.getInstance().setConfigurationValueByKey("WelcomeHits", Integer.toString(++hits));
         }
     }
 
     public void onRegisterPageLoad() {
         // JYFR: Controlamos que sólo se ejecute la primera vez que se carga la página de registro y no por un cambio de pestaña de un formulario, por ejemplo.
         if (!FacesContext.getCurrentInstance().isPostback()) {
-            String configValue = Constants.getConfigurationValueByKey("RegisterHits");
+            String configValue = Constants.getInstance().getConfigurationValueByKey("RegisterHits");
             Integer hits = configValue != null ? Integer.parseInt(configValue) : 0;
-            Constants.setConfigurationValueByKey("RegisterHits", Integer.toString(++hits));
+            Constants.getInstance().setConfigurationValueByKey("RegisterHits", Integer.toString(++hits));
 
             try {
                 if (hermesFitbitController != null) {
@@ -507,11 +466,11 @@ public class PersonController implements Serializable, IFitbitFacade {
                     hermesFitbitController.completeAuthorization(code);
                     hermesFitbitController.transferUserInfoToPerson();
                 } else {
-                    log.log(Level.SEVERE, "onRegisterPageLoad() - Error al completar el registro");
+                    LOG.log(Level.SEVERE, "onRegisterPageLoad() - Error al completar el registro");
                     FacesContext.getCurrentInstance().addMessage("messages", new FacesMessage(FacesMessage.SEVERITY_ERROR, LocaleBean.getBundle().getString("Fitbit.error.noAuthorization"), LocaleBean.getBundle().getString("PleaseTryAgainLater")));
                 }
             } catch (HermesException ex) {
-                log.log(Level.SEVERE, "onRegisterPageLoad() - Error al completar el registro");
+                LOG.log(Level.SEVERE, "onRegisterPageLoad() - Error al completar el registro");
                 FacesContext.getCurrentInstance().addMessage("messages", new FacesMessage(FacesMessage.SEVERITY_ERROR, ex.getMessage(), LocaleBean.getBundle().getString("PleaseTryAgainLater")));
             }
         }
@@ -526,7 +485,7 @@ public class PersonController implements Serializable, IFitbitFacade {
                 FacesContext.getCurrentInstance().getExternalContext().getFlash().setKeepMessages(true);
                 return true;
             } catch (HermesException ex) {
-                log.log(Level.SEVERE, "completeAuthorization() - Error al completar la autorización");
+                LOG.log(Level.SEVERE, "completeAuthorization() - Error al completar la autorización");
                 FacesContext.getCurrentInstance().addMessage("messages", new FacesMessage(FacesMessage.SEVERITY_ERROR, ex.getMessage(), LocaleBean.getBundle().getString("PleaseTryAgainLater")));
             }
         }
@@ -541,7 +500,7 @@ public class PersonController implements Serializable, IFitbitFacade {
     public String getAuthorizeUrlAndReset() {
         // La URL de autorización sólo puede ser usada una vez.
         String temp = authorizeUrl;
-        log.log(Level.FINEST, "getAuthorizeUrlAndReset() - URL temporal de registro: {0}", authorizeUrl);
+        LOG.log(Level.FINEST, "getAuthorizeUrlAndReset() - URL temporal de registro: {0}", authorizeUrl);
         authorizeUrl = null;
         return temp;
     }
@@ -564,7 +523,7 @@ public class PersonController implements Serializable, IFitbitFacade {
                 RequestContext.getCurrentInstance().update("MainForm");
             }
         } catch (HermesException ex) {
-            log.log(Level.SEVERE, "synchronize() - Error al sincronizar los datos de Fitbit de la persona {0}", selected.getFullName());
+            LOG.log(Level.SEVERE, "synchronize() - Error al sincronizar los datos de Fitbit de la persona {0}", selected.getFullName());
             FacesContext.getCurrentInstance().addMessage("messages", new FacesMessage(FacesMessage.SEVERITY_ERROR, ex.getMessage(), LocaleBean.getBundle().getString("PleaseTryAgainLater")));
         }
     }
@@ -584,23 +543,34 @@ public class PersonController implements Serializable, IFitbitFacade {
 
         try {
             // Los parámetros de configuración de Ztreamy estarán en la tabla de configuración.
-            String url = Constants.getConfigurationValueByKey("ZtreamyStepsApplicationId");
+            String url = Constants.getInstance().getConfigurationValueByKey("ZtreamyStepsApplicationId");
             List<ActivityLog> activityLogList = this.getSelected().getActivityLogList(startDate, endDate, aggregation);
             ActivityLogHermesZtreamyFacade activityLogZtreamy = new ActivityLogHermesZtreamyFacade(activityLogList, this.getSelected(), url);
             List<SleepLog> sleepLogList = this.getSelected().getSleepLogList(startDate, endDate);
             SleepLogHermesZtreamyFacade sleepLogZtreamy = new SleepLogHermesZtreamyFacade(sleepLogList, this.getSelected(), url);
             List<HealthLog> healthLogList = this.getSelected().getHealthLogList(startDate, endDate, aggregation);
             HealthLogHermesZtreamyFacade healthLogZtreamy = new HealthLogHermesZtreamyFacade(healthLogList, this.getSelected(), url);
+            List<ContextLog> contextLogList = this.getSelected().getContextLogList(startDate, endDate, aggregation);
+            ContextLogHermesZtreamyFacade contextLogZtreamy = new ContextLogHermesZtreamyFacade(contextLogList, this.getSelected(), url);
 
-            if (activityLogZtreamy.send() && sleepLogZtreamy.send() && healthLogZtreamy.send()) {
+            if (activityLogZtreamy.send() && sleepLogZtreamy.send() && healthLogZtreamy.send() && contextLogZtreamy.send()) {
                 for (ActivityLog activityLog : activityLogList) {
-                    activityLog.setSendDate(new Date());
+                    for (StepLog sl : activityLog.getStepLogList()) {
+                        sl.setSent(true);
+                    }
                 }
                 for (SleepLog sleepLog : sleepLogList) {
-                    sleepLog.setSendDate(new Date());
+                    sleepLog.setSent(true);
                 }
                 for (HealthLog healthLog : healthLogList) {
-                    healthLog.setSendDate(new Date());
+                    for (HeartLog hl : healthLog.getHeartLogList()) {
+                        hl.setSent(true);
+                    }
+                }
+                for (ContextLog contextLog : contextLogList) {
+                    for (ContextLogDetail cl : contextLog.getContextLogDetailList()) {
+                        cl.setSent(true);
+                    }
                 }
                 update(false);
                 message = new FacesMessage(FacesMessage.SEVERITY_INFO, LocaleBean.getBundle().getString("Ztreamy"), LocaleBean.getBundle().getString("ZtreamySendOK"));
@@ -609,13 +579,13 @@ public class PersonController implements Serializable, IFitbitFacade {
             }
         } catch (MalformedURLException ex) {
             message = new FacesMessage(FacesMessage.SEVERITY_ERROR, LocaleBean.getBundle().getString("Error"), LocaleBean.getBundle().getString("Ztreamy.error.Url"));
-            log.log(Level.SEVERE, "sendToZtreamy() - Error en la URL", ex);
+            LOG.log(Level.SEVERE, "sendToZtreamy() - Error en la URL", ex);
         } catch (IOException ex) {
             message = new FacesMessage(FacesMessage.SEVERITY_ERROR, LocaleBean.getBundle().getString("Error"), LocaleBean.getBundle().getString("Ztreamy.error"));
-            log.log(Level.SEVERE, "sendToZtreamy() - Error de I/O", ex);
+            LOG.log(Level.SEVERE, "sendToZtreamy() - Error de I/O", ex);
         } catch (HermesException ex) {
             message = new FacesMessage(FacesMessage.SEVERITY_ERROR, LocaleBean.getBundle().getString("Error"), ex.getMessage());
-            log.log(Level.SEVERE, "sendToZtreamy() - Error al enviar");
+            LOG.log(Level.SEVERE, "sendToZtreamy() - Error al enviar");
         }
 
         FacesContext.getCurrentInstance().addMessage("messages", message);
@@ -708,6 +678,81 @@ public class PersonController implements Serializable, IFitbitFacade {
 
             if (!series.getData().isEmpty()) {
                 stepsLogLineChartModel.addSeries(series);
+            }
+        }
+    }
+
+    public LineChartModel getSessionsLineChartModel() {
+        return sessionsLineChartModel;
+    }
+
+    private void initSessionsLineChartModel() {
+        if (selected != null) {
+            // Para el gráfico de sesiones de la persona daremos los siguientes parámetros:
+            // - Fecha de inicio...: Primer día del mes actual
+            // - Fecha de fin......: Último día del mes actual
+            // - Agregación........: Por días
+            if (startDate == null && endDate == null) {
+                Calendar cal = Calendar.getInstance();
+
+                cal.set(Calendar.DATE, cal.getActualMinimum(Calendar.DATE));
+                startDate = cal.getTime();
+
+                cal.set(Calendar.DATE, cal.getActualMaximum(Calendar.DATE));
+                endDate = cal.getTime();
+            }
+
+            LinkedHashMap<Date, Integer> valuesSessions = new LinkedHashMap();
+             LinkedHashMap<Date, Integer> valuesContinuosSessions = new LinkedHashMap();
+            if (chartMonthActivityLogList != null && !chartMonthActivityLogList.isEmpty()) {
+                for (ActivityLog activityLog : chartMonthActivityLogList) {
+                    valuesSessions.put(activityLog.getDateLog(), activityLog.getTotalSessions());
+                    valuesContinuosSessions.put(activityLog.getDateLog(), activityLog.getTotalContinuousStepsSessions());
+                }
+            }
+
+            LinkedHashMap<Date, Integer> filledValuesSessions = (LinkedHashMap<Date, Integer>) fillEmptyDays(valuesSessions);
+            LinkedHashMap<Date, Integer> filledValuesContinuousSessions = (LinkedHashMap<Date, Integer>) fillEmptyDays(valuesContinuosSessions);
+
+            sessionsLineChartModel = new LineChartModel();
+            LineChartSeries sessionsSeries = new LineChartSeries();
+            LineChartSeries continuousSessionsSeries = new LineChartSeries();
+
+            // Rellenamos la serie con las fechas y las sesiones realizadas.
+            for (Date key : filledValuesSessions.keySet()) {
+                sessionsSeries.set(key.getTime(), filledValuesSessions.get(key) != null ? filledValuesSessions.get(key) : 0);
+                continuousSessionsSeries.set(key.getTime(), filledValuesContinuousSessions.get(key) != null ? filledValuesContinuousSessions.get(key) : 0);
+            }
+
+            // Indicamos el texto de la leyenda.
+            sessionsSeries.setLabel(LocaleBean.getBundle().getString("Sessions"));
+            continuousSessionsSeries.setLabel(LocaleBean.getBundle().getString("ContinuousSessions"));
+
+            sessionsLineChartModel.setTitle(Constants.df.format(startDate) + " - " + Constants.df.format(endDate));
+            sessionsLineChartModel.setLegendPosition("ne");
+            sessionsLineChartModel.setShowPointLabels(true);
+            sessionsLineChartModel.setShowDatatip(true);
+            sessionsLineChartModel.setMouseoverHighlight(true);
+            sessionsLineChartModel.setDatatipFormat("%1$s -> %2$d");
+            sessionsLineChartModel.setSeriesColors("C2185B, 303F9F");
+            sessionsLineChartModel.setAnimate(true);
+            sessionsLineChartModel.setZoom(true);
+
+            DateAxis xAxis = new DateAxis(LocaleBean.getBundle().getString("Days"));
+            xAxis.setTickAngle(-45);
+            xAxis.setTickFormat("%d/%m/%Y");
+            sessionsLineChartModel.getAxes().put(AxisType.X, xAxis);
+
+            Axis yAxis = sessionsLineChartModel.getAxis(AxisType.Y);
+            yAxis.setLabel(LocaleBean.getBundle().getString("Sessions"));
+            yAxis.setMin(0);
+
+            if (!sessionsSeries.getData().isEmpty()) {
+                sessionsLineChartModel.addSeries(sessionsSeries);
+            }
+            
+            if (!continuousSessionsSeries.getData().isEmpty()) {
+                sessionsLineChartModel.addSeries(continuousSessionsSeries);
             }
         }
     }
@@ -1033,7 +1078,7 @@ public class PersonController implements Serializable, IFitbitFacade {
 
             if (weekActivityList != null && !weekActivityList.isEmpty()) {
                 for (ActivityLog activityLog : weekActivityList) {
-                    activeSessions.putAll(activityLog.getActiveSessions());
+                    activeSessions.putAll(activityLog.getSessions());
                 }
                 if (!activeSessions.isEmpty()) {
                     Iterator it = activeSessions.keySet().iterator();
@@ -1098,38 +1143,67 @@ public class PersonController implements Serializable, IFitbitFacade {
         return null;
     }
 
-    public boolean hasPreviousMonth() {
-        LocalDate localDate = new LocalDate(startDate);
-        localDate = localDate.plusMonths(-1);
-        return selected.getActivityLogList(localDate.dayOfMonth().withMinimumValue().toDate(), localDate.dayOfMonth().withMaximumValue().toDate(), null).isEmpty();
-    }
-
-    public boolean hasNextMonth() {
-        LocalDate localDate = new LocalDate(startDate);
-        localDate = localDate.plusMonths(1);
-        return selected.getActivityLogList(localDate.dayOfMonth().withMinimumValue().toDate(), localDate.dayOfMonth().withMaximumValue().toDate(), null).isEmpty();
-    }
-
-    public boolean hasPreviousWeek() {
-        LocalDate localDate = new LocalDate(startDate);
-        localDate = localDate.plusWeeks(-1);
-        return selected.getActivityLogList(localDate.dayOfWeek().withMinimumValue().toDate(), localDate.dayOfWeek().withMaximumValue().toDate(), null).isEmpty();
-    }
-
-    public boolean hasNextWeek() {
-        LocalDate localDate = new LocalDate(startDate);
-        localDate = localDate.plusWeeks(1);
-        return selected.getActivityLogList(localDate.dayOfMonth().withMinimumValue().toDate(), localDate.dayOfMonth().withMaximumValue().toDate(), null).isEmpty();
-    }
-
+//    public boolean hasPreviousMonth() {
+//        LocalDate localDate = new LocalDate(startDate);
+//        localDate = localDate.plusMonths(-1);
+//        return selected.getActivityLogList(localDate.dayOfMonth().withMinimumValue().toDate(), localDate.dayOfMonth().withMaximumValue().toDate(), null).isEmpty();
+//    }
+//
+//    public boolean hasNextMonth() {
+//        LocalDate localDate = new LocalDate(startDate);
+//        localDate = localDate.plusMonths(1);
+//        return selected.getActivityLogList(localDate.dayOfMonth().withMinimumValue().toDate(), localDate.dayOfMonth().withMaximumValue().toDate(), null).isEmpty();
+//    }
+//
+//    public boolean hasPreviousWeek() {
+//        LocalDate localDate = new LocalDate(startDate);
+//        localDate = localDate.plusWeeks(-1);
+//        return selected.getActivityLogList(localDate.dayOfWeek().withMinimumValue().toDate(), localDate.dayOfWeek().withMaximumValue().toDate(), null).isEmpty();
+//    }
+//
+//    public boolean hasNextWeek() {
+//        LocalDate localDate = new LocalDate(startDate);
+//        localDate = localDate.plusWeeks(1);
+//        return selected.getActivityLogList(localDate.dayOfMonth().withMinimumValue().toDate(), localDate.dayOfMonth().withMaximumValue().toDate(), null).isEmpty();
+//    }
     public void previousMonthStepLogChart() {
         addMont(-1);
         initStepsLogLineChartModel();
     }
 
+    public void previousWeekStepLogChart() {
+        addWeek(-1);
+        initStepsLogLineChartModel();
+    }
+
+    public void previousMonthSessionsChart() {
+        previousMonthStepLogChart();
+        initSessionsLineChartModel();
+    }
+
+    public void previousWeekSessionsChart() {
+        previousWeekStepLogChart();
+        initSessionsLineChartModel();
+    }
+
     public void nextMonthStepLogChart() {
         addMont(1);
         initStepsLogLineChartModel();
+    }
+
+    public void nextWeekStepLogChart() {
+        addWeek(1);
+        initStepsLogLineChartModel();
+    }
+
+    public void nextMonthSessionsChart() {
+        nextMonthStepLogChart();
+        initSessionsLineChartModel();
+    }
+
+    public void nextWeekSessionsChart() {
+        nextWeekStepLogChart();
+        initSessionsLineChartModel();
     }
 
     public void previousMonthHeartLogChart() {
@@ -1152,14 +1226,6 @@ public class PersonController implements Serializable, IFitbitFacade {
         initSleepLogChartModel();
     }
 
-    public void previousWeekChart() {
-        addWeek(-1);
-    }
-
-    public void nextWeekChart() {
-        addWeek(1);
-    }
-
     public void updateStartDate(SelectEvent selectEvent) {
         Date selectedDate = (Date) selectEvent.getObject();
         if (!selectedDate.after(endDate)) {
@@ -1174,6 +1240,16 @@ public class PersonController implements Serializable, IFitbitFacade {
             endDate = selectedDate;
         }
         initStepsLogLineChartModel();
+    }
+
+    public void updateSessionsStartDate(SelectEvent selectEvent) {
+        updateStartDate(selectEvent);
+        initSessionsLineChartModel();
+    }
+
+    public void updateSessionsEndDate(SelectEvent selectEvent) {
+        updateEndDate(selectEvent);
+        initSessionsLineChartModel();
     }
 
     public int getDateSelector() {
@@ -1207,18 +1283,8 @@ public class PersonController implements Serializable, IFitbitFacade {
     public void itemSelectSessions(ItemSelectEvent event) {
         try {
             selectedActivity = chartMonthActivityLogList.get(event.getItemIndex());
-            log.log(Level.INFO, "itemSelectSessions() - Obtener las sesiones del día: {0}", Constants.df.format(selectedActivity.getDateLog()));
-            RequestContext.getCurrentInstance().execute("PF('ActivityLogSessionsChartDialog').show()");
-        } catch (IndexOutOfBoundsException ex) {
-            FacesContext.getCurrentInstance().addMessage("messages", new FacesMessage(FacesMessage.SEVERITY_INFO, LocaleBean.getBundle().getString("NoDataForDate"), null));
-            selectedActivity = null;
-        }
-    }
-
-    public void itemSelectSessions2(ItemSelectEvent event) {
-        try {
-            selectedActivity = chartMonthActivityLogList.get(event.getItemIndex());
-            log.log(Level.INFO, "itemSelectSessions() - Obtener las sesiones del día: {0}", Constants.df.format(selectedActivity.getDateLog()));
+            LOG.log(Level.INFO, "itemSelectSessions() - Obtener las sesiones del día: {0}", Constants.df.format(selectedActivity.getDateLog()));
+            RequestContext.getCurrentInstance().execute("PF('DaySessionsDialog').show()");
         } catch (IndexOutOfBoundsException ex) {
             FacesContext.getCurrentInstance().addMessage("messages", new FacesMessage(FacesMessage.SEVERITY_INFO, LocaleBean.getBundle().getString("NoDataForDate"), null));
             selectedActivity = null;
@@ -1228,7 +1294,7 @@ public class PersonController implements Serializable, IFitbitFacade {
     public void itemSelectHeartLog(ItemSelectEvent event) {
         try {
             selectedHealthLog = chartMonthHealthLogList.get(event.getItemIndex());
-            log.log(Level.INFO, "itemSelectHeartLog() - Obtener el detalle del ritmo cardíaco del día: {0}", Constants.df.format(selectedHealthLog.getDateLog()));
+            LOG.log(Level.INFO, "itemSelectHeartLog() - Obtener el detalle del ritmo cardíaco del día: {0}", Constants.df.format(selectedHealthLog.getDateLog()));
             RequestContext.getCurrentInstance().execute("PF('HeartRateDayChartDlg').show()");
         } catch (IndexOutOfBoundsException ex) {
             FacesContext.getCurrentInstance().addMessage("messages", new FacesMessage(FacesMessage.SEVERITY_INFO, LocaleBean.getBundle().getString("NoDataForDate"), null));
@@ -1244,15 +1310,14 @@ public class PersonController implements Serializable, IFitbitFacade {
         return selectedHealthLog;
     }
 
-    public LineChartModel getActivityLogSessionsChartModel() {
-        if (selectedActivity != null) {
-            selectedActivity.calculateSessions(false);
-            return selectedActivity.getAreaModel(Constants.df.format(selectedActivity.getDateLog()));
-        }
-
-        return null;
-    }
-
+//    public LineChartModel getActivityLogSessionsChartModel() {
+//        if (selectedActivity != null) {
+//            selectedActivity.calculateSessions(false);
+//            return selectedActivity.getAreaModel(Constants.df.format(selectedActivity.getDateLog()));
+//        }
+//
+//        return null;
+//    }
     public LineChartModel getActivityLogLineChartModel() {
         if (selectedActivity != null) {
             selectedActivity.setAggregation(Constants.TimeAggregations.Minutes.toString());
@@ -1270,16 +1335,16 @@ public class PersonController implements Serializable, IFitbitFacade {
         return null;
     }
 
-    public void onRowSelect(SelectEvent event) throws IOException {
-        activityLogController.initListFromPerson(selected.getPersonId());
-        ExternalContext ec = FacesContext.getCurrentInstance().getExternalContext();
-        ec.redirect(ec.getRequestContextPath() + "/faces/secured/activityLog/List.xhtml");
-
-        // JYFR - Otra alternativa, pero mejor usar la de arriba.
-//        FacesContext fc = FacesContext.getCurrentInstance();
-//        NavigationHandler nh = fc.getApplication().getNavigationHandler();
-//        nh.handleNavigation(fc, null, "/faces/secured/activityLog/List.xhtml?faces-redirect=true");
-    }
+//    public void onRowSelect(SelectEvent event) throws IOException {
+//        activityLogController.initListFromPerson(selected.getPersonId());
+//        ExternalContext ec = FacesContext.getCurrentInstance().getExternalContext();
+//        ec.redirect(ec.getRequestContextPath() + "/faces/secured/activityLog/List.xhtml");
+//
+//        // JYFR - Otra alternativa, pero mejor usar la de arriba.
+////        FacesContext fc = FacesContext.getCurrentInstance();
+////        NavigationHandler nh = fc.getApplication().getNavigationHandler();
+////        nh.handleNavigation(fc, null, "/faces/secured/activityLog/List.xhtml?faces-redirect=true");
+//    }
 
     public void onPathSelect(OverlaySelectEvent event) {
         // TODO: Mostrar un globo emergente con los datos de esa posición.
@@ -1287,7 +1352,7 @@ public class PersonController implements Serializable, IFitbitFacade {
     }
 
     public boolean isAllowNewUsers() {
-        String allowed = Constants.getConfigurationValueByKey("AllowNewUsers");
+        String allowed = Constants.getInstance().getConfigurationValueByKey("AllowNewUsers");
         return allowed != null ? Boolean.valueOf(allowed) : false;
     }
 
@@ -1340,7 +1405,7 @@ public class PersonController implements Serializable, IFitbitFacade {
                 Person o = (Person) object;
                 return getStringKey(o.getPersonId());
             } else {
-                log.log(Level.SEVERE, "object {0} is of type {1}; expected type: {2}", new Object[]{object, object.getClass().getName(), Person.class.getName()});
+                LOG.log(Level.SEVERE, "object {0} is of type {1}; expected type: {2}", new Object[]{object, object.getClass().getName(), Person.class.getName()});
                 return null;
             }
         }

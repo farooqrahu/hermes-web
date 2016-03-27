@@ -21,7 +21,7 @@ import javax.faces.convert.FacesConverter;
 @SessionScoped
 public class RoleController implements Serializable {
 
-    private static final Logger log = Logger.getLogger(RoleController.class.getName());
+    private static final Logger LOG = Logger.getLogger(RoleController.class.getName());
 
     @EJB
     private es.jyago.hermes.role.RoleFacade ejbFacade;
@@ -29,7 +29,7 @@ public class RoleController implements Serializable {
     private Role selected;
 
     public RoleController() {
-        log.log(Level.INFO, "RoleController() - Inicialización del controlador de roles");
+        LOG.log(Level.INFO, "RoleController() - Inicialización del controlador de roles");
     }
 
     public Role getSelected() {

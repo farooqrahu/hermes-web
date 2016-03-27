@@ -10,34 +10,31 @@ import java.util.logging.Level;
 import java.util.logging.Logger;
 import javax.ejb.EJB;
 import javax.ejb.EJBException;
-import javax.enterprise.context.SessionScoped;
-import javax.faces.component.UIComponent;
+import javax.ejb.Singleton;
+import javax.ejb.Startup;
 import javax.faces.context.FacesContext;
-import javax.faces.convert.Converter;
-import javax.faces.convert.FacesConverter;
-import javax.inject.Named;
 import javax.persistence.NoResultException;
 
-@Named("configurationController")
-@SessionScoped
+@Singleton
+@Startup
 public class ConfigurationController implements Serializable {
 
-    private static final Logger log = Logger.getLogger(ConfigurationController.class.getName());
+    private static final Logger LOG = Logger.getLogger(ConfigurationController.class.getName());
     @EJB
     private es.jyago.hermes.configuration.ConfigurationFacade ejbFacade;
     private List<Configuration> items = null;
     private Configuration selected;
 
     public ConfigurationController() {
-        log.log(Level.INFO, "ConfigurationController() - Inicialización del controlador de configuración");
+        LOG.log(Level.INFO, "ConfigurationController() - Inicialización del controlador de configuración");
     }
 
     public Configuration getSelected() {
         return selected;
     }
 
-    public void setSelected(Configuration selected) {
-        this.selected = selected;
+    public void setSelected(Configuration s) {
+        selected = s;
     }
 
     protected void setEmbeddableKeys() {
@@ -46,28 +43,21 @@ public class ConfigurationController implements Serializable {
     protected void initializeEmbeddableKey() {
     }
 
-    private ConfigurationFacade getFacade() {
-        return ejbFacade;
-    }
-
-    public Configuration prepareCreate() {
-        selected = new Configuration();
-        initializeEmbeddableKey();
-        return selected;
-    }
-
-    public void create() {
-        persist(PersistAction.CREATE, ResourceBundle.getBundle("/Bundle").getString("OptionCreated"));
-        if (!JsfUtil.isValidationFailed()) {
-            selected = null; // Remove selection
-            items = null;    // Invalidate list of items to trigger re-query.
-        }
-    }
-
-    public void update() {
-        update(true);
-    }
-
+//    public Configuration prepareCreate() {
+//        selected = new Configuration();
+//        initializeEmbeddableKey();
+//        return selected;
+//    }
+//    public void create() {
+//        persist(PersistAction.CREATE, ResourceBundle.getBundle("/Bundle").getString("OptionCreated"));
+//        if (!JsfUtil.isValidationFailed()) {
+//            selected = null; // Remove selection
+//            items = null;    // Invalidate list of items to trigger re-query.
+//        }
+//    }
+//    public void update() {
+//        update(true);
+//    }
     public void update(boolean showMessage) {
         String message = null;
         if (showMessage) {
@@ -76,29 +66,29 @@ public class ConfigurationController implements Serializable {
         persist(PersistAction.UPDATE, message);
     }
 
-    public void destroy() {
-        persist(PersistAction.DELETE, ResourceBundle.getBundle("/Bundle").getString("OptionDeleted"));
-        if (!JsfUtil.isValidationFailed()) {
-            selected = null; // Remove selection
-            items = null;    // Invalidate list of items to trigger re-query.
-        }
-    }
-
+//    public void destroy() {
+//        persist(PersistAction.DELETE, ResourceBundle.getBundle("/Bundle").getString("OptionDeleted"));
+//        if (!JsfUtil.isValidationFailed()) {
+//            selected = null; // Remove selection
+//            items = null;    // Invalidate list of items to trigger re-query.
+//        }
+//    }
+    
     public List<Configuration> getItems() {
         if (items == null) {
-            items = getFacade().findAll();
+            items = ejbFacade.findAll();
         }
         return items;
     }
-
+    
     private void persist(PersistAction persistAction, String successMessage) {
         if (selected != null) {
             setEmbeddableKeys();
             try {
                 if (persistAction != PersistAction.DELETE) {
-                    getFacade().edit(selected);
+                    ejbFacade.edit(selected);
                 } else {
-                    getFacade().remove(selected);
+                    ejbFacade.remove(selected);
                 }
                 if (successMessage != null) {
                     JsfUtil.addSuccessMessage(successMessage);
@@ -117,7 +107,7 @@ public class ConfigurationController implements Serializable {
                     JsfUtil.addErrorMessage(ex, ResourceBundle.getBundle("/Bundle").getString("PersistenceErrorOccured"));
                 }
             } catch (Exception ex) {
-                Logger.getLogger(this.getClass().getName()).log(Level.SEVERE, null, ex);
+                LOG.log(Level.SEVERE, "persist() - No se ha podido grabar la configuración", ex);
                 JsfUtil.addErrorMessage(ex, ResourceBundle.getBundle("/Bundle").getString("PersistenceErrorOccured"));
             }
         }
@@ -131,8 +121,8 @@ public class ConfigurationController implements Serializable {
                     .setParameter("optionKey", key)
                     .getSingleResult();
         } catch (NoResultException ex) {
+            LOG.log(Level.INFO, "getItemByKey() - No existe la configuración con clave: {0}", key);
             FacesContext.getCurrentInstance().validationFailed();
-            log.log(Level.INFO, "getItemByKey() - No existe la configuración con clave: {0}", key);
         }
 
         return result;
@@ -157,63 +147,59 @@ public class ConfigurationController implements Serializable {
             stringValue = getValueFromItemByKey(key);
             value = Integer.parseInt(stringValue);
         } catch (NumberFormatException e) {
-            log.log(Level.WARNING, "getIntValueFromItemByKey() - El valor [{0}] de la clave [{1}] no es un entero. Se devolverá un '0'", new Object[]{stringValue, key});
+            LOG.log(Level.WARNING, "getIntValueFromItemByKey() - El valor [{0}] de la clave [{1}] no es un entero. Se devolverá un '0'", new Object[]{stringValue, key});
         }
 
         return value;
     }
 
-    public Configuration getOption(java.lang.String id) {
-        return getFacade().find(id);
-    }
-
-    public List<Configuration> getItemsAvailableSelectMany() {
-        return getFacade().findAll();
-    }
-
-    public List<Configuration> getItemsAvailableSelectOne() {
-        return getFacade().findAll();
-    }
-
-    @FacesConverter(forClass = Configuration.class)
-    public static class ConfigurationControllerConverter implements Converter {
-
-        @Override
-        public Object getAsObject(FacesContext facesContext, UIComponent component, String value) {
-            if (value == null || value.length() == 0) {
-                return null;
-            }
-            ConfigurationController controller = (ConfigurationController) facesContext.getApplication().getELResolver().
-                    getValue(facesContext.getELContext(), null, "configurationController");
-            return controller.getOption(getKey(value));
-        }
-
-        java.lang.String getKey(String value) {
-            java.lang.String key;
-            key = value;
-            return key;
-        }
-
-        String getStringKey(java.lang.String value) {
-            StringBuilder sb = new StringBuilder();
-            sb.append(value);
-            return sb.toString();
-        }
-
-        @Override
-        public String getAsString(FacesContext facesContext, UIComponent component, Object object) {
-            if (object == null) {
-                return null;
-            }
-            if (object instanceof Configuration) {
-                Configuration o = (Configuration) object;
-                return getStringKey(o.getOptionKey());
-            } else {
-                Logger.getLogger(this.getClass().getName()).log(Level.SEVERE, "object {0} is of type {1}; expected type: {2}", new Object[]{object, object.getClass().getName(), Configuration.class.getName()});
-                return null;
-            }
-        }
-
-    }
-
+//    public Configuration getOption(java.lang.String id) {
+//        return ejbFacade.find(id);
+//    }
+//    public List<Configuration> getItemsAvailableSelectMany() {
+//        return ejbFacade.findAll();
+//    }
+//    public List<Configuration> getItemsAvailableSelectOne() {
+//        return ejbFacade.findAll();
+//    }
+//    @FacesConverter(forClass = Configuration.class)
+//    public class ConfigurationControllerConverter implements Converter {
+//
+//        @Override
+//        public Object getAsObject(FacesContext facesContext, UIComponent component, String value) {
+//            if (value == null || value.length() == 0) {
+//                return null;
+//            }
+//            ConfigurationController controller = (ConfigurationController) facesContext.getApplication().getELResolver().
+//                    getValue(facesContext.getELContext(), null, "configurationController");
+//            return controller.getOption(getKey(value));
+//        }
+//
+//        java.lang.String getKey(String value) {
+//            java.lang.String key;
+//            key = value;
+//            return key;
+//        }
+//
+//        String getStringKey(java.lang.String value) {
+//            StringBuilder sb = new StringBuilder();
+//            sb.append(value);
+//            return sb.toString();
+//        }
+//
+//        @Override
+//        public String getAsString(FacesContext facesContext, UIComponent component, Object object) {
+//            if (object == null) {
+//                return null;
+//            }
+//            if (object instanceof Configuration) {
+//                Configuration o = (Configuration) object;
+//                return getStringKey(o.getOptionKey());
+//            } else {
+//                Logger.getLogger(this.getClass().getName()).log(Level.SEVERE, "object {0} is of type {1}; expected type: {2}", new Object[]{object, object.getClass().getName(), Configuration.class.getName()});
+//                return null;
+//            }
+//        }
+//
+//    }
 }

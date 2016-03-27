@@ -35,7 +35,7 @@ import net.sf.jasperreports.engine.util.JRLoader;
 @SessionScoped
 public class ReportController implements Serializable {
 
-    private static final Logger log = Logger.getLogger(ReportController.class.getName());
+    private static final Logger LOG = Logger.getLogger(ReportController.class.getName());
 
     private List<Report> items;
     private Report selected;
@@ -62,7 +62,7 @@ public class ReportController implements Serializable {
 
                 ExternalContext ec = FacesContext.getCurrentInstance().getExternalContext();
                 String reportsFolder = ec.getRealPath("/resources/report");
-                log.log(Level.INFO, "getItems() - Listado de informes del directorio {0}", reportsFolder);
+                LOG.log(Level.INFO, "getItems() - Listado de informes del directorio {0}", reportsFolder);
 
                 Files.walk(Paths.get(reportsFolder)).filter(p -> p.toString().endsWith(".jasper")).forEach(filePath -> {
                     if (Files.isRegularFile(filePath)) {
@@ -83,7 +83,7 @@ public class ReportController implements Serializable {
                     }
                 });
             } catch (IOException ex) {
-                log.log(Level.SEVERE, "getItems() - Error al obtener el listado de informes", ex);
+                LOG.log(Level.SEVERE, "getItems() - Error al obtener el listado de informes", ex);
             }
         }
         return items;
@@ -92,7 +92,7 @@ public class ReportController implements Serializable {
     public void generatePDF(Report report) {
         selected = report;
         try {
-            log.log(Level.INFO, "generate() - Generar el informe {0}", selected.getDescription());
+            LOG.log(Level.INFO, "generate() - Generar el informe {0}", selected.getDescription());
 
             InitialContext initialContext;
             try {

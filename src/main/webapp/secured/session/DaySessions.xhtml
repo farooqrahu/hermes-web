@@ -1,0 +1,48 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.1//EN" "http://www.w3.org/TR/xhtml11/DTD/xhtml11.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml"
+      xmlns:ui="http://xmlns.jcp.org/jsf/facelets"
+      xmlns:h="http://xmlns.jcp.org/jsf/html"
+      xmlns:p="http://primefaces.org/ui"
+      xmlns:c="http://xmlns.jcp.org/jsp/jstl/core">
+
+    <ui:composition>
+        <h:head>
+        </h:head>
+
+        <p:dialog widgetVar="DaySessionsDialog" modal="true" resizable="true" appendTo="@(body)" header="#{bundle.GraphicSessions}" closeOnEscape="true" maximizable="true" dynamic="true">
+
+            <h:form id="DaySessionsForm">
+                <h:panelGrid id="display">
+                    <h:panelGroup>
+                        <div style="width: 100%">
+                            
+                        <p:chart type="line" widgetVar="lineChart" model="#{personController.activityLogLineChartModel}" style="height: 400px;" rendered="#{personController.activityLogLineChartModel != null and not empty personController.activityLogLineChartModel.series}" responsive="true"/>
+                        </div>
+
+                        <p:panelGrid columns="3" rendered="#{personController.selectedActivity != null}">
+                            <p:panelGrid columns="6">
+                                <h:outputText value="#{bundle.Achieved}"/>
+                                <h:outputText value="#{personController.selectedActivity.summary.Achieved}" title="#{bundle.Achieved}" styleClass="bold"/>
+                                <h:outputText value="#{bundle.MinimumSessionMinutes}"/>
+                                <h:outputText value="#{personController.selectedActivity.person.configurationHashMap.MinimumSessionMinutes.value}" title="#{bundle.MinimumSessionMinutes}" styleClass="bold"/>
+                                <h:outputText value="#{bundle.RestStepsThreshold}"/>
+                                <h:outputText value="#{personController.selectedActivity.person.configurationHashMap.RestStepsThreshold.value}" title="#{bundle.RestStepsThreshold}" styleClass="bold"/>
+                                <h:outputText value="#{bundle.Target}"/>
+                                <h:outputText value="#{personController.selectedActivity.person.configurationHashMap.StepsGoal.value}" title="#{bundle.Target}" styleClass="bold"/>
+                                <h:outputText value="#{bundle.Remaining}"/>
+                                <h:outputText value="#{personController.selectedActivity.summary.Remaining}" title="#{bundle.Remaining}" styleClass="bold"/>
+                                <h:outputText value="#{bundle.EndSessionStoppedMinutes}"/>
+                                <h:outputText value="#{personController.selectedActivity.person.configurationHashMap.EndSessionStoppedMinutes.value}" title="#{bundle.EndSessionStoppedMinutes}" styleClass="bold"/>                            
+                            </p:panelGrid>
+                            <p:commandButton value="#{bundle.ZoomReset}" type="button" onclick="PF('sessionsChart').resetZoom()" icon="ui-icon-cancel" />
+                        </p:panelGrid>
+                    </h:panelGroup>
+
+                    <p:commandButton value="#{bundle.Close}" onclick="PF('DaySessionsDialog').hide()"/>
+                </h:panelGrid>
+            </h:form>
+        </p:dialog>
+
+    </ui:composition>
+</html>

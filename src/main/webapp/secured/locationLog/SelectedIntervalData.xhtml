@@ -33,7 +33,7 @@
                         <p:column>
                             <p:outputLabel value="S0: " for="s1" style="padding-right: 5px;" title="#{bundle.SpeedAtEnd}"/>
                             <strong>
-                                <h:outputText id="s0" value="#{locationLogController.selectedInterval.speedAtStart}" style="float:right">
+                                <h:outputText id="s0" value="#{locationLogController.selectedInterval.speedAtStart}" style="float:right" rendered="#{locationLogController.selectedInterval.speedAtStart != 'NaN'}">
                                     <f:convertNumber pattern="#0.00"/>
                                 </h:outputText>
                             </strong>
@@ -41,7 +41,7 @@
                         <p:column>
                             <p:outputLabel value="S1: " for="s1" style="padding-right: 5px;" title="#{bundle.SpeedAtEnd}"/>
                             <strong>
-                                <h:outputText id="s1" value="#{locationLogController.selectedInterval.speedAtEnd}" style="float:right">
+                                <h:outputText id="s1" value="#{locationLogController.selectedInterval.speedAtEnd}" style="float:right" rendered="#{locationLogController.selectedInterval.speedAtEnd != 'NaN'}">
                                     <f:convertNumber pattern="#0.00"/>
                                 </h:outputText>
                             </strong>
@@ -49,7 +49,7 @@
                         <p:column>
                             <p:outputLabel value="L: " for="l" style="padding-right: 5px;" title="#{bundle.Length}"/>
                             <strong>
-                                <h:outputText id="l" value="#{locationLogController.selectedInterval.length}" style="float:right">
+                                <h:outputText id="l" value="#{locationLogController.selectedInterval.length}" style="float:right" rendered="#{locationLogController.selectedInterval.length != 'NaN'}">
                                     <f:convertNumber pattern="#0.00"/>
                                 </h:outputText>
                             </strong>
@@ -99,7 +99,7 @@
                             <f:facet name="header">
                                 <h:outputText value="S0" title="#{bundle.SpeedAtStart}" escape="false" style="white-space:pre-line;"/>
                             </f:facet>
-                            <h:outputText value="#{item.speedAtStart}" style="float:right">
+                            <h:outputText value="#{item.speedAtStart}" style="float:right" rendered="#{item.speedAtStart != 'NaN'}">
                                 <f:convertNumber pattern="#0.00"/>
                             </h:outputText>
                         </p:column>
@@ -107,7 +107,7 @@
                             <f:facet name="header">
                                 <h:outputText value="S1" title="#{bundle.SpeedAtEnd}" escape="false" style="white-space:pre-line;"/>
                             </f:facet>
-                            <h:outputText value="#{item.speedAtEnd}" style="float:right">
+                            <h:outputText value="#{item.speedAtEnd}" style="float:right" rendered="#{item.speedAtEnd != 'NaN'}">
                                 <f:convertNumber pattern="#0.00"/>
                             </h:outputText>
                         </p:column>
@@ -115,7 +115,7 @@
                             <f:facet name="header">
                                 <h:outputText value="MinS" title="#{bundle.MinimumSpeed}"/>
                             </f:facet>
-                            <h:outputText value="#{item.minSpeed}" style="float:right">
+                            <h:outputText value="#{item.minSpeed}" style="float:right" rendered="#{item.minSpeed != 'NaN'}">
                                 <f:convertNumber pattern="#0.00"/>
                             </h:outputText>
                         </p:column>
@@ -123,7 +123,7 @@
                             <f:facet name="header">
                                 <h:outputText value="MaxS" title="#{bundle.MaximumSpeed}"/>
                             </f:facet>
-                            <h:outputText value="#{item.maxSpeed}" style="float:right">
+                            <h:outputText value="#{item.maxSpeed}" style="float:right" rendered="#{item.maxSpeed != 'NaN'}">
                                 <f:convertNumber pattern="#0.00"/>
                             </h:outputText>
                         </p:column>
@@ -131,7 +131,7 @@
                             <f:facet name="header">
                                 <h:outputText value="AvS" title="#{bundle.AverageSpeed}"/>
                             </f:facet>
-                            <h:outputText value="#{item.averageSpeed}" style="float:right">
+                            <h:outputText value="#{item.averageSpeed}" style="float:right" rendered="#{item.averageSpeed != 'NaN'}">
                                 <f:convertNumber pattern="#0.00"/>
                             </h:outputText>
                         </p:column>
@@ -139,7 +139,7 @@
                             <f:facet name="header">
                                 <h:outputText value="MedS" title="#{bundle.MedianSpeed}" escape="false" style="white-space:pre-line;"/>
                             </f:facet>
-                            <h:outputText value="#{item.medianSpeed}" style="float:right">
+                            <h:outputText value="#{item.medianSpeed}" style="float:right" rendered="#{item.medianSpeed != 'NaN'}">
                                 <f:convertNumber pattern="#0.00"/>
                             </h:outputText>
                         </p:column>
@@ -147,7 +147,23 @@
                             <f:facet name="header">
                                 <h:outputText value="StdDevS" title="#{bundle.StandardDeviationSpeed}" escape="false" style="white-space:pre-line;"/>
                             </f:facet>
-                            <h:outputText value="#{item.standardDeviationSpeed}" style="float:right">
+                            <h:outputText value="#{item.standardDeviationSpeed}" style="float:right" rendered="#{item.standardDeviationSpeed != 'NaN'}">
+                                <f:convertNumber pattern="#0.00"/>
+                            </h:outputText>
+                        </p:column>
+                        <p:column sortBy="#{item.averageAcceleration}" filterBy="#{item.averageAcceleration}" filterStyle="width: 30px;" filterMatchMode="contains">
+                            <f:facet name="header">
+                                <h:outputText value="AvgAcc" title="#{bundle.AverageAcceleration}" escape="false" style="white-space:pre-line;"/>
+                            </f:facet>
+                            <h:outputText value="#{item.averageAcceleration}" style="float:right" rendered="#{item.averageAcceleration != 'NaN'}">
+                                <f:convertNumber pattern="#0.00"/>
+                            </h:outputText>
+                        </p:column>
+                        <p:column sortBy="#{item.averageDeceleration}" filterBy="#{item.averageDeceleration}" filterStyle="width: 30px;" filterMatchMode="contains">
+                            <f:facet name="header">
+                                <h:outputText value="AvgDec" title="#{bundle.AverageDeceleration}" escape="false" style="white-space:pre-line;"/>
+                            </f:facet>
+                            <h:outputText value="#{item.averageDeceleration}" style="float:right" rendered="#{item.averageDeceleration != 'NaN'}">
                                 <f:convertNumber pattern="#0.00"/>
                             </h:outputText>
                         </p:column>
@@ -155,7 +171,7 @@
                             <f:facet name="header">
                                 <h:outputText value="PKE" title="PKE" escape="false" style="white-space:pre-line;"/>
                             </f:facet>
-                            <h:outputText value="#{item.pke}" style="float:right">
+                            <h:outputText value="#{item.pke}" style="float:right" rendered="#{item.pke != 'NaN'}">
                                 <f:convertNumber pattern="#0.00"/>
                             </h:outputText>
                         </p:column>
@@ -187,7 +203,7 @@
                             <f:facet name="header">
                                 <h:outputText value="AvHR" title="#{bundle.AverageHeartRate}" escape="false"/>
                             </f:facet>
-                            <h:outputText value="#{item.averageHeartRate}" style="float:right">
+                            <h:outputText value="#{item.averageHeartRate}" style="float:right" rendered="#{item.averageHeartRate != 'NaN'}">
                                 <f:convertNumber pattern="#0.00"/>
                             </h:outputText>
                         </p:column>
@@ -195,7 +211,7 @@
                             <f:facet name="header">
                                 <h:outputText value="MedHR" title="#{bundle.MedianHeartRate}" escape="false" style="white-space:pre-line;"/>
                             </f:facet>
-                            <h:outputText value="#{item.medianHeartRate}" style="float:right">
+                            <h:outputText value="#{item.medianHeartRate}" style="float:right" rendered="#{item.medianHeartRate != 'NaN'}">
                                 <f:convertNumber pattern="#0.00"/>
                             </h:outputText>
                         </p:column>
@@ -203,7 +219,31 @@
                             <f:facet name="header">
                                 <h:outputText value="StdDevHR" title="#{bundle.StandardDeviationHeartRate}" escape="false" style="white-space:pre-line;"/>
                             </f:facet>
-                            <h:outputText value="#{item.standardDeviationHeartRate}" style="float:right">
+                            <h:outputText value="#{item.standardDeviationHeartRate}" style="float:right" rendered="#{item.standardDeviationHeartRate != 'NaN'}">
+                                <f:convertNumber pattern="#0.00"/>
+                            </h:outputText>
+                        </p:column>
+                        <p:column sortBy="#{item.minRRTime}" filterBy="#{item.minRRTime}" filterStyle="width: 30px;" filterMatchMode="contains">
+                            <f:facet name="header">
+                                <h:outputText value="MinRR" title="#{bundle.MinimumRRTime}" escape="false" style="white-space:pre-line;"/>
+                            </f:facet>
+                            <h:outputText value="#{item.minRRTime}" style="float:right" rendered="#{item.minRRTime != 'NaN'}">
+                                <f:convertNumber pattern="#0.00"/>
+                            </h:outputText>
+                        </p:column>
+                        <p:column sortBy="#{item.maxRRTime}" filterBy="#{item.maxRRTime}" filterStyle="width: 30px;" filterMatchMode="contains">
+                            <f:facet name="header">
+                                <h:outputText value="MaxRR" title="#{bundle.MaximumRRTime}" escape="false" style="white-space:pre-line;"/>
+                            </f:facet>
+                            <h:outputText value="#{item.maxRRTime}" style="float:right" rendered="#{item.maxRRTime != 'NaN'}">
+                                <f:convertNumber pattern="#0.00"/>
+                            </h:outputText>
+                        </p:column>
+                        <p:column sortBy="#{item.averageRRTime}" filterBy="#{item.averageRRTime}" filterStyle="width: 30px;" filterMatchMode="contains">
+                            <f:facet name="header">
+                                <h:outputText value="AvgRR" title="#{bundle.AverageRRTime}" escape="false" style="white-space:pre-line;"/>
+                            </f:facet>
+                            <h:outputText value="#{item.averageRRTime}" style="float:right" rendered="#{item.averageRRTime != 'NaN'}">
                                 <f:convertNumber pattern="#0.00"/>
                             </h:outputText>
                         </p:column>
@@ -211,15 +251,45 @@
                             <f:facet name="header">
                                 <h:outputText value="Stress" title="#{bundle.Stress}" escape="false" style="white-space:pre-line;"/>
                             </f:facet>
-                            <h:outputText style="color : #{locationLogController.getStressColor(item.stress)}; float: right;" value="#{item.stress}">
+                            <h:outputText style="color : #{locationLogController.getStressColor(item.stress)}; float: right;" value="#{item.stress}" rendered="#{item.length != 'NaN'}">
                                 <f:convertNumber pattern="#0.00"/>
                             </h:outputText>
+                        </p:column>
+                        <p:column sortBy="#{item.sleepLog.startTime}" filterBy="#{item.sleepLog.formattedStartTime}" filterStyle="width: 30px;" filterMatchMode="contains" width="50px;">
+                            <f:facet name="header">
+                                <h:outputText value="SL0" title="#{bundle.SleepStartTime}" escape="false" style="white-space:pre-line;"/>
+                            </f:facet>
+                            <h:outputText value="#{item.sleepLog.formattedStartTime}" style="float:right"/>
+                        </p:column>
+                        <p:column sortBy="#{item.sleepLog.endTime}" filterBy="#{item.sleepLog.formattedEndTime}" filterStyle="width: 30px;" filterMatchMode="contains" width="50px;">
+                            <f:facet name="header">
+                                <h:outputText value="SL1" title="#{bundle.SleepEndTime}" escape="false" style="white-space:pre-line;"/>
+                            </f:facet>
+                            <h:outputText value="#{item.sleepLog.formattedStartTime}" style="float:right"/>
+                        </p:column>
+                        <p:column sortBy="#{item.sleepLog.minutesInBed}" filterBy="#{item.sleepLog.minutesInBed}" filterStyle="width: 30px;" filterMatchMode="contains">
+                            <f:facet name="header">
+                                <h:outputText value="MB" title="#{bundle.MinutesInBed}" escape="false" style="white-space:pre-line;"/>
+                            </f:facet>
+                            <h:outputText value="#{item.sleepLog.minutesInBed}" style="float:right"/>
+                        </p:column>
+                        <p:column sortBy="#{item.sleepLog.minutesAsleep}" filterBy="#{item.sleepLog.minutesAsleep}" filterStyle="width: 30px;" filterMatchMode="contains">
+                            <f:facet name="header">
+                                <h:outputText value="MA" title="#{bundle.MinutesAsleep}" escape="false" style="white-space:pre-line;"/>
+                            </f:facet>
+                            <h:outputText value="#{item.sleepLog.minutesAsleep}" style="float:right"/>
+                        </p:column>
+                        <p:column sortBy="#{item.sleepLog.awakenings}" filterBy="#{item.sleepLog.awakenings}" filterStyle="width: 30px;" filterMatchMode="contains">
+                            <f:facet name="header">
+                                <h:outputText value="AW" title="#{bundle.Awakenings}" escape="false" style="white-space:pre-line;"/>
+                            </f:facet>
+                            <h:outputText value="#{item.sleepLog.awakenings}" style="float:right"/>
                         </p:column>
                         <p:column sortBy="#{item.length}" filterBy="#{item.length}" filterStyle="width: 30px;" filterMatchMode="contains">
                             <f:facet name="header">
                                 <h:outputText value="L" title="#{bundle.Length}"/>
                             </f:facet>
-                            <h:outputText value="#{item.length}" style="float:right">
+                            <h:outputText value="#{item.length}" style="float:right" rendered="#{item.length != 'NaN'}">
                                 <f:convertNumber pattern="#0.00"/>
                             </h:outputText>
                         </p:column>
@@ -248,7 +318,7 @@
                             <f:facet name="header">
                                 <h:outputText value="PS0" title="#{bundle.SpeedAtStart}" escape="false" style="white-space:pre-line;"/>
                             </f:facet>
-                            <h:outputText value="#{item.previousIntervalData.speedAtStart}" style="float:right">
+                            <h:outputText value="#{item.previousIntervalData.speedAtStart}" style="float:right" rendered="#{item.previousIntervalData.speedAtStart != 'NaN'}">
                                 <f:convertNumber pattern="#0.00"/>
                             </h:outputText>
                         </p:column>
@@ -256,7 +326,7 @@
                             <f:facet name="header">
                                 <h:outputText value="PS1" title="#{bundle.SpeedAtEnd}" escape="false" style="white-space:pre-line;"/>
                             </f:facet>
-                            <h:outputText value="#{item.previousIntervalData.speedAtEnd}" style="float:right">
+                            <h:outputText value="#{item.previousIntervalData.speedAtEnd}" style="float:right" rendered="#{item.previousIntervalData.speedAtEnd != 'NaN'}">
                                 <f:convertNumber pattern="#0.00"/>
                             </h:outputText>
                         </p:column>
@@ -264,7 +334,7 @@
                             <f:facet name="header">
                                 <h:outputText value="PMinS" title="#{bundle.MinimumSpeed}"/>
                             </f:facet>
-                            <h:outputText value="#{item.previousIntervalData.minSpeed}" style="float:right">
+                            <h:outputText value="#{item.previousIntervalData.minSpeed}" style="float:right" rendered="#{item.previousIntervalData.minSpeed != 'NaN'}">
                                 <f:convertNumber pattern="#0.00"/>
                             </h:outputText>
                         </p:column>
@@ -272,7 +342,7 @@
                             <f:facet name="header">
                                 <h:outputText value="PMaxS" title="#{bundle.MaximumSpeed}"/>
                             </f:facet>
-                            <h:outputText value="#{item.previousIntervalData.maxSpeed}" style="float:right">
+                            <h:outputText value="#{item.previousIntervalData.maxSpeed}" style="float:right" rendered="#{item.previousIntervalData.maxSpeed != 'NaN'}">
                                 <f:convertNumber pattern="#0.00"/>
                             </h:outputText>
                         </p:column>
@@ -280,7 +350,7 @@
                             <f:facet name="header">
                                 <h:outputText value="PAvS" title="#{bundle.AverageSpeed}"/>
                             </f:facet>
-                            <h:outputText value="#{item.previousIntervalData.averageSpeed}" style="float:right">
+                            <h:outputText value="#{item.previousIntervalData.averageSpeed}" style="float:right" rendered="#{item.previousIntervalData.averageSpeed != 'NaN'}">
                                 <f:convertNumber pattern="#0.00"/>
                             </h:outputText>
                         </p:column>
@@ -288,7 +358,7 @@
                             <f:facet name="header">
                                 <h:outputText value="PMedS" title="#{bundle.MedianSpeed}" escape="false" style="white-space:pre-line;"/>
                             </f:facet>
-                            <h:outputText value="#{item.previousIntervalData.medianSpeed}" style="float:right">
+                            <h:outputText value="#{item.previousIntervalData.medianSpeed}" style="float:right" rendered="#{item.previousIntervalData.medianSpeed != 'NaN'}">
                                 <f:convertNumber pattern="#0.00"/>
                             </h:outputText>
                         </p:column>
@@ -296,7 +366,23 @@
                             <f:facet name="header">
                                 <h:outputText value="PStdDevS" title="#{bundle.StandardDeviationSpeed}" escape="false" style="white-space:pre-line;"/>
                             </f:facet>
-                            <h:outputText value="#{item.previousIntervalData.standardDeviationSpeed}" style="float:right">
+                            <h:outputText value="#{item.previousIntervalData.standardDeviationSpeed}" style="float:right" rendered="#{item.previousIntervalData.standardDeviationSpeed != 'NaN'}">
+                                <f:convertNumber pattern="#0.00"/>
+                            </h:outputText>
+                        </p:column>
+                        <p:column sortBy="#{item.previousIntervalData.averageAcceleration}" filterBy="#{item.previousIntervalData.averageAcceleration}" filterStyle="width: 30px;" filterMatchMode="contains" visible="false">
+                            <f:facet name="header">
+                                <h:outputText value="PAvgAcc" title="#{bundle.AverageAcceleration}" escape="false" style="white-space:pre-line;"/>
+                            </f:facet>
+                            <h:outputText value="#{item.previousIntervalData.averageAcceleration}" style="float:right" rendered="#{item.previousIntervalData.averageAcceleration != 'NaN'}">
+                                <f:convertNumber pattern="#0.00"/>
+                            </h:outputText>
+                        </p:column>
+                        <p:column sortBy="#{item.previousIntervalData.averageDeceleration}" filterBy="#{item.previousIntervalData.averageDeceleration}" filterStyle="width: 30px;" filterMatchMode="contains" visible="false">
+                            <f:facet name="header">
+                                <h:outputText value="PAvgDec" title="#{bundle.AverageDeceleration}" escape="false" style="white-space:pre-line;"/>
+                            </f:facet>
+                            <h:outputText value="#{item.previousIntervalData.averageDeceleration}" style="float:right" rendered="#{item.previousIntervalData.averageDeceleration != 'NaN'}">
                                 <f:convertNumber pattern="#0.00"/>
                             </h:outputText>
                         </p:column>
@@ -304,7 +390,7 @@
                             <f:facet name="header">
                                 <h:outputText value="PPKE" title="PKE" escape="false" style="white-space:pre-line;"/>
                             </f:facet>
-                            <h:outputText value="#{item.previousIntervalData.pke}" style="float:right">
+                            <h:outputText value="#{item.previousIntervalData.pke}" style="float:right" rendered="#{item.previousIntervalData.pke != 'NaN'}">
                                 <f:convertNumber pattern="#0.00"/>
                             </h:outputText>
                         </p:column>
@@ -336,7 +422,7 @@
                             <f:facet name="header">
                                 <h:outputText value="PAvHR" title="#{bundle.AverageHeartRate}" escape="false"/>
                             </f:facet>
-                            <h:outputText value="#{item.previousIntervalData.averageHeartRate}" style="float:right">
+                            <h:outputText value="#{item.previousIntervalData.averageHeartRate}" style="float:right" rendered="#{item.averageHeartRate != 'NaN'}">
                                 <f:convertNumber pattern="#0.00"/>
                             </h:outputText>
                         </p:column>
@@ -344,7 +430,7 @@
                             <f:facet name="header">
                                 <h:outputText value="PMedHR" title="#{bundle.MedianHeartRate}" escape="false" style="white-space:pre-line;"/>
                             </f:facet>
-                            <h:outputText value="#{item.previousIntervalData.medianHeartRate}" style="float:right">
+                            <h:outputText value="#{item.previousIntervalData.medianHeartRate}" style="float:right" rendered="#{item.previousIntervalData.medianHeartRate != 'NaN'}">
                                 <f:convertNumber pattern="#0.00"/>
                             </h:outputText>
                         </p:column>
@@ -352,7 +438,31 @@
                             <f:facet name="header">
                                 <h:outputText value="PStdDevHR" title="#{bundle.StandardDeviationHeartRate}" escape="false" style="white-space:pre-line;"/>
                             </f:facet>
-                            <h:outputText value="#{item.previousIntervalData.standardDeviationHeartRate}" style="float:right">
+                            <h:outputText value="#{item.previousIntervalData.standardDeviationHeartRate}" style="float:right" rendered="#{item.previousIntervalData.standardDeviationHeartRate != 'NaN'}">
+                                <f:convertNumber pattern="#0.00"/>
+                            </h:outputText>
+                        </p:column>
+                        <p:column sortBy="#{item.previousIntervalData.minRRTime}" filterBy="#{item.previousIntervalData.minRRTime}" filterStyle="width: 30px;" filterMatchMode="contains" visible="false">
+                            <f:facet name="header">
+                                <h:outputText value="PMinRR" title="#{bundle.MinimumRRTime}" escape="false" style="white-space:pre-line;"/>
+                            </f:facet>
+                            <h:outputText value="#{item.previousIntervalData.minRRTime}" style="float:right" rendered="#{item.previousIntervalData.minRRTime != 'NaN'}">
+                                <f:convertNumber pattern="#0.00"/>
+                            </h:outputText>
+                        </p:column>
+                        <p:column sortBy="#{item.previousIntervalData.maxRRTime}" filterBy="#{item.previousIntervalData.maxRRTime}" filterStyle="width: 30px;" filterMatchMode="contains" visible="false">
+                            <f:facet name="header">
+                                <h:outputText value="PMaxRR" title="#{bundle.MaximumRRTime}" escape="false" style="white-space:pre-line;"/>
+                            </f:facet>
+                            <h:outputText value="#{item.previousIntervalData.maxRRTime}" style="float:right" rendered="#{item.previousIntervalData.maxRRTime != 'NaN'}">
+                                <f:convertNumber pattern="#0.00"/>
+                            </h:outputText>
+                        </p:column>
+                        <p:column sortBy="#{item.previousIntervalData.averageRRTime}" filterBy="#{item.previousIntervalData.averageRRTime}" filterStyle="width: 30px;" filterMatchMode="contains" visible="false">
+                            <f:facet name="header">
+                                <h:outputText value="PAvgRR" title="#{bundle.AverageRRTime}" escape="false" style="white-space:pre-line;"/>
+                            </f:facet>
+                            <h:outputText value="#{item.previousIntervalData.averageRRTime}" style="float:right" rendered="#{item.previousIntervalData.averageRRTime != 'NaN'}">
                                 <f:convertNumber pattern="#0.00"/>
                             </h:outputText>
                         </p:column>
@@ -360,7 +470,7 @@
                             <f:facet name="header">
                                 <h:outputText value="PL" title="#{bundle.Length}"/>
                             </f:facet>
-                            <h:outputText value="#{item.previousIntervalData.length}" style="float:right">
+                            <h:outputText value="#{item.previousIntervalData.length}" style="float:right" rendered="#{item.previousIntervalData.length != 'NaN'}">
                                 <f:convertNumber pattern="#0.00"/>
                             </h:outputText>
                         </p:column>

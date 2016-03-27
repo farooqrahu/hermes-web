@@ -1,0 +1,43 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.1//EN" "http://www.w3.org/TR/xhtml11/DTD/xhtml11.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml"
+      xmlns:ui="http://xmlns.jcp.org/jsf/facelets"
+      xmlns:h="http://xmlns.jcp.org/jsf/html"
+      xmlns:p="http://primefaces.org/ui"
+      xmlns:f="http://xmlns.jcp.org/jsf/core"
+      xmlns:c="http://xmlns.jcp.org/jsp/jstl/core">
+
+
+    <ui:define name="title">
+        <h:outputText value="#{bundle.Map}"/>
+    </ui:define>
+    <h:head>
+        <h:outputScript name="locationLogMap.js" library="js"/>
+    </h:head>
+    <h:body>
+        <h:form id="PersonMapForm">
+            <c:choose>
+                <c:when test='#{personController.selected == null}'>
+                    <h:panelGrid>
+                        <h:outputText value="#{bundle.NoData}"/>
+                    </h:panelGrid>
+                </c:when>
+
+                <c:otherwise>
+                    <!-- FIXME: Poner 'fitBounds' cuando se corrija el 'bug' que tiene Primefaces con Google Maps -->
+                    <p:gmap id="gmap" widgetVar="gmap" center="#{locationLogController.markerLatitudeLongitude}" zoom="13" type="ROADMAP" model="#{locationLogController.mapModel}" style="height:400px">
+                        <p:ajax event="overlaySelect" listener="#{locationLogController.onMarkerSelect}"/>
+                        <p:gmapInfoWindow id="infoWindow">
+                            <p:outputPanel style="text-align: center; display: block; margin: auto">
+                                <h:outputText value="#{locationLogController.marker.title}" />
+                            </p:outputPanel>
+                        </p:gmapInfoWindow>
+                    </p:gmap>
+                    <div style="width: 100%; display: flex;">
+                        <h:commandButton title="Prueba" action="#{locationLogController.generateSimulatedTrack()}" immediate="true" style="padding: 10px"/>
+                    </div>
+                </c:otherwise>
+            </c:choose>
+        </h:form>
+    </h:body>
+</html>

@@ -53,18 +53,21 @@ public class ContextLogDetail implements Serializable {
     @Column(name = "time_log")
     @Temporal(TemporalType.TIME)
     private Date timeLog;
-    @Basic(optional = false)
-    @NotNull
+    @Basic(optional = true)
     @Column(name = "latitude")
-    private double latitude;
-    @Basic(optional = false)
-    @NotNull
+    private Double latitude;
+    @Basic(optional = true)
     @Column(name = "longitude")
-    private double longitude;
-    @Basic(optional = false)
-    @NotNull
+    private Double longitude;
+    @Basic(optional = true)
+    @Column(name = "accuracy")
+    private Float accuracy;
+    @Basic(optional = true)
     @Column(name = "detected_activity")
-    private int detectedActivity;
+    private String detectedActivity;
+    @Basic(optional = false)
+    @Column(name = "sent")
+    private boolean sent;
     @JoinColumn(name = "context_log_id", referencedColumnName = "context_log_id")
     @ManyToOne(optional = false)
     private ContextLog contextLog;
@@ -74,14 +77,6 @@ public class ContextLogDetail implements Serializable {
 
     public ContextLogDetail(Integer contextLogDetailId) {
         this.contextLogDetailId = contextLogDetailId;
-    }
-
-    public ContextLogDetail(Integer contextLogDetailId, Date timeLog, double latitude, double longitude, int detectedActivity) {
-        this.contextLogDetailId = contextLogDetailId;
-        this.timeLog = timeLog;
-        this.latitude = latitude;
-        this.longitude = longitude;
-        this.detectedActivity = detectedActivity;
     }
 
     public Integer getContextLogDetailId() {
@@ -100,27 +95,35 @@ public class ContextLogDetail implements Serializable {
         this.timeLog = timeLog;
     }
 
-    public double getLatitude() {
+    public Double getLatitude() {
         return latitude;
     }
 
-    public void setLatitude(double latitude) {
+    public void setLatitude(Double latitude) {
         this.latitude = latitude;
     }
 
-    public double getLongitude() {
+    public Double getLongitude() {
         return longitude;
     }
 
-    public void setLongitude(double longitude) {
+    public void setLongitude(Double longitude) {
         this.longitude = longitude;
     }
 
-    public int getDetectedActivity() {
+    public Float getAccuracy() {
+        return accuracy;
+    }
+
+    public void setAccuracy(Float accuracy) {
+        this.accuracy = accuracy;
+    }
+
+    public String getDetectedActivity() {
         return detectedActivity;
     }
 
-    public void setDetectedActivity(int detectedActivity) {
+    public void setDetectedActivity(String detectedActivity) {
         this.detectedActivity = detectedActivity;
     }
 
@@ -130,6 +133,14 @@ public class ContextLogDetail implements Serializable {
 
     public void setContextLog(ContextLog contextLog) {
         this.contextLog = contextLog;
+    }
+
+    public boolean isSent() {
+        return sent;
+    }
+
+    public void setSent(boolean sent) {
+        this.sent = sent;
     }
 
     @Override

@@ -11,8 +11,7 @@ public class Util {
 
     private static final String EMAIL_PATTERN = "^[_A-Za-z0-9-\\+]+(\\.[_A-Za-z0-9-]+)*@"
             + "[A-Za-z0-9-]+(\\.[A-Za-z0-9]+)*(\\.[A-Za-z]{2,})$";
-
-    private static Pattern pattern = Pattern.compile(EMAIL_PATTERN);
+    private static final String ALPHANUMERIC = "^[a-zA-Z0-9]*$";
 
     public static String minutesToTimeString(int minutes) {
 
@@ -21,11 +20,19 @@ public class Util {
         return String.format("%02d:%02d", hours, remainMinutes);
     }
 
-    public static boolean validateEmail(String email) {
+    public static boolean isValidEmail(String email) {
         if (email == null || email.length() == 0) {
             return false;
         }
 
-        return pattern.matcher(email).matches();
+        return email.matches(EMAIL_PATTERN);
+    }
+
+    public static boolean isAlphaNumeric(String s) {
+        if (s.matches(ALPHANUMERIC)) {
+            return true;
+        }
+        
+        return false;
     }
 }

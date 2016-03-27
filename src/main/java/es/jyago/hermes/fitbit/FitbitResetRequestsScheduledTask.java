@@ -17,20 +17,20 @@ import javax.ejb.Startup;
 @Startup
 public class FitbitResetRequestsScheduledTask {
 
-    private static final Logger log = Logger.getLogger(FitbitResetRequestsScheduledTask.class.getName());
+    private static final Logger LOG = Logger.getLogger(FitbitResetRequestsScheduledTask.class.getName());
     private static final int REQUESTS_RATE_LIMIT = 100;
     private static HashMap<String, Integer> remainingRequests;
 
     @PostConstruct
     public void onStartup() {
-        log.log(Level.INFO, "onStartup() - Inicialización del temporizador programado de reinicio de límite de peticiones a Fitbit");
+        LOG.log(Level.INFO, "onStartup() - Inicialización del temporizador programado de reinicio de límite de peticiones a Fitbit");
         remainingRequests = new HashMap();
     }
 
     // Los reinicios de los límites de peticiones a Fitbit se harán cada hora en punto.
     @Schedule(hour = "*", minute = "0", persistent = false)
     public void run() {
-        log.log(Level.INFO, "run() - Reinicio de las peticiones a Fitbit");
+        LOG.log(Level.INFO, "run() - Reinicio de las peticiones a Fitbit");
         remainingRequests.clear();
     }
 
@@ -44,7 +44,7 @@ public class FitbitResetRequestsScheduledTask {
                 remainingRequests.put(fitbitId, personRemainingRequests);
             }
 
-            log.log(Level.INFO, "getRemainingRequests() - Hay disponibles {0} peticiones a Fitbit para el usuario con id: {1}", new Object[]{personRemainingRequests, fitbitId});
+            LOG.log(Level.INFO, "getRemainingRequests() - Hay disponibles {0} peticiones a Fitbit para el usuario con id: {1}", new Object[]{personRemainingRequests, fitbitId});
 
             return personRemainingRequests;
         }
@@ -57,6 +57,6 @@ public class FitbitResetRequestsScheduledTask {
             remainingRequests.put(fitbitId, getRemainingRequests(fitbitId) - usedRequests);
         }
 
-        log.log(Level.INFO, "setUsedRequests() - Usadas {0} peticiones a Fitbit del usuario con id: {1}", new Object[]{usedRequests, fitbitId});
+        LOG.log(Level.INFO, "setUsedRequests() - Usadas {0} peticiones a Fitbit del usuario con id: {1}", new Object[]{usedRequests, fitbitId});
     }
 }

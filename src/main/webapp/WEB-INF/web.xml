@@ -13,6 +13,11 @@
         <param-name>javax.faces.FACELETS_SKIP_COMMENTS</param-name>
         <param-value>true</param-value>
     </context-param>
+    <!-- JYFR: Para que no lance una 'ViewExpiredException' en caso de que haya expirado, sino que cree una nueva vista -->
+    <context-param>
+        <param-name>com.sun.faces.enableRestoreView11Compatibility</param-name>
+        <param-value>true</param-value>
+    </context-param>
     <!-- JYFR: Para permitir cambio de apariencia -->
     <context-param>
         <param-name>primefaces.THEME</param-name>
@@ -104,4 +109,14 @@
         <url-pattern>/faces/secured/option/*</url-pattern>
         <url-pattern>/faces/secured/role/*</url-pattern>
     </filter-mapping>
+    
+    <!-- JYFR: Filtro para no 'cachear' las páginas -->
+    <!--    <filter>
+        <filter-name>NoCacheFilter</filter-name>
+        <filter-class>es.jyago.hermes.login.NoCacheFilter</filter-class>
+    </filter>
+    <filter-mapping>
+        <filter-name>NoCacheFilter</filter-name>
+        <url-pattern>/faces/*</url-pattern>
+    </filter-mapping>-->
 </web-app>

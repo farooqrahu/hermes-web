@@ -24,16 +24,17 @@ import ztreamy.JSONSerializer;
 /**
  *
  * @author Jorge Yago
+ * @param <T>
  */
 public abstract class AbstractHermesZtreamyFacade<T> {
 
-    private static final Logger log = Logger.getLogger(AbstractHermesZtreamyFacade.class.getName());
-    private Publisher publisher;
+    private static final Logger LOG = Logger.getLogger(AbstractHermesZtreamyFacade.class.getName());
+    private final Publisher publisher;
     private Event model;
     private List<Event> events;
-    private Person person;
-    private String url;
-    private boolean oneEvent;
+    private final Person person;
+    private final String url;
+    private final boolean oneEvent;
 
     public AbstractHermesZtreamyFacade(T element, Person person, String url) throws MalformedURLException, HermesException {
         this.person = person;
@@ -66,28 +67,25 @@ public abstract class AbstractHermesZtreamyFacade<T> {
 
     private void prepareOneEventBody(Map<String, Object> body) throws HermesException {
         if (body == null || body.isEmpty()) {
-            log.log(Level.WARNING, "El cuerpo del evento de la persona {0} está vacío. No se enviará por Ztreamy", person.getFullName());
-            throw new HermesException("Ztreamy.emptyDataset");
+            LOG.log(Level.WARNING, "El cuerpo del evento de la persona {0} está vacío. No se enviará por Ztreamy", person.getFullName());
+        } else {
+            model.setBody(body);
         }
-
-        model.setBody(body);
     }
 
     private void prepareMultipleEventsBodies(Collection<Object> collection) throws HermesException {
         if (collection == null || collection.isEmpty()) {
-            log.log(Level.WARNING, "El cuerpo del evento de la persona {0} está vacío. No se enviará por Ztreamy", person.getFullName());
-            throw new HermesException("Ztreamy.emptyDataset");
-        }
+            LOG.log(Level.WARNING, "El cuerpo del evento de la persona {0} está vacío. No se enviará por Ztreamy", person.getFullName());
+        } else {
+            events = new ArrayList();
+            for (Object info : collection) {
+                Event event = prepareEvent();
+                Map<String, Object> map = new HashMap<>();
+                map.put(getType(), info);
+                event.setBody(map);
 
-        events = new ArrayList();
-        for (Object info : collection)
-        {
-            Event event = prepareEvent();
-            Map<String, Object> map = new HashMap<>();
-            map.put(getType(), info);
-            event.setBody(map);
-
-            events.add(event);
+                events.add(event);
+            }
         }
     }
 
@@ -96,17 +94,26 @@ public abstract class AbstractHermesZtreamyFacade<T> {
         boolean ok = false;
         int result = -1;
 
+        // Los envíos a Ztreamy se harán comprimidos.
         if (oneEvent) {
-            result = publisher.publish(model);
+            if (model.getBody() == null) {
+                // No hay nada que enviar.
+                return true;
+            }
+            result = publisher.publish(model, true);
         } else {
-            result = publisher.publish(events.toArray(new Event[events.size()]));
+            if (events == null || events.size() == 0) {
+                // No hay nada que enviar.
+                return true;
+            }
+            result = publisher.publish(events.toArray(new Event[events.size()]), true);
         }
 
         if (result == 200) {
             ok = true;
-            log.log(Level.INFO, "send() - Datos enviados por Ztreamy satisfactoriamente");
+            LOG.log(Level.INFO, "send() - Datos enviados por Ztreamy satisfactoriamente");
         } else {
-            log.log(Level.SEVERE, "send() - Error al enviar los datos por Ztreamy", result);
+            LOG.log(Level.SEVERE, "send() - Error al enviar los datos por Ztreamy", result);
         }
 
         return ok;
@@ -123,10 +130,10 @@ public abstract class AbstractHermesZtreamyFacade<T> {
     public abstract Map<String, Object> getBodyObject(T element);
 
     public abstract Map<String, Object> getBodyObject(Collection<T> collection);
-    
+
     public abstract Collection<Object> getBodyObjects(Collection<T> collection);
 
     public abstract Event prepareEvent();
-    
+
     public abstract String getType();
 }

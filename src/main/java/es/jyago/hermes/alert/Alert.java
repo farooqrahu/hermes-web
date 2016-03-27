@@ -66,7 +66,7 @@ public class Alert implements Serializable {
         AND, OR;
 
     }
-    private static final Logger log = Logger.getLogger(Alert.class.getName());
+    private static final Logger LOG = Logger.getLogger(Alert.class.getName());
 
     private static final long serialVersionUID = 1L;
     @Id
@@ -804,10 +804,10 @@ public class Alert implements Serializable {
             ScriptEngineManager sem = new ScriptEngineManager();
             ScriptEngine se = sem.getEngineByName("JavaScript");
             boolean result = (Boolean) se.eval(expression);
-            log.log(Level.INFO, "evaluateExpression() - Expresión: {0} -> {1}", new Object[]{expression, result});
+            LOG.log(Level.INFO, "evaluateExpression() - Expresión: {0} -> {1}", new Object[]{expression, result});
             return result;
         } catch (ScriptException ex) {
-            log.log(Level.SEVERE, "evaluateExpression() - Error al evaluar la expresión", ex);
+            LOG.log(Level.SEVERE, "evaluateExpression() - Error al evaluar la expresión", ex);
         }
 
         return false;

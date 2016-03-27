@@ -56,6 +56,9 @@ public class StepLog implements Serializable {
     @NotNull
     @Column(name = "steps")
     private int steps;
+    @Basic(optional = false)
+    @Column(name = "sent")
+    private boolean sent;
     @JoinColumn(name = "activity_log_id", referencedColumnName = "activity_log_id")
     @ManyToOne(optional = false)
     private ActivityLog activityLog;
@@ -65,12 +68,6 @@ public class StepLog implements Serializable {
 
     public StepLog(Integer stepLogId) {
         this.stepLogId = stepLogId;
-    }
-
-    public StepLog(Integer stepLogId, Date timeLog, int steps) {
-        this.stepLogId = stepLogId;
-        this.timeLog = timeLog;
-        this.steps = steps;
     }
 
     public Integer getStepLogId() {
@@ -95,6 +92,14 @@ public class StepLog implements Serializable {
 
     public void setSteps(int steps) {
         this.steps = steps;
+    }
+
+    public boolean isSent() {
+        return sent;
+    }
+
+    public void setSent(boolean sent) {
+        this.sent = sent;
     }
 
     public ActivityLog getActivityLog() {

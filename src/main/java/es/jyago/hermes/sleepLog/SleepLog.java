@@ -48,6 +48,7 @@ import org.primefaces.model.chart.ChartSeries;
     @NamedQuery(name = "SleepLog.findByMinutesInBed", query = "SELECT s FROM SleepLog s WHERE s.minutesInBed = :minutesInBed"),
     @NamedQuery(name = "SleepLog.findByStartTime", query = "SELECT s FROM SleepLog s WHERE s.startTime = :startTime"),
     @NamedQuery(name = "SleepLog.findByEndTime", query = "SELECT s FROM SleepLog s WHERE s.endTime = :endTime"),
+    @NamedQuery(name = "SleepLog.findBySent", query = "SELECT s FROM SleepLog s WHERE s.sent = :sent"),
     @NamedQuery(name = "SleepLog.findByEmailSHAAndDate", query = "SELECT s FROM SleepLog s WHERE s.person.sha = :emailSHA and s.dateLog = :date")})
 public class SleepLog implements Serializable {
 
@@ -89,10 +90,10 @@ public class SleepLog implements Serializable {
     @ManyToOne(optional = false)
     @JsonIgnore
     private Person person;
-    @Column(name = "send_date")
-    @Temporal(TemporalType.DATE)
+    @Basic(optional = false)
+    @Column(name = "sent")
     @JsonIgnore
-    private Date sendDate;
+    private boolean sent;
 
     public SleepLog() {
         this.sleepLogId = null;
@@ -103,7 +104,7 @@ public class SleepLog implements Serializable {
         this.startTime = null;
         this.endTime = null;
         this.person = null;
-        this.sendDate = null;
+        this.sent = false;
     }
 
     public SleepLog(Integer sleepLogId) {
@@ -164,12 +165,20 @@ public class SleepLog implements Serializable {
         return startTime;
     }
 
+    public String getFormattedStartTime() {
+        return startTime != null ? Constants.dfTime.format(startTime) : "";
+    }
+
     public void setStartTime(Date startTime) {
         this.startTime = startTime;
     }
 
     public Date getEndTime() {
         return endTime;
+    }
+
+    public String getFormattedEndTime() {
+        return endTime != null ? Constants.dfTime.format(endTime) : "";
     }
 
     public void setEndTime(Date endTime) {
@@ -184,12 +193,12 @@ public class SleepLog implements Serializable {
         this.person = person;
     }
 
-    public Date getSendDate() {
-        return sendDate;
+    public boolean isSent() {
+        return sent;
     }
 
-    public void setSendDate(Date sendDate) {
-        this.sendDate = sendDate;
+    public void setSent(boolean sent) {
+        this.sent = sent;
     }
 
     public BarChartModel getBarModel(String title) {
@@ -279,4 +288,13 @@ public class SleepLog implements Serializable {
 //            return mode * o1.getDateLog().compareTo(o2.getDateLog());
 //        }
 //    }
+    public boolean equalsByAttributes(SleepLog sleepLog) {
+        return new EqualsBuilder().
+                append(this.awakenings, sleepLog.awakenings).
+                append(this.minutesAsleep, sleepLog.minutesAsleep).
+                append(this.minutesInBed, sleepLog.minutesInBed).
+                append(Constants.dfTime.format(this.startTime), Constants.dfTime.format(sleepLog.startTime)).
+                append(Constants.dfTime.format(this.endTime), Constants.dfTime.format(sleepLog.endTime)).
+                isEquals();
+    }
 }

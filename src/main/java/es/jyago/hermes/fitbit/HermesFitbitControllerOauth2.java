@@ -49,7 +49,7 @@ public class HermesFitbitControllerOauth2 {
         "weight"};
 
     // TODO: Completar métodos, añadir comentarios y JavaDoc.
-    private static final Logger log = Logger.getLogger(HermesFitbitControllerOauth2.class.getName());
+    private static final Logger LOG = Logger.getLogger(HermesFitbitControllerOauth2.class.getName());
 
     public static final String OAUTH2_CODE = "code";
     private static final int TOO_MANY_REQUESTS = 429;
@@ -62,22 +62,22 @@ public class HermesFitbitControllerOauth2 {
         apiClientAgent = new FitbitApiClientAgentOauth2(fitbitFacade.getPerson().getFitbitUserId(),
                 fitbitFacade.getPerson().getFitbitAccessToken(),
                 fitbitFacade.getPerson().getFitbitRefreshToken(),
-                Constants.getConfigurationValueByKey("FitbitOauth2ClientId"),
-                Constants.getConfigurationValueByKey("FitbitClientConsumerSecret"));
+                Constants.getInstance().getConfigurationValueByKey("FitbitOauth2ClientId"),
+                Constants.getInstance().getConfigurationValueByKey("FitbitClientConsumerSecret"));
     }
 
     public void refreshFitbitTokens() throws HermesFitbitException {
         try {
-            log.log(Level.INFO, "refreshTokens() - Refrescar el token de acceso de Fitbit");
+            LOG.log(Level.INFO, "refreshTokens() - Refrescar el token de acceso de Fitbit");
             apiClientAgent.refreshToken();
             // FIXME: Por seguridad, para que quede en el log. Quitar o poner con Level FINE o CONFIG más adelante.
-            log.log(Level.INFO, "refreshTokens() - Tokens refrescados:\nAccess Token....: {0}\nRefresh Token...: {1}", new Object[]{apiClientAgent.getTokens().getAccessToken(), apiClientAgent.getTokens().getRefreshToken()});
+            LOG.log(Level.INFO, "refreshTokens() - Tokens refrescados:\nAccess Token....: {0}\nRefresh Token...: {1}", new Object[]{apiClientAgent.getTokens().getAccessToken(), apiClientAgent.getTokens().getRefreshToken()});
             fitbitFacade.getPerson().setFitbitAccessToken(apiClientAgent.getTokens().getAccessToken());
             fitbitFacade.getPerson().setFitbitRefreshToken(apiClientAgent.getTokens().getRefreshToken());
             fitbitFacade.updatePerson();
             FitbitResetRequestsScheduledTask.setUsedRequests(fitbitFacade.getPerson().getFitbitUserId(), 1);
         } catch (FitbitAPIException ex) {
-            log.log(Level.SEVERE, "refreshTokens() - Error al refrescar los tokens. Los tokens actuales de la persona son:\nAccess Token....: {0}\nRefresh Token...: {1}", new Object[]{fitbitFacade.getPerson().getFitbitAccessToken(), fitbitFacade.getPerson().getFitbitRefreshToken()});
+            LOG.log(Level.SEVERE, "refreshTokens() - Error al refrescar los tokens. Los tokens actuales de la persona son:\nAccess Token....: {0}\nRefresh Token...: {1}", new Object[]{fitbitFacade.getPerson().getFitbitAccessToken(), fitbitFacade.getPerson().getFitbitRefreshToken()});
             throw new HermesFitbitException("Fitbit.error.authorization");
         }
     }
@@ -102,14 +102,14 @@ public class HermesFitbitControllerOauth2 {
     public String getAuthorizeURL(HttpServletRequest request, String nextPage) throws HermesFitbitException {
         String callbackUrl = getCallBackURL(request, nextPage);
 
-        log.log(Level.FINEST, "getAuthorizeURL() - URL de vuelta: {0}", callbackUrl);
+        LOG.log(Level.FINEST, "getAuthorizeURL() - URL de vuelta: {0}", callbackUrl);
 
         try {
             fitbitFacade.getPerson().setFitbitAccessToken(null);
             fitbitFacade.getPerson().setFitbitRefreshToken(null);
             return apiClientAgent.getAuthorizationURL(scopes, callbackUrl);
         } catch (FitbitAPIException ex) {
-            log.log(Level.SEVERE, "getAuthorizeURL() - Error al obtener la URL de autorización de Fitbit", ex);
+            LOG.log(Level.SEVERE, "getAuthorizeURL() - Error al obtener la URL de autorización de Fitbit", ex);
             throw new HermesFitbitException("Fitbit.error.authorization");
         }
     }
@@ -120,13 +120,13 @@ public class HermesFitbitControllerOauth2 {
             fitbitFacade.getPerson().setFitbitAccessToken(apiClientAgent.getTokens().getAccessToken());
             fitbitFacade.getPerson().setFitbitRefreshToken(apiClientAgent.getTokens().getRefreshToken());
         } catch (FitbitAPIException ex) {
-            log.log(Level.SEVERE, "completeAuthorization() - Error al completar la petición de tokens de acceso y de refresco", ex);
+            LOG.log(Level.SEVERE, "completeAuthorization() - Error al completar la petición de tokens de acceso y de refresco", ex);
             throw new HermesFitbitException("Fitbit.error.authorization");
         }
     }
 
     private List<IntradaySummary> getIntradayData(Date startDate, Date endDate, TimeSeriesResourceType type) throws HermesException {
-        log.log(Level.INFO, "getIntradayData() - Sincronizando de los datos por día de la persona {0} desde {1} hasta {2}", new Object[]{fitbitFacade.getPerson().getFullName(), Constants.df.format(startDate), Constants.df.format(endDate)});
+        LOG.log(Level.INFO, "getIntradayData() - Sincronizando de los datos por día de la persona {0} desde {1} hasta {2}", new Object[]{fitbitFacade.getPerson().getFullName(), Constants.df.format(startDate), Constants.df.format(endDate)});
         List<IntradaySummary> intradaySummaryList = new ArrayList();
 
         LocalDate localStartDate = new LocalDate(startDate);
@@ -149,10 +149,10 @@ public class HermesFitbitControllerOauth2 {
         } catch (FitbitAPIException ex) {
             if (ex.getStatusCode() == TOO_MANY_REQUESTS) {
                 int remainingTime = (60 - Calendar.getInstance().get(Calendar.MINUTE));
-                log.log(Level.INFO, "getIntradayData() - Se ha alcanzado el límite de peticiones a Fitbit hasta dentro de {0} minutos", remainingTime);
+                LOG.log(Level.INFO, "getIntradayData() - Se ha alcanzado el límite de peticiones a Fitbit hasta dentro de {0} minutos", remainingTime);
                 throw new HermesException("Fitbit.warning.reachedRequestLimit", remainingTime);
             } else {
-                log.log(Level.SEVERE, "getIntradayData() - Error al obtener los datos de los días solicitados", ex);
+                LOG.log(Level.SEVERE, "getIntradayData() - Error al obtener los datos de los días solicitados", ex.getMessage());
                 throw new HermesException("Fitbit.error.requestFailed");
             }
         }
@@ -162,25 +162,31 @@ public class HermesFitbitControllerOauth2 {
 
     public void synchronize(Date startDate, Date endDate) throws HermesException {
         try {
-            log.log(Level.INFO, "synchronize() - Sincronización con Fitbit de la persona {0} desde {1} hasta {2}", new Object[]{fitbitFacade.toString(), Constants.df.format(startDate), Constants.df.format(endDate)});
+            LOG.log(Level.INFO, "synchronize() - Sincronización con Fitbit de la persona {0} desde {1} hasta {2}", new Object[]{fitbitFacade.toString(), Constants.df.format(startDate), Constants.df.format(endDate)});
 
             // Comprobamos si hay suficientes peticiones disponibles.
             checkEnoughRemainingRequests(startDate, endDate);
 
-            // PASOS
-            log.log(Level.INFO, "synchronize() - Procesando los pasos");
+            ///////////
+            // PASOS //
+            ///////////
+            LOG.log(Level.INFO, "synchronize() - Procesando los pasos");
             // Recogemos los datos de Fitbit en el rango indicado.
             List<ActivityLog> activityLogList = synchronizeStepsData(startDate, endDate);
             fitbitFacade.getPerson().addActivityLogList(activityLogList);
 
-            // SUEÑO
-            log.log(Level.INFO, "synchronize() - Procesando el sueño");
+            ///////////
+            // SUEÑO //
+            ///////////
+            LOG.log(Level.INFO, "synchronize() - Procesando el sueño");
             // Recogemos los datos de Fitbit en el rango indicado.
             List<SleepLog> sleepLogList = synchronizeSleepData(startDate, endDate);
             fitbitFacade.getPerson().addSleepLogList(sleepLogList);
 
-            // RITMO CARDÍACO
-            log.log(Level.INFO, "synchronize() - Procesando el ritmo cardíaco");
+            ////////////////////
+            // RITMO CARDÍACO //
+            ////////////////////
+            LOG.log(Level.INFO, "synchronize() - Procesando el ritmo cardíaco");
             // Recogemos los datos de Fitbit en el rango indicado.
             List<HealthLog> healthLogList = synchronizeHeartRateData(startDate, endDate);
             fitbitFacade.getPerson().addHealthLogList(healthLogList);
@@ -197,7 +203,7 @@ public class HermesFitbitControllerOauth2 {
     }
 
     private List<ActivityLog> synchronizeStepsData(Date startDate, Date endDate) throws HermesException {
-        log.log(Level.INFO, "synchronizeStepsData() - Sincronizando datos de los pasos de la persona {0} desde {1} hasta {2}", new Object[]{fitbitFacade.getPerson().getFullName(), Constants.df.format(startDate), Constants.df.format(endDate)});
+        LOG.log(Level.INFO, "synchronizeStepsData() - Sincronizando datos de los pasos de la persona {0} desde {1} hasta {2}", new Object[]{fitbitFacade.getPerson().getFullName(), Constants.df.format(startDate), Constants.df.format(endDate)});
 
         List<ActivityLog> activityLogList = new ArrayList<>();
 
@@ -211,6 +217,7 @@ public class HermesFitbitControllerOauth2 {
                 activityLog.setDateLog(Constants.dfFitbit.parse(intradaySummary.getSummary().getDateTime()));
                 activityLog.setTotal(Integer.parseInt(intradaySummary.getSummary().getValue()));
                 activityLog.setStepLogList(new ArrayList());
+                activityLog.setSent(false);
 
                 // Comprobamos si trae datos de los pasos.
                 if (intradaySummary.getIntradayDataset() != null) {
@@ -219,6 +226,7 @@ public class HermesFitbitControllerOauth2 {
                         stepLog.setActivityLog(activityLog);
                         stepLog.setTimeLog(Constants.dfTime.parse(intradayData.getTime()));
                         stepLog.setSteps((int) intradayData.getValue());
+                        stepLog.setSent(false);
                         activityLog.getStepLogList().add(stepLog);
                     }
                 }
@@ -226,7 +234,7 @@ public class HermesFitbitControllerOauth2 {
                 activityLogList.add(activityLog);
             }
         } catch (ParseException ex) {
-            log.log(Level.SEVERE, "synchronizeStepsData() - Error al convertir los datos del registro de pasos", ex);
+            LOG.log(Level.SEVERE, "synchronizeStepsData() - Error al convertir los datos del registro de pasos", ex);
             throw new HermesException("Fitbit.error.requestFailed");
         }
 
@@ -234,7 +242,7 @@ public class HermesFitbitControllerOauth2 {
     }
 
     private List<SleepLog> synchronizeSleepData(Date startDate, Date endDate) throws HermesException {
-        log.log(Level.INFO, "synchronizeSleepData() - Sincronizando datos de sueño de la persona {0} desde {1} hasta {2}", new Object[]{fitbitFacade.getPerson().getFullName(), Constants.df.format(startDate), Constants.df.format(endDate)});
+        LOG.log(Level.INFO, "synchronizeSleepData() - Sincronizando datos de sueño de la persona {0} desde {1} hasta {2}", new Object[]{fitbitFacade.getPerson().getFullName(), Constants.df.format(startDate), Constants.df.format(endDate)});
 
         List<SleepLog> sleepLogList = new ArrayList<>();
         LocalDate localStartDate = new LocalDate(startDate);
@@ -271,6 +279,7 @@ public class HermesFitbitControllerOauth2 {
                         sleepLog.setMinutesAsleep(mainSleepLogFitbit.getMinutesAsleep());
                         sleepLog.setMinutesInBed(mainSleepLogFitbit.getTimeInBed());
                         sleepLog.setAwakenings(mainSleepLogFitbit.getAwakeningsCount());
+                        sleepLog.setSent(false);
 
                         sleepLogList.add(sleepLog);
                     }
@@ -279,15 +288,15 @@ public class HermesFitbitControllerOauth2 {
                 currentDate = new LocalDate(currentDate.plusDays(1));
             }
         } catch (ParseException ex) {
-            log.log(Level.SEVERE, "synchronizeSleepData() - Error al convertir la fecha del registro de sueño", ex);
+            LOG.log(Level.SEVERE, "synchronizeSleepData() - Error al convertir la fecha del registro de sueño", ex);
             throw new HermesException("Fitbit.error.requestFailed");
         } catch (FitbitAPIException ex) {
             if (ex.getStatusCode() == TOO_MANY_REQUESTS) {
                 int remainingTime = (60 - Calendar.getInstance().get(Calendar.MINUTE));
-                log.log(Level.INFO, "synchronizeSleepData() - Se ha alcanzado el límite de peticiones a Fitbit hasta dentro de {0} minutos", remainingTime);
+                LOG.log(Level.INFO, "synchronizeSleepData() - Se ha alcanzado el límite de peticiones a Fitbit hasta dentro de {0} minutos", remainingTime);
                 throw new HermesException("Fitbit.warning.reachedRequestLimit", remainingTime);
             } else {
-                log.log(Level.SEVERE, "synchronizeSleepData() - Error al obtener los datos de los días solicitados", ex);
+                LOG.log(Level.SEVERE, "synchronizeSleepData() - Error al obtener los datos de los días solicitados", ex.getMessage());
                 throw new HermesException("Fitbit.error.requestFailed");
             }
         }
@@ -296,7 +305,7 @@ public class HermesFitbitControllerOauth2 {
     }
 
     private List<HealthLog> synchronizeHeartRateData(Date startDate, Date endDate) throws HermesException {
-        log.log(Level.INFO, "synchronizeHeartRateData() - Sincronizando datos de ritmo cardíaco de la persona {0} desde {1} hasta {2}", new Object[]{fitbitFacade.getPerson().getFullName(), Constants.df.format(startDate), Constants.df.format(endDate)});
+        LOG.log(Level.INFO, "synchronizeHeartRateData() - Sincronizando datos de ritmo cardíaco de la persona {0} desde {1} hasta {2}", new Object[]{fitbitFacade.getPerson().getFullName(), Constants.df.format(startDate), Constants.df.format(endDate)});
 
         List<HealthLog> healthLogList = new ArrayList<>();
 
@@ -309,6 +318,7 @@ public class HermesFitbitControllerOauth2 {
                 healthLog.setPerson(fitbitFacade.getPerson());
                 healthLog.setDateLog(Constants.dfFitbit.parse(intradaySummary.getSummary().getDateTime()));
                 healthLog.setHeartLogList(new ArrayList());
+                healthLog.setSent(false);
 
                 // Comprobamos si trae datos de pulso cardíaco.
                 if (intradaySummary.getIntradayDataset() != null) {
@@ -320,6 +330,7 @@ public class HermesFitbitControllerOauth2 {
                             heartLog.setHealthLog(healthLog);
                             heartLog.setTimeLog(Constants.dfTime.parse(intradayData.getTime()));
                             heartLog.setRate((int) intradayData.getValue());
+                            heartLog.setSent(false);
                             healthLog.getHeartLogList().add(heartLog);
                             amount += heartLog.getRate();
                         }
@@ -329,7 +340,7 @@ public class HermesFitbitControllerOauth2 {
                 }
             }
         } catch (ParseException ex) {
-            log.log(Level.SEVERE, "synchronizeHeartRateData() - Error al convertir los datos del registro de ritmo cardíaco", ex);
+            LOG.log(Level.SEVERE, "synchronizeHeartRateData() - Error al convertir los datos del registro de ritmo cardíaco", ex);
             throw new HermesException("Fitbit.error.requestFailed");
         }
 
@@ -356,10 +367,10 @@ public class HermesFitbitControllerOauth2 {
             try {
                 fitbitFacade.getPerson().setPhoto(ImageUtil.getPhotoImageAsByteArray(new URL(userInfo.getAvatar())));
             } catch (MalformedURLException ex) {
-                log.log(Level.SEVERE, "transferUserInfoToPerson() - Error al obtener la foto del usuario de Fitbit", ex);
+                LOG.log(Level.SEVERE, "transferUserInfoToPerson() - Error al obtener la foto del usuario de Fitbit", ex);
                 throw new HermesException("Fitbit.error.requestFailed");
             } catch (IOException ex) {
-                log.log(Level.SEVERE, "transferUserInfoToPerson() - Error al obtener la foto del usuario de Fitbit", ex);
+                LOG.log(Level.SEVERE, "transferUserInfoToPerson() - Error al obtener la foto del usuario de Fitbit", ex);
                 throw new HermesException("Fitbit.error.requestFailed");
             }
             // TODO: Ver qué se hace si falla la obtención de los datos de Fitbit!!!
@@ -372,10 +383,10 @@ public class HermesFitbitControllerOauth2 {
         } catch (FitbitAPIException ex) {
             if (ex.getStatusCode() == TOO_MANY_REQUESTS) {
                 int remainingTime = (60 - Calendar.getInstance().get(Calendar.MINUTE));
-                log.log(Level.INFO, "getSleepLogData() - Se ha alcanzado el límite de peticiones a Fitbit hasta dentro de {0} minutos", remainingTime);
+                LOG.log(Level.INFO, "getSleepLogData() - Se ha alcanzado el límite de peticiones a Fitbit hasta dentro de {0} minutos", remainingTime);
                 throw new HermesException("Fitbit.warning.reachedRequestLimit", remainingTime);
             } else {
-                log.log(Level.SEVERE, "transferUserInfoToPerson() - Error al obtener la información del usuario de Fitbit", ex);
+                LOG.log(Level.SEVERE, "transferUserInfoToPerson() - Error al obtener la información del usuario de Fitbit", ex);
                 throw new HermesException("Fitbit.error.requestFailed");
             }
         }
@@ -389,7 +400,7 @@ public class HermesFitbitControllerOauth2 {
      * @throws HermesException
      */
     public Date getLastSyncDate() throws HermesFitbitException, HermesException {
-        log.log(Level.INFO, "getLastSyncDate() - Obtener la última sincronización con Fitbit");
+        LOG.log(Level.INFO, "getLastSyncDate() - Obtener la última sincronización con Fitbit");
         refreshFitbitTokens();
 
         // Suponemos que las personas sólo tienen un dispositivo.
@@ -400,7 +411,7 @@ public class HermesFitbitControllerOauth2 {
                 syncDate = devicesList.get(0).getLastSyncTime();
             } else {
                 // Si no tiene vinculado ningún dispositivo, no se puede sincronizar.
-                log.log(Level.SEVERE, "getLastSyncDate() - No tiene dispositivos Fitbit");
+                LOG.log(Level.SEVERE, "getLastSyncDate() - No tiene dispositivos Fitbit");
                 throw new HermesException("Fitbit.error.noDevice");
             }
             FitbitResetRequestsScheduledTask.setUsedRequests(fitbitFacade.getPerson().getFitbitUserId(), 1);
@@ -409,14 +420,14 @@ public class HermesFitbitControllerOauth2 {
         } catch (FitbitAPIException ex) {
             if (ex.getStatusCode() == TOO_MANY_REQUESTS) {
                 int remainingTime = (60 - Calendar.getInstance().get(Calendar.MINUTE));
-                log.log(Level.INFO, "getLastSyncDate() - Se ha alcanzado el límite de peticiones a Fitbit hasta dentro de {0} minutos", remainingTime);
+                LOG.log(Level.INFO, "getLastSyncDate() - Se ha alcanzado el límite de peticiones a Fitbit hasta dentro de {0} minutos", remainingTime);
                 throw new HermesException("Fitbit.warning.reachedRequestLimit", remainingTime);
             } else {
-                log.log(Level.SEVERE, "getLastSyncDate() - Error al obtener la fecha de la última sincronización de la pulsera de Fitbit", ex);
+                LOG.log(Level.SEVERE, "getLastSyncDate() - Error al obtener la fecha de la última sincronización de la pulsera de Fitbit", ex);
                 throw new HermesException("Fitbit.error.requestFailed");
             }
         } catch (ParseException ex) {
-            log.log(Level.SEVERE, "getLastSyncDate() - Error al convertir la fecha de la última sincronización de la pulsera de Fitbit", ex);
+            LOG.log(Level.SEVERE, "getLastSyncDate() - Error al convertir la fecha de la última sincronización de la pulsera de Fitbit", ex);
             throw new HermesException("Fitbit.error.requestFailed");
         }
     }
@@ -445,16 +456,16 @@ public class HermesFitbitControllerOauth2 {
 //        // Obtenemos los límites actuales del usuario.
 //        int remainingRequests = getRemainingRequests();
 //
-//        log.log(Level.INFO, "checkEnoughRemainingRequests() - Quedan {0} peticiones a Fitbit disponibles. Necesitamos {1} peticiones", new Object[]{remainingRequests, requestsNeeded});
+//        LOG.log(Level.INFO, "checkEnoughRemainingRequests() - Quedan {0} peticiones a Fitbit disponibles. Necesitamos {1} peticiones", new Object[]{remainingRequests, requestsNeeded});
 //
 //        if (remainingRequests == 0) {
 //            // No quedan peticiones.
 //            int minutes = 60 - (new LocalTime()).getMinuteOfHour();
-//            log.log(Level.WARNING, "enoughRemainingRequests() - Se ha superado el límite de peticiones a Fitbit por hora. Se debe esperar {0} minutos", minutes);
+//            LOG.log(Level.WARNING, "enoughRemainingRequests() - Se ha superado el límite de peticiones a Fitbit por hora. Se debe esperar {0} minutos", minutes);
 //            throw new HermesException("Fitbit.warning.reachedRequestLimit", minutes);
 //        } else if (remainingRequests < requestsNeeded) {
 //            // No hay suficientes peticiones disponibles.
-//            log.log(Level.WARNING, "enoughRemainingRequests() - No hay petiociones suficientes. Se requieren {0} peticiones y se dispone de {1}", new Object[]{requestsNeeded, remainingRequests});
+//            LOG.log(Level.WARNING, "enoughRemainingRequests() - No hay petiociones suficientes. Se requieren {0} peticiones y se dispone de {1}", new Object[]{requestsNeeded, remainingRequests});
 //            throw new HermesException("Fitbit.warning.notEnoughRequests", requestsNeeded, remainingRequests);
 //        }
 //    }
@@ -462,16 +473,16 @@ public class HermesFitbitControllerOauth2 {
         // Obtenemos los límites actuales del usuario.
         int personRemainingRequests = FitbitResetRequestsScheduledTask.getRemainingRequests(fitbitFacade.getPerson().getFitbitUserId());
 
-        log.log(Level.INFO, "checkEnoughRemainingRequests() - Quedan {0} peticiones a Fitbit disponibles. Necesitamos {1} peticiones", new Object[]{personRemainingRequests, requestsNeeded});
+        LOG.log(Level.INFO, "checkEnoughRemainingRequests() - Quedan {0} peticiones a Fitbit disponibles. Necesitamos {1} peticiones", new Object[]{personRemainingRequests, requestsNeeded});
 
         if (personRemainingRequests == 0) {
             // No quedan peticiones.
             int minutes = 60 - (new LocalTime()).getMinuteOfHour();
-            log.log(Level.WARNING, "enoughRemainingRequests() - Se ha superado el límite de peticiones a Fitbit por hora. Se debe esperar {0} minutos", minutes);
+            LOG.log(Level.WARNING, "enoughRemainingRequests() - Se ha superado el límite de peticiones a Fitbit por hora. Se debe esperar {0} minutos", minutes);
             throw new HermesException("Fitbit.warning.reachedRequestLimit", minutes);
         } else if (personRemainingRequests < requestsNeeded) {
             // No hay suficientes peticiones disponibles.
-            log.log(Level.WARNING, "enoughRemainingRequests() - No hay petiociones suficientes. Se requieren {0} peticiones y se dispone de {1}", new Object[]{requestsNeeded, personRemainingRequests});
+            LOG.log(Level.WARNING, "enoughRemainingRequests() - No hay petiociones suficientes. Se requieren {0} peticiones y se dispone de {1}", new Object[]{requestsNeeded, personRemainingRequests});
             throw new HermesException("Fitbit.warning.notEnoughRequests", requestsNeeded, personRemainingRequests);
         }
     }
@@ -484,10 +495,10 @@ public class HermesFitbitControllerOauth2 {
 //            // Obtenemos los límites actuales del usuario.
 //            remainingRequests = apiClientAgent.getRateLimitStatus().getRemainingHits();
 //        } catch (FitbitAPIException ex) {
-//            log.log(Level.SEVERE, "enoughRemainingRequests() - Error al comprobar si se ha alcanzado el límite de peticiones a Fitbit", ex);
+//            LOG.log(Level.SEVERE, "enoughRemainingRequests() - Error al comprobar si se ha alcanzado el límite de peticiones a Fitbit", ex);
 //        }
 //
-//        log.log(Level.INFO, "getRemainingRequests() - Hay disponibles {0} peticiones a Fitbit", remainingRequests);
+//        LOG.log(Level.INFO, "getRemainingRequests() - Hay disponibles {0} peticiones a Fitbit", remainingRequests);
 //
 //        return remainingRequests;
 //    }

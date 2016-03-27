@@ -22,6 +22,25 @@ public class LocationLogCSV2 extends LocationLogCSV {
     public LocationLogCSV2() {
     }
 
+    @Override
+    public void init(Integer columns) {
+        cellProcessors = new CellProcessor[columns];
+        cellProcessors[0] = new org.supercsv.cellprocessor.constraint.NotNull(); // fecha y hora
+        cellProcessors[1] = new org.supercsv.cellprocessor.constraint.NotNull(new ParseDouble()); // latitud
+        cellProcessors[2] = new org.supercsv.cellprocessor.constraint.NotNull(new ParseDouble()); // longitud
+        cellProcessors[3] = new org.supercsv.cellprocessor.constraint.NotNull(new ParseDouble()); // velocidad
+        cellProcessors[4] = new org.supercsv.cellprocessor.constraint.NotNull(new ParseInt()); // pulso
+        cellProcessors[5] = new org.supercsv.cellprocessor.constraint.NotNull(new ParseInt()); // intervalo RR
+
+        fields = new String[columns];
+        fields[0] = "dateTimeLog";
+        fields[1] = "latitude";
+        fields[2] = "longitude";
+        fields[3] = "speed";
+        fields[4] = "heartRate";
+        fields[5] = "rrTime";
+    }
+
     public int getRrTime() {
         return rrTime;
     }
@@ -32,58 +51,11 @@ public class LocationLogCSV2 extends LocationLogCSV {
 
     @Override
     public CellProcessor[] getProcessors() {
-        return new CellProcessor[]{
-            new org.supercsv.cellprocessor.constraint.NotNull(), // fecha y hora
-            new org.supercsv.cellprocessor.constraint.NotNull(new ParseDouble()), // latitud
-            new org.supercsv.cellprocessor.constraint.NotNull(new ParseDouble()), // longitud
-            new org.supercsv.cellprocessor.constraint.NotNull(new ParseDouble()), // velocidad
-            new org.supercsv.cellprocessor.constraint.NotNull(new ParseInt()), // pulso
-            new org.supercsv.cellprocessor.constraint.NotNull(new ParseInt()), // intervalo RR
-            null,
-            null,
-            null,
-            null,
-            null,
-            null,
-            null,
-            null,
-            null,
-            null,
-            null,
-            null,
-            null,
-            null,
-            null,
-            null,
-            null
-        };
+        return cellProcessors;
     }
 
     @Override
     public String[] getFields() {
-        return new String[]{
-            "dateTimeLog",
-            "latitude",
-            "longitude",
-            "speed",
-            "heartRate",
-            "rrTime",
-            null,
-            null,
-            null,
-            null,
-            null,
-            null,
-            null,
-            null,
-            null,
-            null,
-            null,
-            null,
-            null,
-            null,
-            null,
-            null,
-            null};
+        return fields;
     }
 }

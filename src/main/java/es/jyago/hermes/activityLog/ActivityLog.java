@@ -6,8 +6,8 @@
 package es.jyago.hermes.activityLog;
 
 import es.jyago.hermes.person.Person;
+import es.jyago.hermes.person.SessionStateMachine;
 import es.jyago.hermes.stepLog.StepLog;
-import es.jyago.hermes.csv.ICSVBean;
 import es.jyago.hermes.util.Constants;
 import java.io.Serializable;
 import java.util.ArrayList;
@@ -18,6 +18,7 @@ import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.ResourceBundle;
+import javax.annotation.PostConstruct;
 import javax.persistence.Basic;
 import javax.persistence.CascadeType;
 import javax.persistence.Column;
@@ -51,7 +52,6 @@ import org.primefaces.model.chart.LineChartModel;
 import org.primefaces.model.chart.LineChartSeries;
 import org.primefaces.model.chart.MeterGaugeChartModel;
 import org.primefaces.model.chart.PieChartModel;
-import org.supercsv.cellprocessor.ift.CellProcessor;
 
 /**
  *
@@ -64,8 +64,9 @@ import org.supercsv.cellprocessor.ift.CellProcessor;
     @NamedQuery(name = "ActivityLog.findAll", query = "SELECT a FROM ActivityLog a"),
     @NamedQuery(name = "ActivityLog.findByActivityLogId", query = "SELECT a FROM ActivityLog a WHERE a.activityLogId = :activityLogId"),
     @NamedQuery(name = "ActivityLog.findByDate", query = "SELECT a FROM ActivityLog a WHERE a.dateLog = :date"),
+    @NamedQuery(name = "ActivityLog.findBySent", query = "SELECT a FROM ActivityLog a WHERE a.sent = :sent"),
     @NamedQuery(name = "ActivityLog.findAllFromPerson", query = "SELECT a FROM ActivityLog a WHERE a.person.personId = :personId ORDER BY a.dateLog DESC")})
-public class ActivityLog implements Serializable, ICSVBean {
+public class ActivityLog implements Serializable {
 
     private static final long serialVersionUID = 1L;
     @Id
@@ -86,9 +87,9 @@ public class ActivityLog implements Serializable, ICSVBean {
     private Person person;
     @Column(name = "total")
     private Integer total;
-    @Column(name = "send_date")
-    @Temporal(TemporalType.DATE)
-    private Date sendDate;
+    @Basic(optional = false)
+    @Column(name = "sent")
+    private boolean sent;
 
     @Transient
     private String aggregation;
@@ -98,6 +99,11 @@ public class ActivityLog implements Serializable, ICSVBean {
     private LinkedHashMap<Date, Integer> sessions;
 
     public ActivityLog() {
+    }
+
+    @PostConstruct
+    public void init() {
+        calculateSessions();
     }
 
     public Integer getActivityLogId() {
@@ -116,7 +122,6 @@ public class ActivityLog implements Serializable, ICSVBean {
         this.dateLog = dateLog;
     }
 
-    @XmlTransient
     public List<StepLog> getStepLogList() {
         return stepLogList;
     }
@@ -135,50 +140,72 @@ public class ActivityLog implements Serializable, ICSVBean {
 
     public LinkedHashMap<Date, Integer> getSessions() {
         if (sessions == null) {
-            calculateSessions(false);
+            calculateSessions();
         }
         return sessions;
     }
 
-    public LinkedHashMap<Date, Integer> getActiveSessions() {
-        if (sessions == null) {
-            calculateSessions(true);
-        }
-
-        LinkedHashMap<Date, Integer> activeSessions = new LinkedHashMap<>();
-        for (Map.Entry<Date, Integer> entry : sessions.entrySet()) {
-            // El contenido será 0 si no está en una sesión y distinto de 0 si está en una sesión.
-            if (entry.getValue() > -1) {
-                activeSessions.put(entry.getKey(), entry.getValue());
-            }
-        }
-
-        return activeSessions;
-    }
-
-    public int getSessionsTotal() {
+    /**
+     * Método para obtener el total de sesiones de un día concreto.
+     *
+     * @return Total de sesiones del día.
+     */
+    public int getTotalSessions() {
         int result = 0;
 
-        int previousValue = -1;
-        for (int currentValue : getSessions().values()) {
-            // El contenido será -1 si no está en una sesión y 1 si está en una sesión.
-            // Contaremos los cambios de -1 a 1.
-            if (previousValue == -1 && currentValue > 0) {
-                result += 1;
+        boolean inSession = false;
+        for (Integer currentValue : getSessions().values()) {
+            // Cuando se pase de un valor nulo a un valor válido, se estará entrando en una sesión y cuando vuelva a null, se saldrá de la sesión.
+            if (currentValue != null) {
+                if (!inSession) {
+                    // Inicio de una sesión.
+                    result++;
+                    inSession = true;
+                }
+            } else {
+                // No está en una sesión.
+                inSession = false;
             }
-
-            previousValue = currentValue;
         }
 
         return result;
     }
 
-    public int getSessionsContinuousStepsTotal() {
+    /**
+     * Método para obtener el total de sesiones, en las que no ha habido ninguna
+     * parada, de un día concreto.
+     *
+     * @return Total de sesiones, sin paradas, del día.
+     */
+    public int getTotalContinuousStepsSessions() {
         int result = 0;
 
-        if (getSessions() != null) {
-            for (int value : sessions.values()) {
-                result += value;
+        boolean inSession = false;
+        boolean continuousSession = false;
+        int restStepsThreshold = person.getConfigurationIntValue(Person.PersonOptions.RestStepsThreshold.name());
+
+        for (Integer currentValue : getSessions().values()) {
+            // Cuando se pase de un valor nulo a un valor válido, se estará entrando en una sesión y cuando vuelva a null, se saldrá de la sesión.
+            if (currentValue != null) {
+                if (!inSession) {
+                    if (currentValue >= restStepsThreshold) {
+                        // Inicio de una sesión.
+                        result++;
+                        inSession = true;
+                        continuousSession = true;
+                    }
+                } // Ya estamos en una sesión, pero ¿es continua? 
+                else if (continuousSession) {
+                    // Analizamos cada conjunto de pasos, por si no llega al umbral.
+                    if (currentValue < restStepsThreshold) {
+                        // No llega al umbral.
+                        result--;
+                        continuousSession = false;
+                    }
+                }
+            } else {
+                // No está en una sesión.
+                inSession = false;
             }
         }
 
@@ -216,38 +243,6 @@ public class ActivityLog implements Serializable, ICSVBean {
                 .append("]");
 
         return sb.toString();
-    }
-
-    @Override
-    public CellProcessor[] getProcessors() {
-        return new CellProcessor[]{
-            new org.supercsv.cellprocessor.constraint.NotNull() // fecha
-        };
-    }
-
-    @Override
-    public String[] getFields() {
-        return new String[]{"date"};
-    }
-
-    @Override
-    public String[] getHeaders() {
-        return null;
-    }
-
-    public PieChartModel getPieModel(Map<String, Integer> values) {
-        PieChartModel model = new PieChartModel();
-
-        for (String key : values.keySet()) {
-            model.set(key, values.get(key));
-        }
-
-        model.setTitle(Constants.df.format(this.dateLog));
-        model.setFill(false);
-        model.setShowDataLabels(true);
-        model.setLegendPosition("ne");
-
-        return model;
     }
 
     public LineChartModel getLineModel(String title) {
@@ -289,126 +284,137 @@ public class ActivityLog implements Serializable, ICSVBean {
         return model;
     }
 
-    public LineChartModel getAreaModel(String title) {
-        LineChartModel model = new LineChartModel();
-        LineChartSeries areaSeries = new LineChartSeries();
-
-        for (Map.Entry<Date, Integer> entry : getSessions().entrySet()) {
-            areaSeries.set(entry.getKey().getTime(), entry.getValue());
-        }
-
-        areaSeries.setLabel(ResourceBundle.getBundle("/Bundle").getString("Sessions"));
-        areaSeries.setFill(true);
-
-        model.setTitle(title);
-        model.setLegendPosition("ne");
-        model.setShowPointLabels(false);
-        model.setShowDatatip(true);
-        model.setMouseoverHighlight(true);
-        model.setDatatipFormat("%1$s -> %2$d");
-        model.setSeriesColors("CB99C9");
-        model.setAnimate(true);
-        model.setZoom(true);
-
-        DateAxis xAxis = new DateAxis(ResourceBundle.getBundle("/Bundle").getString("Time"));
-        xAxis.setTickAngle(-45);
-        xAxis.setTickFormat("%H:%M");
-        model.getAxes().put(AxisType.X, xAxis);
-
-        Axis yAxis = model.getAxis(AxisType.Y);
-        yAxis.setLabel(ResourceBundle.getBundle("/Bundle").getString("ActiveSession"));
-        yAxis.setMin(0f);
-        yAxis.setMax(1.1f);
-
-        if (!areaSeries.getData().isEmpty()) {
-            model.addSeries(areaSeries);
-        }
-
-        // JYFR: Extensión para gráficos. Así podemos cambiar más características. Ver las opciones en la web de 'jqPlot'.
-        model.setExtender("customExtender");
-
-        return model;
-    }
-
-    public LinkedHashMap<Date, Integer> calculateSessions(boolean withValues) {
+//    public LineChartModel getAreaModel(String title) {
+//        LineChartModel model = new LineChartModel();
+//        LineChartSeries areaSeries = new LineChartSeries();
+//
+//        for (Map.Entry<Date, Integer> entry : getSessions().entrySet()) {
+//            areaSeries.set(entry.getKey().getTime(), entry.getValue());
+//        }
+//
+//        areaSeries.setLabel(ResourceBundle.getBundle("/Bundle").getString("Sessions"));
+//        areaSeries.setFill(true);
+//
+//        model.setTitle(title);
+//        model.setLegendPosition("ne");
+//        model.setShowPointLabels(false);
+//        model.setShowDatatip(true);
+//        model.setMouseoverHighlight(true);
+//        model.setDatatipFormat("%1$s -> %2$d");
+//        model.setSeriesColors("CB99C9");
+//        model.setAnimate(true);
+//        model.setZoom(true);
+//
+//        DateAxis xAxis = new DateAxis(ResourceBundle.getBundle("/Bundle").getString("Time"));
+//        xAxis.setTickAngle(-45);
+//        xAxis.setTickFormat("%H:%M");
+//        model.getAxes().put(AxisType.X, xAxis);
+//
+//        Axis yAxis = model.getAxis(AxisType.Y);
+//        yAxis.setLabel(ResourceBundle.getBundle("/Bundle").getString("ActiveSession"));
+//        yAxis.setMin(0f);
+//        yAxis.setMax(1.1f);
+//
+//        if (!areaSeries.getData().isEmpty()) {
+//            model.addSeries(areaSeries);
+//        }
+//
+//        // JYFR: Extensión para gráficos. Así podemos cambiar más características. Ver las opciones en la web de 'jqPlot'.
+//        model.setExtender("customExtender");
+//
+//        return model;
+//    }
+    /**
+     * Método para calcular las sesiones del 'ActivityLog' con los pasos
+     * registrados.
+     *
+     * @param withValues Indicará si se ponen los valores de pasos o bien 0 para
+     * inactivo y 1 para en sesión.
+     * @return Minutos del día y los datos de si está en sesión o no.
+     */
+    private LinkedHashMap<Date, Integer> calculateSessions() {
         int restStepsThreshold = person.getConfigurationIntValue(Person.PersonOptions.RestStepsThreshold.name());
         int restMinutes = 0;
         int endSessionStoppedMinutes = person.getConfigurationIntValue(Person.PersonOptions.EndSessionStoppedMinutes.name());
-        boolean sessionEnded = true;
         int minSessionMinutes = person.getConfigurationIntValue(Person.PersonOptions.MinimumSessionMinutes.name());
 
-        List<Date> sessionTime = new ArrayList();
+        List<Date> currentSessionTime = new ArrayList();
         prepareStepLogHashMap();
         sessions = new LinkedHashMap<>();
+        SessionStateMachine ssm = new SessionStateMachine();
 
         if (stepLogList != null) {
-            // Vamos procesando los tiempos.
+            // Vamos procesando los datos de pasos.
             for (StepLog stepLog : stepLogList) {
 
-                // Si el valor de los pasos es menor que el umbral establecido para la persona...
+                // Si el valor de los pasos es menor que el umbral de parada establecido para la persona...
                 if (stepLog.getSteps() < restStepsThreshold) {
-                    // ... vemos si hay una sesión en curso.
-                    if (sessionEnded) {
-                        // Si no hay sesión en curso, añadimos 'inactividad' al contenedor de sesiones.
-                        sessions.put(stepLog.getTimeLog(), -1);
+                    // ... vemos si no hay una sesión en curso.
+                    if (!ssm.isInSession()) {
+                        // Si no hay sesión en curso, añadimos 'inactividad' (null) al contenedor de sesiones.
+                        sessions.put(stepLog.getTimeLog(), null);
                     } else {
                         // Si había una sesión en curso, añadimos un minuto más de inactividad.
                         restMinutes++;
                         // Vemos si el número de minutos de inactividad supera el número de minutos para considerar una sesión terminada.
                         if (restMinutes > endSessionStoppedMinutes) {
-                            sessionEnded = true;
+                            ssm.changeToNormal();
                             // Indicamos los minutos previos hasta la conclusión de fin de sesión, como sesión inactiva.
-                            DateTime min = new DateTime(stepLog.getTimeLog());
-                            min = min.minusMinutes(restMinutes);
+                            DateTime restStart = new DateTime(stepLog.getTimeLog());
+                            restStart = restStart.minusMinutes(restMinutes);
                             for (int i = 0; i <= restMinutes; i++) {
-                                sessions.put(min.toDate(), -1);
-                                min = min.plusMinutes(1);
+                                sessions.put(restStart.toDate(), null);
+                                restStart = restStart.plusMinutes(1);
                             }
                         }
                     }
                 } else {
-                    // Si el valor de los pasos es mayor que el umbral, reiniciamos los minutos de inactividad y añadimos el tiempo a la lista de tiempos de sesión.
+                    // Si el valor de los pasos es mayor que el umbral de parada, reiniciamos los minutos de inactividad y añadimos el tiempo a la lista de tiempos de sesión.
                     restMinutes = 0;
-                    sessionEnded = false;
-                    sessionTime.add(stepLog.getTimeLog());
+                    ssm.changeToInSession();
+                    currentSessionTime.add(stepLog.getTimeLog());
+
+                    // Las sesiones también tienen un tiempo máximo definido para cada persona. Si supera ese límite de minutos de sesión, se considera terminada esa sesión y comenzará otra.
+                    // TODO: Hacer 
                 }
 
-                // Si nos encontramos en el momento de fin de una sesión...
-                if (sessionEnded == true && !sessionTime.isEmpty()) {
-                    DateTime min = new DateTime(sessionTime.get(0));
-                    DateTime max = new DateTime(sessionTime.get(sessionTime.size() - 1));
+                // Si nos encontramos en estado inactivo, pero tenemos tiempo de sesión almacenado, quiere decir que es el momento de fin de una sesión.
+                if (ssm.isInactive() && !currentSessionTime.isEmpty()) {
+                    // Tomamos los instantes de inicio y fin de la sesión, para calcular el tiempo de sesión.
+                    DateTime min = new DateTime(currentSessionTime.get(0));
+                    DateTime max = new DateTime(currentSessionTime.get(currentSessionTime.size() - 1));
                     int minutes = org.joda.time.Minutes.minutesBetween(min, max).getMinutes();
 
-                    // ... vemos si el conjunto de tiempos de sesión supera lo que se considera una sesión para la persona.
-                    if (sessionTime.size() > minSessionMinutes) {
+                    // Vemos si el conjunto de tiempos de sesión supera lo que se considera una sesión para la persona.
+                    if (currentSessionTime.size() > minSessionMinutes) {
                         // Indicamos el rango como sesión activa.
                         for (int i = 0; i < minutes; i++) {
-                            sessions.put(min.toDate(), withValues ? ((StepLog) stepLogHashMap.get(min.toDate())).getSteps() : 1);
+                            sessions.put(min.toDate(), ((StepLog) stepLogHashMap.get(min.toDate())).getSteps());
                             min = min.plusMinutes(1);
                         }
                     } else {
-                        // Indicamos el rango como sesión inactiva.
+                        // Indicamos el rango como inactivo.
                         for (int i = 0; i < minutes; i++) {
-                            sessions.put(min.toDate(), -1);
+                            sessions.put(min.toDate(), null);
                             min = min.plusMinutes(1);
                         }
                     }
                     // Reiniciamos el contenedor de tiempos de sesión.
-                    sessionTime.clear();
+                    currentSessionTime.clear();
                 }
             }
         }
 
         // Procesamos los tiempos que hayan quedado en el contenedor de tiempos de sesión.
-        if (sessionTime.size() > minSessionMinutes) {
+        if (currentSessionTime.size() > minSessionMinutes) {
             // Indicamos el rango como sesión activa.
-            for (Date time : sessionTime) {
-                sessions.put(time, withValues ? ((StepLog) stepLogHashMap.get(time)).getSteps() : 1);
+            for (Date time : currentSessionTime) {
+                sessions.put(time, ((StepLog) stepLogHashMap.get(time)).getSteps());
             }
         } else {
             // Indicamos el rango como sesión inactiva.
-            for (Date time : sessionTime) {
-                sessions.put(time, -1);
+            for (Date time : currentSessionTime) {
+                sessions.put(time, 0);
             }
         }
 
@@ -431,25 +437,24 @@ public class ActivityLog implements Serializable, ICSVBean {
         return values;
     }
 
-    public ChartModel getGaugeModel() {
-        ResourceBundle bundle = ResourceBundle.getBundle("/Bundle");
-        // Por defecto, si no tiene indicado un valor de objetivo de pasos, establecemos 10000.
-        int stepsGoal = getPerson().getConfigurationIntValue(Person.PersonOptions.StepsGoal.name()) > 0 ? getPerson().getConfigurationIntValue(Person.PersonOptions.StepsGoal.name()) : 10000;
-        List<Number> intervals = new ArrayList<Number>() {
-            {
-                add(stepsGoal / 3);
-                add(stepsGoal / 2);
-                add(stepsGoal);
-            }
-        };
-        int achieved = getSummary().get("Achieved");
-        MeterGaugeChartModel meterGaugeModel = new MeterGaugeChartModel(achieved > stepsGoal ? stepsGoal : achieved, intervals);
-        meterGaugeModel.setSeriesColors("cc6666,E7E658,66cc66");
-        meterGaugeModel.setIntervalOuterRadius(30);
-
-        return meterGaugeModel;
-    }
-
+//    public ChartModel getGaugeModel() {
+//        ResourceBundle bundle = ResourceBundle.getBundle("/Bundle");
+//        // Por defecto, si no tiene indicado un valor de objetivo de pasos, establecemos 10000.
+//        int stepsGoal = getPerson().getConfigurationIntValue(Person.PersonOptions.StepsGoal.name()) > 0 ? getPerson().getConfigurationIntValue(Person.PersonOptions.StepsGoal.name()) : 10000;
+//        List<Number> intervals = new ArrayList<Number>() {
+//            {
+//                add(stepsGoal / 3);
+//                add(stepsGoal / 2);
+//                add(stepsGoal);
+//            }
+//        };
+//        int achieved = getSummary().get("Achieved");
+//        MeterGaugeChartModel meterGaugeModel = new MeterGaugeChartModel(achieved > stepsGoal ? stepsGoal : achieved, intervals);
+//        meterGaugeModel.setSeriesColors("cc6666,E7E658,66cc66");
+//        meterGaugeModel.setIntervalOuterRadius(30);
+//
+//        return meterGaugeModel;
+//    }
     public List<StepLog> getAggregatedValues() {
 
         if (getAggregation().equals(Constants.TimeAggregations.Days.toString())) {
@@ -537,14 +542,6 @@ public class ActivityLog implements Serializable, ICSVBean {
         this.total = total;
     }
 
-    public Date getSendDate() {
-        return sendDate;
-    }
-
-    public void setSendDate(Date sendDate) {
-        this.sendDate = sendDate;
-    }
-
     private void prepareStepLogHashMap() {
         this.stepLogHashMap = new LinkedHashMap<>();
 
@@ -572,4 +569,11 @@ public class ActivityLog implements Serializable, ICSVBean {
 //            return mode * o1.getDateLog().compareTo(o2.getDateLog());
 //        }
 //    }
+    public boolean isSent() {
+        return sent;
+    }
+
+    public void setSent(boolean sent) {
+        this.sent = sent;
+    }
 }

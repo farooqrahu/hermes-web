@@ -61,6 +61,7 @@ import org.primefaces.model.chart.LineChartSeries;
     @NamedQuery(name = "HealthLog.findAll", query = "SELECT h FROM HealthLog h"),
     @NamedQuery(name = "HealthLog.findByHealthLogId", query = "SELECT h FROM HealthLog h WHERE h.healthLogId = :healthLogId"),
     @NamedQuery(name = "HealthLog.findByDateLog", query = "SELECT h FROM HealthLog h WHERE h.dateLog = :dateLog"),
+    @NamedQuery(name = "HealthLog.findBySent", query = "SELECT h FROM HealthLog h WHERE h.sent = :sent"),
     @NamedQuery(name = "HealthLog.findByAverage", query = "SELECT h FROM HealthLog h WHERE h.average = :average")})
 public class HealthLog implements Serializable {
 
@@ -84,9 +85,10 @@ public class HealthLog implements Serializable {
     @JoinColumn(name = "person_id", referencedColumnName = "person_id")
     @ManyToOne(optional = false)
     private Person person;
-    @Column(name = "send_date")
-    @Temporal(TemporalType.DATE)
-    private Date sendDate;
+
+    @Basic(optional = false)
+    @Column(name = "sent")
+    private boolean sent;
 
     @Transient
     private String aggregation;
@@ -188,14 +190,6 @@ public class HealthLog implements Serializable {
 
     public void setHeartLogList(List<HeartLog> heartLogList) {
         this.heartLogList = heartLogList;
-    }
-
-    public Date getSendDate() {
-        return sendDate;
-    }
-
-    public void setSendDate(Date sendDate) {
-        this.sendDate = sendDate;
     }
 
     public void setAggregation(String aggregation) {
@@ -423,4 +417,11 @@ public class HealthLog implements Serializable {
 //            return mode * o1.getDateLog().compareTo(o2.getDateLog());
 //        }
 //    }
+    public boolean isSent() {
+        return sent;
+    }
+
+    public void setSent(boolean sent) {
+        this.sent = sent;
+    }
 }

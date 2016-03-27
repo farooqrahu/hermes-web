@@ -26,42 +26,58 @@
                         <h:panelGrid columns="1" style="width: 200px;">
                             <h:selectOneRadio id="dateRadio" value="#{personController.dateSelector}" layout="pageDirection">
                                 <f:selectItem itemValue="1" itemLabel="#{bundle.ByMonths}"/>
-                                <f:selectItem itemValue="2" itemLabel="#{bundle.ByDateRange}"/>
-                                <p:ajax update="dateType" />
+                                <f:selectItem itemValue="2" itemLabel="#{bundle.ByWeeks}"/>
+                                <f:selectItem itemValue="3" itemLabel="#{bundle.ByDateRange}"/>
+                                <p:ajax update="dateType, chartType" />
                             </h:selectOneRadio>
 
                             <h:panelGroup id="dateType">
                                 <h:panelGrid columns="1">
-                                    <p:commandButton id="previousMonthButton" value="#{bundle.PreviousMonth}" actionListener="#{personController.previousMonthStepLogChart()}" update="monthLineChart, previousMonthButton, nextMonthButton" icon="ui-icon-triangle-1-w" rendered="#{personController.dateSelector != 2}" />
-                                    <p:commandButton id="nextMonthButton" value="#{bundle.NextMonth}" actionListener="#{personController.nextMonthStepLogChart()}" update="monthLineChart, previousMonthButton, nextMonthButton" icon="ui-icon-triangle-1-e" rendered="#{personController.dateSelector != 2}" />
+                                    <p:commandButton id="previousMonthButton" value="#{bundle.PreviousMonth}" actionListener="#{personController.previousMonthSessionsChart()}" update="monthStepsLineChart, monthSessionsLineChart,  previousMonthButton, nextMonthButton" icon="ui-icon-triangle-1-w" rendered="#{personController.dateSelector eq 1}" />
+                                    <p:commandButton id="nextMonthButton" value="#{bundle.NextMonth}" actionListener="#{personController.nextMonthSessionsChart()}" update="monthStepsLineChart, monthSessionsLineChart" icon="ui-icon-triangle-1-e" rendered="#{personController.dateSelector eq 1}" />
                                 </h:panelGrid>
-                                <p:calendar id="minDate" value="#{personController.startDate}" mindate="#{personController.selected.activityLogList[0].dateLog}" maxdate="#{personController.selected.activityLogList[personController.selected.activityLogList.size()-1].dateLog}" mode="inline" title="#{bundle.Start_date}" disabled="#{personController.dateSelector != 2}">
-                                    <p:ajax event="dateSelect" listener="#{personController.updateStartDate}" update="monthLineChart"/>
+                                <h:panelGrid columns="1">
+                                    <p:commandButton id="previousWeekButton" value="#{bundle.PreviousWeek}" actionListener="#{personController.previousWeekSessionsChart()}" update="monthStepsLineChart, monthSessionsLineChart,  previousMonthButton, nextMonthButton" icon="ui-icon-triangle-1-w" rendered="#{personController.dateSelector eq 2}" />
+                                    <p:commandButton id="nextWeekButton" value="#{bundle.NextWeek}" actionListener="#{personController.nextWeekSessionsChart()}" update="monthStepsLineChart, monthSessionsLineChart" icon="ui-icon-triangle-1-e" rendered="#{personController.dateSelector eq 2}" />
+                                </h:panelGrid>
+                                <p:calendar id="minDate" value="#{personController.startDate}"  mode="inline" title="#{bundle.Start_date}" rendered="#{personController.dateSelector eq 3}">
+                                    <p:ajax event="dateSelect" listener="#{personController.updateSessionsStartDate}" update="monthStepsLineChart, monthSessionsLineChart"/>
                                     <f:attribute name="endDate" value="#{personController.endDate}" />
                                     <f:validator validatorId="dateRangeValidator" />
                                 </p:calendar>
-                                <p:calendar id="maxDate" value="#{personController.endDate}" mindate="#{personController.selected.activityLogList[0].dateLog}" maxdate="#{personController.selected.activityLogList[personController.selected.activityLogList.size()-1].dateLog}" mode="inline" title="#{bundle.End_date}" disabled="#{personController.dateSelector != 2}">
-                                    <p:ajax event="dateSelect" listener="#{personController.updateEndDate}" update="monthLineChart"/>
+                                <p:calendar id="maxDate" value="#{personController.endDate}"  mode="inline" title="#{bundle.End_date}" rendered="#{personController.dateSelector eq 3}">
+                                    <p:ajax event="dateSelect" listener="#{personController.updateSessionsEndDate}" update="monthStepsLineChart, monthSessionsLineChart"/>
                                     <f:attribute name="startDate" value="#{personController.startDate}" />
                                     <f:validator validatorId="dateRangeValidator" />
                                 </p:calendar>
                             </h:panelGroup>
 
-                            <p:commandButton value="#{bundle.ZoomReset}" type="button" onclick="PF('monthChart').resetZoom()" icon="ui-icon-cancel" />
+                            <p:panel id="analysis" header="#{bundle.Analysis}">
+                                <!--
+                                <p:commandButton process="@this SessionDashboardForm:analysis" value="#{bundle.Analysis}" title="#{bundle.Analysis}" actionListener="#{personController.generateIntervalData()}" update=":IntervalDataForm" oncomplete="PF('IntervalDataDialog').show()" icon="intervals-icon-16"/>
+                                -->
+                            </p:panel>
+
+                            <p:commandButton value="#{bundle.ZoomReset}" type="button" onclick="PF('monthStepsChart').resetZoom(), PF('monthSessionsChart').resetZoom()" icon="ui-icon-cancel" />
                         </h:panelGrid>
 
                         <div style="width: 100%">
-                            <p:chart id="monthLineChart" widgetVar="monthChart" type="line" model="#{personController.stepsLogLineChartModel}" style="height: 400px; margin-right: 20px;" responsive="true">
-                                <p:ajax event="itemSelect" listener="#{personController.itemSelectSessions2}" />
-                            </p:chart>
-
+                            <h:panelGroup id="chartType">
+                                <p:chart id="monthStepsLineChart" widgetVar="monthStepsChart" type="line" model="#{personController.stepsLogLineChartModel}" style="height: 400px; margin-right: 20px;" responsive="true">
+                                    <p:ajax event="itemSelect" listener="#{personController.itemSelectSessions}" />
+                                </p:chart>
+                                <p:chart id="monthSessionsLineChart" widgetVar="monthSessionsChart" type="line" model="#{personController.sessionsLineChartModel}" style="height: 300px; margin-right: 20px;" responsive="true">
+                                    <p:ajax event="itemSelect" listener="#{personController.itemSelectSessions}" />
+                                </p:chart>
+                            </h:panelGroup>
                         </div>
                     </div>
                 </c:otherwise>
             </c:choose>
         </h:form>
     </h:body>
-    <!--            <h:form id="ActivityLogSessionsChartForm2">
-                    <p:chart type="line" widgetVar="chart" model="#{activityLogController.sessionsChartModel}" rendered="#{activityLogController.selected != null and activityLogController.sessionsChartModel != null and not empty activityLogController.sessionsChartModel.series}" responsive="true"/>
-                </h:form>-->
+    <!--
+    <ui:include src="SessionAnalysis.xhtml"/>
+    -->
+        <ui:include src="/secured/session/DaySessions.xhtml"/>
 </html>

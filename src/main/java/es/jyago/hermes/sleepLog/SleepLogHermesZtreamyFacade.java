@@ -32,7 +32,7 @@ import ztreamy.Event;
 public class SleepLogHermesZtreamyFacade extends AbstractHermesZtreamyFacade<SleepLog> {
 
     private static final String SLEEP_DATA = "Sleep Data";
-    private static final Logger log = Logger.getLogger(SleepLogHermesZtreamyFacade.class.getName());
+    private static final Logger LOG = Logger.getLogger(SleepLogHermesZtreamyFacade.class.getName());
 
     public SleepLogHermesZtreamyFacade(SleepLog sleepLog, Person person, String url) throws MalformedURLException, HermesException {
         super(sleepLog, person, url);
@@ -49,7 +49,10 @@ public class SleepLogHermesZtreamyFacade extends AbstractHermesZtreamyFacade<Sle
         if (collectionSleepLog != null && !collectionSleepLog.isEmpty()) {
             List<ZtreamySleepLog> listZtreamySleepLog = new ArrayList<>();
             for (SleepLog sleepLog : collectionSleepLog) {
-                listZtreamySleepLog.add(new ZtreamySleepLog(sleepLog));
+                // Enviamos los datos que no tengan la marca de enviados.
+                if (!sleepLog.isSent()) {
+                    listZtreamySleepLog.add(new ZtreamySleepLog(sleepLog));
+                }
             }
             bodyObject = new HashMap<>();
             if (listZtreamySleepLog.size() == 1) {
@@ -73,12 +76,12 @@ public class SleepLogHermesZtreamyFacade extends AbstractHermesZtreamyFacade<Sle
 
     @Override
     public Event prepareEvent() {
-        log.log(Level.INFO, "init() - Preparando el envío de datos de sueño por Ztreamy de: {0}", getPerson().getFullName());
+        LOG.log(Level.INFO, "init() - Preparando el envío de datos de sueño por Ztreamy de: {0}", getPerson().getFullName());
         String sha = getPerson().getSha();
         if (sha == null || sha.length() == 0) {
             sha = new String(Hex.encodeHex(DigestUtils.sha256(getPerson().getEmail())));
         }
-        return new Event(sha, MediaType.APPLICATION_JSON, Constants.getConfigurationValueByKey("ZtreamySleepApplicationId"), SLEEP_DATA);
+        return new Event(sha, MediaType.APPLICATION_JSON, Constants.getInstance().getConfigurationValueByKey("ZtreamySleepApplicationId"), SLEEP_DATA);
     }
 
     @Override

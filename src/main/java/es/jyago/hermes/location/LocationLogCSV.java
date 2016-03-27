@@ -24,8 +24,30 @@ public class LocationLogCSV implements Serializable, ICSVBean {
     private double longitude;
     private double speed;
     private int heartRate;
+    
+    protected CellProcessor[] cellProcessors;
+    protected String[] fields;
 
     public LocationLogCSV() {
+    }
+    
+    @Override
+    public void init(Integer columns) {
+        cellProcessors = new CellProcessor[columns];
+        cellProcessors[0] = new org.supercsv.cellprocessor.constraint.NotNull(); // fecha y hora
+        cellProcessors[1] = new org.supercsv.cellprocessor.constraint.NotNull(new ParseDouble()); // latitud
+        cellProcessors[2] = new org.supercsv.cellprocessor.constraint.NotNull(new ParseDouble()); // longitud
+        cellProcessors[3] = null;
+        cellProcessors[4] = new org.supercsv.cellprocessor.constraint.NotNull(new ParseDouble()); // velocidad
+        cellProcessors[5] = new org.supercsv.cellprocessor.constraint.NotNull(new ParseInt()); // pulso
+
+        fields = new String[columns];
+        fields[0] = "dateTimeLog";
+        fields[1] = "latitude";
+        fields[2] = "longitude";
+        fields[3] = null;
+        fields[4] = "speed";
+        fields[5] = "heartRate";
     }
 
     public String getDateTimeLog() {
@@ -85,7 +107,7 @@ public class LocationLogCSV implements Serializable, ICSVBean {
 
     @Override
     public String[] getFields() {
-        return new String[]{"dateTimeLog", "latitude", "longitude", null, "speed", "heartRate", null, null, null};
+        return fields;
     }
 
     @Override

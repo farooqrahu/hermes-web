@@ -6,6 +6,7 @@
 package es.jyago.hermes.sleepLog;
 
 import es.jyago.hermes.AbstractFacade;
+import java.util.List;
 import javax.ejb.Stateless;
 import javax.persistence.EntityManager;
 import javax.persistence.PersistenceContext;
@@ -27,5 +28,11 @@ public class SleepLogFacade extends AbstractFacade<SleepLog> {
 
     public SleepLogFacade() {
         super(SleepLog.class);
+    }
+    
+    public List<SleepLog> findNotSent() {
+        // FIXME: No debería ser necesario.
+//        em.clear();
+        return em.createNamedQuery("SleepLog.findBySent").setParameter("sent", false).getResultList();
     }
 }

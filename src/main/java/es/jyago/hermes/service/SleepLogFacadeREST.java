@@ -35,7 +35,7 @@ import javax.ws.rs.core.Response.Status;
 @Path("hermes.citizen.sleep")
 public class SleepLogFacadeREST extends AbstractFacade<SleepLog> {
 
-    private static final Logger log = Logger.getLogger(SleepLogFacadeREST.class.getName());
+    private static final Logger LOG = Logger.getLogger(SleepLogFacadeREST.class.getName());
 
     @PersistenceContext(unitName = "HermesWeb_PU")
     private EntityManager em;
@@ -77,7 +77,7 @@ public class SleepLogFacadeREST extends AbstractFacade<SleepLog> {
 
                 return sl2;
             } catch (Exception ex) {
-                log.log(Level.SEVERE, "getSleepLog() - No se ha encontrado datos de sueño para el usuario con SHA de email {0} y la fecha {1}", new Object[]{emailSHA, Constants.df.format(requestedDate)});
+                LOG.log(Level.SEVERE, "getSleepLog() - No se ha encontrado datos de sueño para el usuario con SHA de email {0} y la fecha {1}", new Object[]{emailSHA, Constants.df.format(requestedDate)});
             }
         } catch (ParseException e) {
             throw new WebApplicationException(Response.status(Status.BAD_REQUEST)

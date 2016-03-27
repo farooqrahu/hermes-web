@@ -20,7 +20,7 @@ import javax.faces.convert.FacesConverter;
 @SessionScoped
 public class StepLogController implements Serializable {
 
-    private static final Logger log = Logger.getLogger(StepLogController.class.getName());
+    private static final Logger LOG = Logger.getLogger(StepLogController.class.getName());
 
     @EJB
     private es.jyago.hermes.stepLog.StepLogFacade ejbFacade;
@@ -28,7 +28,7 @@ public class StepLogController implements Serializable {
     private StepLog selected;
 
     public StepLogController() {
-        log.log(Level.INFO, "StepLogController() - Inicialización del controlador de pasos");
+        LOG.log(Level.INFO, "StepLogController() - Inicialización del controlador de pasos");
     }
 
     public StepLog getSelected() {

@@ -5,17 +5,23 @@ import es.jyago.hermes.configuration.ConfigurationController;
 import java.text.SimpleDateFormat;
 import java.util.Date;
 import java.util.TimeZone;
-import javax.faces.bean.ApplicationScoped;
-import javax.faces.bean.ManagedBean;
-import javax.faces.bean.ManagedProperty;
+import java.util.logging.Level;
+import java.util.logging.Logger;
+import javax.annotation.PostConstruct;
+import javax.ejb.Singleton;
+import javax.ejb.Startup;
+import javax.inject.Inject;
+import javax.inject.Named;
 
-// JYFR: Tiene que ser @ManagedBean en lugar de @Named para que pueda gestionarlo PrimeFaces.
-@ManagedBean
-@ApplicationScoped
+@Named(value = "constants")
+@Singleton
+@Startup
 public class Constants {
 
-    @ManagedProperty(value = "#{configurationController}")
-    private static ConfigurationController configurationController;
+    private static final Logger LOG = Logger.getLogger(Constants.class.getName());
+
+    @Inject
+    private ConfigurationController configurationController;
 
     public static final String SUCCESS = "success";
     public static final String ERROR = "error";
@@ -23,6 +29,25 @@ public class Constants {
     public static final int ADMINISTRATOR_ROLE = 1;
     public static final int USER_ROLE = 2;
     public static final int DOCTOR_ROLE = 3;
+
+    public static final int REST_ERROR = 0;
+    public static final int REST_OK = 1;
+    public static final int REST_ERROR_USER_NOT_FOUND = 2;
+    public static final int REST_ERROR_IN_DATA = 3;
+    public static final int REST_ERROR_NO_CONTEXT_DATA = 4;
+    public static final int REST_ERROR_USER_EXISTS = 5;
+    public static final int REST_ERROR_USER_NOT_REGISTERED = 6;
+    public static final int REST_ERROR_INVALID_EMAIL = 7;
+    public static final int REST_ERROR_INVALID_PASSWORD = 8;
+
+    private static Constants instance;
+
+    @PostConstruct
+    public void init() {
+        if (instance == null) {
+            instance = this;
+        }
+    }
 
     public static enum TimeAggregations {
 
@@ -71,37 +96,41 @@ public class Constants {
     public static final SimpleDateFormat dfMonthYear = new SimpleDateFormat("MMMM yyyy");
     public static final SimpleDateFormat dfTimeGMT = new SimpleDateFormat("HH:mm:ss");
     public static final SimpleDateFormat dfMonth = new SimpleDateFormat("yyyy-MM");
-    
+
     public static final Date FITBIT_RELEASE_DATE = new Date(1367366400000l); // 01/05/2013 Fitbit estrenó su pulsera en mayo de 2013. No puede haber datos anteriores a esa fecha.
 
     public Constants() {
+        LOG.log(Level.INFO, "Constants() - Constructor");
         dfTimeGMT.setTimeZone(TimeZone.getTimeZone("GMT"));
     }
-    
+
     public String getVersion() {
-        return getConfigurationValueByKey("Version");
+        return configurationController.getValueFromItemByKey("Version");
     }
 
     public boolean isDebug() {
-        return configurationController != null ? Boolean.valueOf(configurationController.getItemByKey("Debugging").getOptionValue()) : false;
+        return Boolean.valueOf(configurationController.getItemByKey("Debugging").getOptionValue());
     }
 
-    public void setConfigurationController(ConfigurationController configurationController) {
-        Constants.configurationController = configurationController;
+    public String getConfigurationValueByKey(String key) {
+        return configurationController.getValueFromItemByKey(key);
     }
 
-    public static String getConfigurationValueByKey(String key) {
-        return configurationController != null ? configurationController.getValueFromItemByKey(key) : null;
+    public Configuration getConfigurationByKey(String key) {
+        return configurationController.getItemByKey(key);
     }
 
-    public static Configuration getConfigurationByKey(String key) {
-        return configurationController != null ? configurationController.getItemByKey(key) : null;
-    }
-
-    public static void setConfigurationValueByKey(String key, String value) {
+    public void setConfigurationValueByKey(String key, String value) {
         Configuration c = getConfigurationByKey(key);
         c.setOptionValue(value);
         configurationController.setSelected(c);
         configurationController.update(false);
+    }
+
+    public static Constants getInstance() {
+        if (instance == null) {
+            instance = new Constants();
+        }
+        return instance;
     }
 }

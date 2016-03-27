@@ -32,9 +32,10 @@ import ztreamy.Event;
  * @author Jorge Yago
  */
 public class HealthLogHermesZtreamyFacade extends AbstractHermesZtreamyFacade<HealthLog> {
+    
 
     private static final String HEART_RATE_DATA = "Heart Rate Data";
-    private static final Logger log = Logger.getLogger(HealthLogHermesZtreamyFacade.class.getName());
+    private static final Logger LOG = Logger.getLogger(HealthLogHermesZtreamyFacade.class.getName());
 
     public HealthLogHermesZtreamyFacade(HealthLog healthLog, Person person, String url) throws MalformedURLException, HermesException {
         super(healthLog, person, url);
@@ -52,26 +53,32 @@ public class HealthLogHermesZtreamyFacade extends AbstractHermesZtreamyFacade<He
             List<ZtreamyHealthLog> listZtreamyHealthLog = new ArrayList<>();
 
             for (HealthLog healthLog : collectionHealthLog) {
-                List<ZtreamyHeartLog> listZtreanyHeartLog = new ArrayList<>();
+                List<ZtreamyHeartLog> listZtreamyHeartLog = new ArrayList<>();
 
+                // Enviamos los datos que no tengan la marca de enviados.
                 for (HeartLog heartLog : healthLog.getHeartLogList()) {
-                    // JYFR: 17-11-2015: Por petición de Miguel R. Luaces, se cambia el modo de envío, de un evento con una lista de datos, a una
-                    //                   lista de eventos con un único dato cada uno.
-                    //                   También se limita el envío a únicamente los que tengan información distinta de cero.
-                    if (heartLog.getRate() > 0) {
-                        ZtreamyHeartLog ztreamyHeartLog = new ZtreamyHeartLog(heartLog.getTimeLog(), heartLog.getRate());
-                        listZtreanyHeartLog.add(ztreamyHeartLog);
+                    if (!heartLog.isSent()) {
+                        // JYFR: 17-11-2015: Se limita el envío a únicamente los que tengan información distinta de cero.
+                        if (heartLog.getRate() > 0) {
+                            ZtreamyHeartLog ztreamyHeartLog = new ZtreamyHeartLog(heartLog.getTimeLog(), heartLog.getRate());
+                            listZtreamyHeartLog.add(ztreamyHeartLog);
+                        }
                     }
                 }
 
-                ZtreamyHealthLog ztreanyHealthLog = new ZtreamyHealthLog(healthLog.getDateLog(), listZtreanyHeartLog);
-                listZtreamyHealthLog.add(ztreanyHealthLog);
+                if (!listZtreamyHeartLog.isEmpty()) {
+                    ZtreamyHealthLog ztreamyHealthLog = new ZtreamyHealthLog(healthLog.getDateLog(), listZtreamyHeartLog);
+                    listZtreamyHealthLog.add(ztreamyHealthLog);
+                }
             }
-            bodyObject = new HashMap<>();
-            if (listZtreamyHealthLog.size() == 1) {
-                bodyObject.put(HEART_RATE_DATA, listZtreamyHealthLog.get(0));
-            } else {
-                bodyObject.put(HEART_RATE_DATA, listZtreamyHealthLog);
+
+            if (!listZtreamyHealthLog.isEmpty()) {
+                bodyObject = new HashMap<>();
+                if (listZtreamyHealthLog.size() == 1) {
+                    bodyObject.put(HEART_RATE_DATA, listZtreamyHealthLog.get(0));
+                } else {
+                    bodyObject.put(HEART_RATE_DATA, listZtreamyHealthLog);
+                }
             }
         }
 
@@ -89,12 +96,12 @@ public class HealthLogHermesZtreamyFacade extends AbstractHermesZtreamyFacade<He
 
     @Override
     public Event prepareEvent() {
-        log.log(Level.INFO, "init() - Preparando el envío de datos de ritmo cardíaco por Ztreamy de: {0}", getPerson().getFullName());
+        LOG.log(Level.INFO, "init() - Preparando el envío de datos de ritmo cardíaco por Ztreamy de: {0}", getPerson().getFullName());
         String sha = getPerson().getSha();
         if (sha == null || sha.length() == 0) {
             sha = new String(Hex.encodeHex(DigestUtils.sha256(getPerson().getEmail())));
         }
-        return new Event(sha, MediaType.APPLICATION_JSON, Constants.getConfigurationValueByKey("ZtreamyHeartRateApplicationId"), HEART_RATE_DATA);
+        return new Event(sha, MediaType.APPLICATION_JSON, Constants.getInstance().getConfigurationValueByKey("ZtreamyHeartRateApplicationId"), HEART_RATE_DATA);
     }
 
     @Override
@@ -109,7 +116,7 @@ public class HealthLogHermesZtreamyFacade extends AbstractHermesZtreamyFacade<He
         if (collection != null && !collection.isEmpty()) {
 
             for (HealthLog healthLog : collection) {
-                List<ZtreamyHeartLog> listZtreanyHeartLog = new ArrayList<>();
+                List<ZtreamyHeartLog> listZtreamyHeartLog = new ArrayList<>();
 
                 for (HeartLog heartLog : healthLog.getHeartLogList()) {
                     // JYFR: 17-11-2015: Por petición de Miguel R. Luaces, se cambia el modo de envío, de un evento con una lista de datos, a una
@@ -117,12 +124,12 @@ public class HealthLogHermesZtreamyFacade extends AbstractHermesZtreamyFacade<He
                     //                   También se limita el envío a únicamente los que tengan información distinta de cero.
                     if (heartLog.getRate() > 0) {
                         ZtreamyHeartLog ztreamyHeartLog = new ZtreamyHeartLog(heartLog.getTimeLog(), heartLog.getRate());
-                        listZtreanyHeartLog.add(ztreamyHeartLog);
+                        listZtreamyHeartLog.add(ztreamyHeartLog);
                     }
                 }
 
-                ZtreamyHealthLog ztreanyHealthLog = new ZtreamyHealthLog(healthLog.getDateLog(), listZtreanyHeartLog);
-                listZtreamyHealthLog.add(ztreanyHealthLog);
+                ZtreamyHealthLog ztreamyHealthLog = new ZtreamyHealthLog(healthLog.getDateLog(), listZtreamyHeartLog);
+                listZtreamyHealthLog.add(ztreamyHealthLog);
             }
         }
 
@@ -130,8 +137,8 @@ public class HealthLogHermesZtreamyFacade extends AbstractHermesZtreamyFacade<He
     }
 
     /**
-     * Clase con los atributos mínimos en el registro de ritmo cardíaco, para
-     * enviar por Ztreamy.
+     * Clase con los atributos mínimos en el registro de salud, para enviar por
+     * Ztreamy.
      */
     class ZtreamyHealthLog implements Serializable {
 

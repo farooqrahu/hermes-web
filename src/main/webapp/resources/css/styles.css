@@ -325,6 +325,12 @@
     cursor:pointer;
 }
 
+.simulator-icon {
+    background: url(img/robot.png) no-repeat !important;
+    height: 32px !important;
+    width: 32px !important;
+}
+
 /* JYFR - Inicio */
 /* Para que los tooltips de los gráficos jqPlot no se mezclen con los textos del gráfico */
 .jqplot-highlighter-tooltip, .jqplot-canvasOverlay-tooltip {

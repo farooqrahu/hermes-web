@@ -16,7 +16,7 @@ import javax.servlet.http.HttpServletRequest;
 @RequestScoped
 public class HelpController {
 
-    private static final Logger log = Logger.getLogger(HelpController.class.getName());
+    private static final Logger LOG = Logger.getLogger(HelpController.class.getName());
     private String text;
 
     public String getText() {
@@ -63,7 +63,7 @@ public class HelpController {
             // Enviamos el mensaje a la cuenta del administrador.
             Email.generateAndSendEmailToAdministrator(type, text);
         } catch (MessagingException ex) {
-            log.log(Level.SEVERE, "send() - Error al enviar el mensaje: \n###" + text + "###", ex);
+            LOG.log(Level.SEVERE, "send() - Error al enviar el mensaje: \n###" + text + "###", ex);
         }
 
     }

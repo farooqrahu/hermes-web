@@ -12,9 +12,6 @@ import java.io.FileWriter;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
-import java.nio.file.Path;
-import java.util.ArrayList;
-import java.util.List;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 import org.primefaces.model.DefaultStreamedContent;
@@ -35,7 +32,7 @@ import org.supercsv.prefs.CsvPreference;
  */
 public class CSVUtil<T> {
 
-    private static final Logger log = Logger.getLogger(CSVUtil.class.getName());
+    private static final Logger LOG = Logger.getLogger(CSVUtil.class.getName());
 
     public StreamedContent getData(ICSVBean bean, ICSVController<T> ci, CsvPreference csvPreference, boolean ignoreHeaders) {
         ICsvBeanWriter beanWriter = null;
@@ -69,14 +66,14 @@ public class CSVUtil<T> {
             is = new FileInputStream(temporal);
             file = new DefaultStreamedContent(is, "text/plain", "lista.csv");
         } catch (Exception ex) {
-            log.log(Level.SEVERE, "getData() - Error al exportar a CSV", ex);
+            LOG.log(Level.SEVERE, "getData() - Error al exportar a CSV", ex);
         } finally {
             // Cerramos.
             if (beanWriter != null) {
                 try {
                     beanWriter.close();
                 } catch (IOException ex) {
-                    log.log(Level.SEVERE, "getData() - Error al cerrar el 'writer'", ex);
+                    LOG.log(Level.SEVERE, "getData() - Error al cerrar el 'writer'", ex);
                 }
             }
         }
@@ -87,6 +84,8 @@ public class CSVUtil<T> {
     public void getFileData(ICSVBean bean, ICSVController<T> ci, CsvPreference csvPreference, boolean ignoreHeaders, File file) {
         ICsvBeanWriter beanWriter = null;
         InputStream is;
+
+        bean.init(null);
 
         try {
             beanWriter = new CsvBeanWriter(new FileWriter(file), csvPreference);
@@ -114,14 +113,14 @@ public class CSVUtil<T> {
             // Creamos el archivo con los datos que vamos a devolver.
             is = new FileInputStream(file);
         } catch (Exception ex) {
-            log.log(Level.SEVERE, "getFileData() - Error al exportar a CSV", ex);
+            LOG.log(Level.SEVERE, "getFileData() - Error al exportar a CSV", ex);
         } finally {
             // Cerramos.
             if (beanWriter != null) {
                 try {
                     beanWriter.close();
                 } catch (IOException ex) {
-                    log.log(Level.SEVERE, "getFileData() - Error al cerrar el 'writer'", ex);
+                    LOG.log(Level.SEVERE, "getFileData() - Error al cerrar el 'writer'", ex);
                 }
             }
         }
@@ -132,7 +131,7 @@ public class CSVUtil<T> {
         ICsvBeanReader beanReader = null;
 
         try {
-            log.log(Level.INFO, "setData() - Procesar el archivo: {0}", file.getFileName());
+            LOG.log(Level.INFO, "setData() - Procesar el archivo: {0}", file.getFileName());
 
             CellProcessor[] processors = null;
             String[] fields = null;
@@ -142,16 +141,19 @@ public class CSVUtil<T> {
             try {
                 listReader = new CsvListReader(new InputStreamReader(file.getInputstream()), csvPreference);
                 if (listReader.read() != null) {
-                    // Aplicamos las características de los campos y seleccionamos los atributos que vamos a importar.
-                    if (listReader.length() == bean.getProcessors().length) {
-                        log.log(Level.FINEST, "setData() - Número de columnas correcto");
-                        processors = bean.getProcessors();
-                        fields = bean.getFields();
-                    } else {
-                        log.log(Level.WARNING, "setData() - Número de columnas distintas a las esperadas");
-                        // Lanzamos una excepción básica para intentar procesar el archivo de otra forma.
-                        throw new HermesException();
+                    // Inicializamos los atributos del bean y establecemos el mismo número de columnas que el archivo, para hacer más flexible el proceso.
+                    bean.init(listReader.length());
 
+//                    // Aplicamos las características de los campos y seleccionamos los atributos que vamos a importar.
+//                    if (listReader.length() == bean.getProcessors().length) {
+                    LOG.log(Level.FINEST, "setData() - Número de columnas correcto");
+                    processors = bean.getProcessors();
+                    fields = bean.getFields();
+//                    } else {
+//                        LOG.log(Level.WARNING, "setData() - Número de columnas distintas a las esperadas");
+//                        // Lanzamos una excepción básica para intentar procesar el archivo de otra forma.
+//                        throw new HermesException();
+//
 //                        List<CellProcessor> customCellProcessor = new ArrayList();
 //                        List<String> customFields = new ArrayList();
 //
@@ -162,7 +164,7 @@ public class CSVUtil<T> {
 //
 //                        processors = customCellProcessor.toArray(new CellProcessor[customCellProcessor.size()]);
 //                        fields = customFields.toArray(new String[customFields.size()]);
-                    }
+//                    }
                 }
             } finally {
                 if (listReader != null) {
@@ -177,7 +179,7 @@ public class CSVUtil<T> {
             if (hasHeader) {
                 header = beanReader.getHeader(hasHeader);
             }
-            log.log(Level.INFO, "setData() - ¿Cabecera? {0}", (header != null));
+            LOG.log(Level.INFO, "setData() - ¿Cabecera? {0}", (header != null));
 
             // Procesamos los elementos.
             T element;
@@ -186,30 +188,30 @@ public class CSVUtil<T> {
             while (linesLeft) {
                 try {
                     linesLeft = (element = (T) beanReader.read(bean.getClass(), fields, processors)) != null;
-                    log.log(Level.FINEST, String.format("setData() - Procesando línea=%s", beanReader.getLineNumber()));
+                    LOG.log(Level.FINEST, String.format("setData() - Procesando línea=%s", beanReader.getLineNumber()));
                     if (element != null) {
                         //  Procesamos el elemento sólo si no es nulo.
                         ci.processReadElement(element);
                         goodRows++;
                     }
                 } catch (IllegalArgumentException ex) {
-                    log.log(Level.WARNING, String.format("setData() - La línea=%s no es válida. No se incorporarán sus datos", beanReader.getLineNumber()), ex.getMessage());
+                    LOG.log(Level.WARNING, String.format("setData() - La línea=%s no es válida. No se incorporarán sus datos", beanReader.getLineNumber()), ex.getMessage());
                 }
             }
             if (goodRows == 0) {
-                log.log(Level.SEVERE, "setData() - Parece que no hay ninguna línea correcta. ¿Puede ser porque tenga un formato incorrecto?");
+                LOG.log(Level.SEVERE, "setData() - Parece que no hay ninguna línea correcta. ¿Puede ser porque tenga un formato incorrecto?");
                 // Lanzamos una excepción básica para intentar procesar el archivo de otra forma.
                 throw new HermesException();
             }
         } catch (IOException ex) {
-            log.log(Level.SEVERE, "setData() - Error al importar de CSV", ex);
+            LOG.log(Level.SEVERE, "setData() - Error al importar de CSV", ex);
             throw new HermesException("LocationLogFileUploadError");
         } finally {
             if (beanReader != null) {
                 try {
                     beanReader.close();
                 } catch (IOException ex) {
-                    log.log(Level.SEVERE, "setData() - Error al cerrar el 'reader'", ex);
+                    LOG.log(Level.SEVERE, "setData() - Error al cerrar el 'reader'", ex);
                 }
             }
         }

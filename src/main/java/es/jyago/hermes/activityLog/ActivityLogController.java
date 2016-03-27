@@ -12,30 +12,32 @@ import java.util.MissingResourceException;
 import java.util.ResourceBundle;
 import java.util.logging.Level;
 import java.util.logging.Logger;
-import javax.ejb.EJB;
 import javax.ejb.EJBException;
-import javax.inject.Named;
 import javax.enterprise.context.SessionScoped;
+import javax.inject.Named;
 import javax.faces.component.UIComponent;
 import javax.faces.context.FacesContext;
 import javax.faces.convert.Converter;
 import javax.faces.convert.FacesConverter;
+import javax.inject.Inject;
 import org.primefaces.model.chart.ChartModel;
 import org.primefaces.model.chart.LineChartModel;
+import org.primefaces.model.chart.PieChartModel;
 
 @Named("activityLogController")
 @SessionScoped
 public class ActivityLogController implements Serializable {
 
-    private static final Logger log = Logger.getLogger(ActivityLogController.class.getName());
+    private static final Logger LOG = Logger.getLogger(ActivityLogController.class.getName());
 
-    @EJB
-    private es.jyago.hermes.activityLog.ActivityLogFacade ejbFacade;
+    @Inject
+    private ActivityLogFacade ejbFacade;
     private List<ActivityLog> items = null;
+    
     private ActivityLog selected;
 
     public ActivityLogController() {
-        log.log(Level.INFO, "ActivityLogController() - Inicialización del controlador de actividades");
+        LOG.log(Level.INFO, "ActivityLogController() - Inicialización del controlador de actividades");
     }
 
     public ActivityLog getSelected() {
@@ -155,12 +157,23 @@ public class ActivityLogController implements Serializable {
                 try {
                     localizedKey = bundle.getString(key);
                 } catch (MissingResourceException ex) {
-                    log.log(Level.SEVERE, "getPieChartModel() - Error al obtener la clave '" + key + "' del archivo de recursos", ex);
+                    LOG.log(Level.SEVERE, "getPieChartModel() - Error al obtener la clave '" + key + "' del archivo de recursos", ex);
                 }
                 localizedValues.put(localizedKey, values.get(key));
             }
 
-            return selected.getPieModel(localizedValues);
+            PieChartModel model = new PieChartModel();
+
+            for (String key : values.keySet()) {
+                model.set(key, values.get(key));
+            }
+
+            model.setTitle(Constants.df.format(selected.getDateLog()));
+            model.setFill(false);
+            model.setShowDataLabels(true);
+            model.setLegendPosition("ne");
+
+            return model;
         }
 
         return null;
@@ -175,13 +188,13 @@ public class ActivityLogController implements Serializable {
         return null;
     }
 
-    public LineChartModel getSessionsChartModel() {
-        if (selected != null) {
-            return selected.getAreaModel(Constants.df.format(selected.getDateLog()));
-        }
-
-        return null;
-    }
+//    public LineChartModel getSessionsChartModel() {
+//        if (selected != null) {
+//            return selected.getAreaModel(Constants.df.format(selected.getDateLog()));
+//        }
+//
+//        return null;
+//    }
 
     @FacesConverter(forClass = ActivityLog.class)
     public static class ActivityLogControllerConverter implements Converter {

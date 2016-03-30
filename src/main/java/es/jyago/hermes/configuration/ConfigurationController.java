@@ -8,11 +8,11 @@ import java.util.List;
 import java.util.ResourceBundle;
 import java.util.logging.Level;
 import java.util.logging.Logger;
-import javax.ejb.EJB;
 import javax.ejb.EJBException;
 import javax.ejb.Singleton;
 import javax.ejb.Startup;
 import javax.faces.context.FacesContext;
+import javax.inject.Inject;
 import javax.persistence.NoResultException;
 
 @Singleton
@@ -20,8 +20,8 @@ import javax.persistence.NoResultException;
 public class ConfigurationController implements Serializable {
 
     private static final Logger LOG = Logger.getLogger(ConfigurationController.class.getName());
-    @EJB
-    private es.jyago.hermes.configuration.ConfigurationFacade ejbFacade;
+    @Inject
+    private ConfigurationFacade configurationFacade;
     private List<Configuration> items = null;
     private Configuration selected;
 
@@ -76,7 +76,7 @@ public class ConfigurationController implements Serializable {
     
     public List<Configuration> getItems() {
         if (items == null) {
-            items = ejbFacade.findAll();
+            items = configurationFacade.findAll();
         }
         return items;
     }
@@ -86,9 +86,9 @@ public class ConfigurationController implements Serializable {
             setEmbeddableKeys();
             try {
                 if (persistAction != PersistAction.DELETE) {
-                    ejbFacade.edit(selected);
+                    configurationFacade.edit(selected);
                 } else {
-                    ejbFacade.remove(selected);
+                    configurationFacade.remove(selected);
                 }
                 if (successMessage != null) {
                     JsfUtil.addSuccessMessage(successMessage);
@@ -117,7 +117,7 @@ public class ConfigurationController implements Serializable {
         Configuration result = null;
 
         try {
-            result = (Configuration) ejbFacade.getEntityManager().createNamedQuery("Configuration.findByOptionKey")
+            result = (Configuration) configurationFacade.getEntityManager().createNamedQuery("Configuration.findByOptionKey")
                     .setParameter("optionKey", key)
                     .getSingleResult();
         } catch (NoResultException ex) {
@@ -154,13 +154,13 @@ public class ConfigurationController implements Serializable {
     }
 
 //    public Configuration getOption(java.lang.String id) {
-//        return ejbFacade.find(id);
+//        return configurationFacade.find(id);
 //    }
 //    public List<Configuration> getItemsAvailableSelectMany() {
-//        return ejbFacade.findAll();
+//        return configurationFacade.findAll();
 //    }
 //    public List<Configuration> getItemsAvailableSelectOne() {
-//        return ejbFacade.findAll();
+//        return configurationFacade.findAll();
 //    }
 //    @FacesConverter(forClass = Configuration.class)
 //    public class ConfigurationControllerConverter implements Converter {

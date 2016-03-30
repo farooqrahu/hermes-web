@@ -15,10 +15,10 @@ import es.jyago.hermes.person.PersonFacade;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 import javax.annotation.PostConstruct;
-import javax.ejb.EJB;
 import javax.ejb.Schedule;
 import javax.ejb.Singleton;
 import javax.ejb.Startup;
+import javax.inject.Inject;
 import javax.mail.MessagingException;
 import org.joda.time.LocalTime;
 
@@ -27,7 +27,7 @@ import org.joda.time.LocalTime;
 public class AlertScheduledTask implements IFitbitFacade {
 
     private static final Logger LOG = Logger.getLogger(AlertScheduledTask.class.getName());
-    @EJB
+    @Inject
     private PersonFacade personFacade;
 
     private Person person;

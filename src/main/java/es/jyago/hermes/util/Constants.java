@@ -40,11 +40,17 @@ public class Constants {
     public static final int REST_ERROR_INVALID_EMAIL = 7;
     public static final int REST_ERROR_INVALID_PASSWORD = 8;
 
+    public static final int MONTHS_SELECTOR = 1;
+    public static final int WEEKS_SELECTOR = 2;
+    public static final int RANGE_SELECTOR = 3;
+
     private static Constants instance;
 
     @PostConstruct
     public void init() {
         if (instance == null) {
+            LOG.log(Level.INFO, "init() - Inicialización de la instancia de las constantes del sistema");
+            dfTimeGMT.setTimeZone(TimeZone.getTimeZone("GMT"));
             instance = this;
         }
     }
@@ -99,11 +105,6 @@ public class Constants {
 
     public static final Date FITBIT_RELEASE_DATE = new Date(1367366400000l); // 01/05/2013 Fitbit estrenó su pulsera en mayo de 2013. No puede haber datos anteriores a esa fecha.
 
-    public Constants() {
-        LOG.log(Level.INFO, "Constants() - Constructor");
-        dfTimeGMT.setTimeZone(TimeZone.getTimeZone("GMT"));
-    }
-
     public String getVersion() {
         return configurationController.getValueFromItemByKey("Version");
     }
@@ -128,9 +129,6 @@ public class Constants {
     }
 
     public static Constants getInstance() {
-        if (instance == null) {
-            instance = new Constants();
-        }
         return instance;
     }
 }

@@ -18,6 +18,7 @@ import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.ResourceBundle;
+import java.util.TreeMap;
 import javax.annotation.PostConstruct;
 import javax.persistence.Basic;
 import javax.persistence.CascadeType;
@@ -39,19 +40,14 @@ import javax.persistence.Transient;
 import javax.persistence.UniqueConstraint;
 import javax.validation.constraints.NotNull;
 import javax.xml.bind.annotation.XmlRootElement;
-import javax.xml.bind.annotation.XmlTransient;
 import org.apache.commons.lang.builder.EqualsBuilder;
 import org.apache.commons.lang.builder.HashCodeBuilder;
 import org.joda.time.DateTime;
 import org.joda.time.LocalTime;
 import org.primefaces.model.chart.Axis;
 import org.primefaces.model.chart.AxisType;
-import org.primefaces.model.chart.ChartModel;
-import org.primefaces.model.chart.DateAxis;
 import org.primefaces.model.chart.LineChartModel;
 import org.primefaces.model.chart.LineChartSeries;
-import org.primefaces.model.chart.MeterGaugeChartModel;
-import org.primefaces.model.chart.PieChartModel;
 
 /**
  *
@@ -259,7 +255,7 @@ public class ActivityLog implements Serializable {
 
         model.setTitle(title);
         model.setLegendPosition("ne");
-        model.setShowPointLabels(true);
+        model.setShowPointLabels(false);
         model.setShowDatatip(true);
         model.setMouseoverHighlight(true);
         model.setDatatipFormat("%1$s -> %2$d");
@@ -279,11 +275,11 @@ public class ActivityLog implements Serializable {
         }
 
         // JYFR: Extensión para gráficos. Así podemos cambiar más características. Ver las opciones en la web de 'jqPlot'.
-        model.setExtender("userStepsLineChartExtender");
+        model.setExtender("stepsChartExtender");
 
         return model;
     }
-
+    
 //    public LineChartModel getAreaModel(String title) {
 //        LineChartModel model = new LineChartModel();
 //        LineChartSeries areaSeries = new LineChartSeries();
@@ -330,9 +326,8 @@ public class ActivityLog implements Serializable {
      *
      * @param withValues Indicará si se ponen los valores de pasos o bien 0 para
      * inactivo y 1 para en sesión.
-     * @return Minutos del día y los datos de si está en sesión o no.
      */
-    private LinkedHashMap<Date, Integer> calculateSessions() {
+    private void calculateSessions() {
         int restStepsThreshold = person.getConfigurationIntValue(Person.PersonOptions.RestStepsThreshold.name());
         int restMinutes = 0;
         int endSessionStoppedMinutes = person.getConfigurationIntValue(Person.PersonOptions.EndSessionStoppedMinutes.name());
@@ -340,7 +335,7 @@ public class ActivityLog implements Serializable {
 
         List<Date> currentSessionTime = new ArrayList();
         prepareStepLogHashMap();
-        sessions = new LinkedHashMap<>();
+        HashMap<Date, Integer> tempSessions = new HashMap<>();
         SessionStateMachine ssm = new SessionStateMachine();
 
         if (stepLogList != null) {
@@ -352,7 +347,7 @@ public class ActivityLog implements Serializable {
                     // ... vemos si no hay una sesión en curso.
                     if (!ssm.isInSession()) {
                         // Si no hay sesión en curso, añadimos 'inactividad' (null) al contenedor de sesiones.
-                        sessions.put(stepLog.getTimeLog(), null);
+                        tempSessions.put(stepLog.getTimeLog(), null);
                     } else {
                         // Si había una sesión en curso, añadimos un minuto más de inactividad.
                         restMinutes++;
@@ -363,7 +358,7 @@ public class ActivityLog implements Serializable {
                             DateTime restStart = new DateTime(stepLog.getTimeLog());
                             restStart = restStart.minusMinutes(restMinutes);
                             for (int i = 0; i <= restMinutes; i++) {
-                                sessions.put(restStart.toDate(), null);
+                                tempSessions.put(restStart.toDate(), null);
                                 restStart = restStart.plusMinutes(1);
                             }
                         }
@@ -389,13 +384,13 @@ public class ActivityLog implements Serializable {
                     if (currentSessionTime.size() > minSessionMinutes) {
                         // Indicamos el rango como sesión activa.
                         for (int i = 0; i < minutes; i++) {
-                            sessions.put(min.toDate(), ((StepLog) stepLogHashMap.get(min.toDate())).getSteps());
+                            tempSessions.put(min.toDate(), ((StepLog) stepLogHashMap.get(min.toDate())).getSteps());
                             min = min.plusMinutes(1);
                         }
                     } else {
                         // Indicamos el rango como inactivo.
                         for (int i = 0; i < minutes; i++) {
-                            sessions.put(min.toDate(), null);
+                            tempSessions.put(min.toDate(), null);
                             min = min.plusMinutes(1);
                         }
                     }
@@ -409,16 +404,22 @@ public class ActivityLog implements Serializable {
         if (currentSessionTime.size() > minSessionMinutes) {
             // Indicamos el rango como sesión activa.
             for (Date time : currentSessionTime) {
-                sessions.put(time, ((StepLog) stepLogHashMap.get(time)).getSteps());
+                tempSessions.put(time, ((StepLog) stepLogHashMap.get(time)).getSteps());
             }
         } else {
             // Indicamos el rango como sesión inactiva.
             for (Date time : currentSessionTime) {
-                sessions.put(time, 0);
+                tempSessions.put(time, 0);
             }
         }
+        
+        TreeMap<Date, Integer> treeMap = new TreeMap<>(tempSessions);
 
-        return sessions;
+        sessions = new LinkedHashMap<>();
+
+        treeMap.entrySet().stream().forEach((entry) -> {
+            sessions.put(entry.getKey(), entry.getValue());
+        });
     }
 
     public Map<String, Integer> getSummary() {

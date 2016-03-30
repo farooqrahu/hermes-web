@@ -31,7 +31,7 @@ public class ActivityLogController implements Serializable {
     private static final Logger LOG = Logger.getLogger(ActivityLogController.class.getName());
 
     @Inject
-    private ActivityLogFacade ejbFacade;
+    private ActivityLogFacade activityLogFacade;
     private List<ActivityLog> items = null;
     
     private ActivityLog selected;
@@ -55,7 +55,7 @@ public class ActivityLogController implements Serializable {
     }
 
     private ActivityLogFacade getFacade() {
-        return ejbFacade;
+        return activityLogFacade;
     }
 
     public ActivityLog prepareCreate() {
@@ -92,7 +92,7 @@ public class ActivityLogController implements Serializable {
     }
 
     public void initListFromPerson(int personId) {
-        items = ejbFacade.getEntityManager().createNamedQuery("ActivityLog.findAllFromPerson")
+        items = activityLogFacade.getEntityManager().createNamedQuery("ActivityLog.findAllFromPerson")
                 .setParameter("personId", personId).getResultList();
     }
 

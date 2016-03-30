@@ -11,6 +11,7 @@
         <h:outputText value="#{bundle.Sessions}"/>
     </ui:define>
     <h:head>
+        <h:outputScript name="stepLogLineChartScripts.js" library="js"/>
     </h:head>
     <h:body>
         <h:form id="SessionDashboardForm">
@@ -52,22 +53,22 @@
                                 </p:calendar>
                             </h:panelGroup>
 
+                            <p:commandButton value="#{bundle.ZoomReset}" type="button" onclick="PF('monthStepsChart').resetZoom(), PF('monthSessionsChart').resetZoom()" icon="ui-icon-cancel" />
+                            
                             <p:panel id="analysis" header="#{bundle.Analysis}">
                                 <!--
                                 <p:commandButton process="@this SessionDashboardForm:analysis" value="#{bundle.Analysis}" title="#{bundle.Analysis}" actionListener="#{personController.generateIntervalData()}" update=":IntervalDataForm" oncomplete="PF('IntervalDataDialog').show()" icon="intervals-icon-16"/>
                                 -->
                             </p:panel>
-
-                            <p:commandButton value="#{bundle.ZoomReset}" type="button" onclick="PF('monthStepsChart').resetZoom(), PF('monthSessionsChart').resetZoom()" icon="ui-icon-cancel" />
                         </h:panelGrid>
 
                         <div style="width: 100%">
                             <h:panelGroup id="chartType">
-                                <p:chart id="monthStepsLineChart" widgetVar="monthStepsChart" type="line" model="#{personController.stepsLogLineChartModel}" style="height: 400px; margin-right: 20px;" responsive="true">
-                                    <p:ajax event="itemSelect" listener="#{personController.itemSelectSessions}" />
+                                <p:chart id="monthStepsLineChart" widgetVar="monthStepsChart" type="line" model="#{personController.stepsLogLineChartModel}" style="height: 300px; margin-right: 20px;" responsive="true">
+                                    <p:ajax event="itemSelect" listener="#{personController.itemSelectSessions}" update="DaySessions" />
                                 </p:chart>
                                 <p:chart id="monthSessionsLineChart" widgetVar="monthSessionsChart" type="line" model="#{personController.sessionsLineChartModel}" style="height: 300px; margin-right: 20px;" responsive="true">
-                                    <p:ajax event="itemSelect" listener="#{personController.itemSelectSessions}" />
+                                    <p:ajax event="itemSelect" listener="#{personController.itemSelectSessions}" update="DaySessions" />
                                 </p:chart>
                             </h:panelGroup>
                         </div>
@@ -79,5 +80,5 @@
     <!--
     <ui:include src="SessionAnalysis.xhtml"/>
     -->
-        <ui:include src="/secured/session/DaySessions.xhtml"/>
+    <ui:include src="/secured/session/DaySessions.xhtml" rendered="#{personController.selectedActivity != null}"/>
 </html>

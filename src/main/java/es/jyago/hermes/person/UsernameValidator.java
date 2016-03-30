@@ -23,7 +23,7 @@ public class UsernameValidator implements Validator {
     private static final Logger LOG = Logger.getLogger(UsernameValidator.class.getName());
 
     @EJB
-    private es.jyago.hermes.person.PersonFacade ejbFacade;
+    private PersonFacade personFacade;
 
     public UsernameValidator() {
     }

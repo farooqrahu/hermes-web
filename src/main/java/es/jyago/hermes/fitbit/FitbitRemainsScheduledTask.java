@@ -14,10 +14,10 @@ import java.util.Date;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 import javax.annotation.PostConstruct;
-import javax.ejb.EJB;
 import javax.ejb.Schedule;
 import javax.ejb.Singleton;
 import javax.ejb.Startup;
+import javax.inject.Inject;
 import org.joda.time.LocalDate;
 
 @Singleton
@@ -26,7 +26,7 @@ public class FitbitRemainsScheduledTask implements IFitbitFacade {
 
     private static final Logger LOG = Logger.getLogger(FitbitRemainsScheduledTask.class.getName());
 
-    @EJB
+    @Inject
     private PersonFacade personFacade;
 
     private Person person;

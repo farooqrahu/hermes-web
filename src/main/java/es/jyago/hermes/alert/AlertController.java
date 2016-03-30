@@ -13,7 +13,6 @@ import java.util.List;
 import java.util.ResourceBundle;
 import java.util.logging.Level;
 import java.util.logging.Logger;
-import javax.ejb.EJB;
 import javax.ejb.EJBException;
 import javax.inject.Named;
 import javax.enterprise.context.SessionScoped;
@@ -21,14 +20,15 @@ import javax.faces.component.UIComponent;
 import javax.faces.context.FacesContext;
 import javax.faces.convert.Converter;
 import javax.faces.convert.FacesConverter;
+import javax.inject.Inject;
 import org.primefaces.context.RequestContext;
 
 @Named("alertController")
 @SessionScoped
 public class AlertController implements Serializable {
 
-    @EJB
-    private es.jyago.hermes.alert.AlertFacade ejbFacade;
+    @Inject
+    private AlertFacade alertFacade;
     private List<Alert> items = null;
     private Alert selected;
     private Person person;
@@ -54,7 +54,7 @@ public class AlertController implements Serializable {
     }
 
     private AlertFacade getFacade() {
-        return ejbFacade;
+        return alertFacade;
     }
 
     public Alert prepareCreate() {

@@ -46,6 +46,7 @@ public class LoginController implements Serializable {
     private String username;
     private String password;
     private Person person;
+    // TODO: Cambiar
     @ManagedProperty("#{bundle}")
     private ResourceBundle bundle;
     @ManagedProperty(value = "#{personController}")

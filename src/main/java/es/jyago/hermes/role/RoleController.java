@@ -8,7 +8,6 @@ import java.util.List;
 import java.util.ResourceBundle;
 import java.util.logging.Level;
 import java.util.logging.Logger;
-import javax.ejb.EJB;
 import javax.ejb.EJBException;
 import javax.inject.Named;
 import javax.enterprise.context.SessionScoped;
@@ -16,6 +15,7 @@ import javax.faces.component.UIComponent;
 import javax.faces.context.FacesContext;
 import javax.faces.convert.Converter;
 import javax.faces.convert.FacesConverter;
+import javax.inject.Inject;
 
 @Named("roleController")
 @SessionScoped
@@ -23,8 +23,8 @@ public class RoleController implements Serializable {
 
     private static final Logger LOG = Logger.getLogger(RoleController.class.getName());
 
-    @EJB
-    private es.jyago.hermes.role.RoleFacade ejbFacade;
+    @Inject
+    private RoleFacade roleFacade;
     private List<Role> items = null;
     private Role selected;
 
@@ -47,7 +47,7 @@ public class RoleController implements Serializable {
     }
 
     private RoleFacade getFacade() {
-        return ejbFacade;
+        return roleFacade;
     }
 
     public Role prepareCreate() {
@@ -128,7 +128,7 @@ public class RoleController implements Serializable {
     }
 
     public List<Role> getItemsAvailableSelectOneLessThanMine(Role myRole) {
-        return ejbFacade.getEntityManager().createNamedQuery("Role.findAllLessThan")
+        return roleFacade.getEntityManager().createNamedQuery("Role.findAllLessThan")
                 .setParameter("roleId", myRole.getRoleId()).getResultList();
     }
 

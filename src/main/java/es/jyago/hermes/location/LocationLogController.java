@@ -34,12 +34,12 @@ import java.util.logging.Level;
 import java.util.logging.Logger;
 import java.util.zip.ZipEntry;
 import java.util.zip.ZipOutputStream;
-import javax.ejb.EJB;
 import javax.enterprise.context.SessionScoped;
 import javax.faces.component.UIOutput;
 import javax.faces.context.ExternalContext;
 import javax.faces.context.FacesContext;
 import javax.faces.event.AjaxBehaviorEvent;
+import javax.inject.Inject;
 import javax.inject.Named;
 import javax.servlet.ServletContext;
 import javax.servlet.ServletOutputStream;
@@ -102,8 +102,8 @@ public class LocationLogController implements Serializable, ICSVController<Inter
     private List<IntervalData> intervalDataList;
     private IntervalData selectedInterval;
     private List<IntervalData> selectedIntervalDataList;
-    @EJB
-    private LocationLogFacade ejbFacade;
+    @Inject
+    private LocationLogFacade locationLogFacade;
     private Person person;
 
     private int stressPercentThreshold;
@@ -1137,11 +1137,11 @@ public class LocationLogController implements Serializable, ICSVController<Inter
     }
 
     private LocationLogFacade getFacade() {
-        return ejbFacade;
+        return locationLogFacade;
     }
 
     public void refreshPersonLocationLogs() {
-        person.setLocationLogList(ejbFacade.getEntityManager().createNamedQuery("LocationLog.findByPerson")
+        person.setLocationLogList(locationLogFacade.getEntityManager().createNamedQuery("LocationLog.findByPerson")
                 .setParameter("personId", person.getPersonId())
                 .getResultList());
         initLocationLogMapModel(person.getLocationLogList());

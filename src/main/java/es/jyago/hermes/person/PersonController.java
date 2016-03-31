@@ -2,6 +2,8 @@ package es.jyago.hermes.person;
 
 import es.jyago.hermes.activityLog.ActivityLog;
 import es.jyago.hermes.activityLog.ActivityLogHermesZtreamyFacade;
+import es.jyago.hermes.activityLog.ActivitySession;
+import es.jyago.hermes.activityLog.RestSession;
 import es.jyago.hermes.bean.LocaleBean;
 import es.jyago.hermes.contextLog.ContextLog;
 import es.jyago.hermes.contextLog.ContextLogDetail;
@@ -87,7 +89,7 @@ public class PersonController implements Serializable, IFitbitFacade {
     private Date fitbitEndDate;
     private String aggregation;
     private ActivityLog selectedActivity;
-    private List<ActivityLog> chartMonthActivityLogList;
+    private List<ActivityLog> rangeActivityLogList;
     private HealthLog selectedHealthLog;
     private List<HealthLog> chartMonthHealthLogList;
     private int dateSelector;
@@ -637,11 +639,11 @@ public class PersonController implements Serializable, IFitbitFacade {
                 endDate = cal.getTime();
             }
 
-            chartMonthActivityLogList = selected.getActivityLogList(startDate, endDate, Constants.TimeAggregations.Days.toString());
+            rangeActivityLogList = selected.getActivityLogList(startDate, endDate, Constants.TimeAggregations.Days.toString());
 
             LinkedHashMap<Date, Integer> values = new LinkedHashMap();
-            if (chartMonthActivityLogList != null && !chartMonthActivityLogList.isEmpty()) {
-                for (ActivityLog activityLog : chartMonthActivityLogList) {
+            if (rangeActivityLogList != null && !rangeActivityLogList.isEmpty()) {
+                for (ActivityLog activityLog : rangeActivityLogList) {
                     values.put(activityLog.getDateLog(), activityLog.getTotal());
                 }
             }
@@ -680,6 +682,8 @@ public class PersonController implements Serializable, IFitbitFacade {
             if (!series.getData().isEmpty()) {
                 stepsLogLineChartModel.addSeries(series);
             }
+
+            stepsLogLineChartModel.setExtender("monthStepsChartExtender");
         }
     }
 
@@ -705,8 +709,8 @@ public class PersonController implements Serializable, IFitbitFacade {
 
             LinkedHashMap<Date, Integer> valuesSessions = new LinkedHashMap();
             LinkedHashMap<Date, Integer> valuesContinuosSessions = new LinkedHashMap();
-            if (chartMonthActivityLogList != null && !chartMonthActivityLogList.isEmpty()) {
-                for (ActivityLog activityLog : chartMonthActivityLogList) {
+            if (rangeActivityLogList != null && !rangeActivityLogList.isEmpty()) {
+                for (ActivityLog activityLog : rangeActivityLogList) {
                     valuesSessions.put(activityLog.getDateLog(), activityLog.getTotalSessions());
                     valuesContinuosSessions.put(activityLog.getDateLog(), activityLog.getTotalContinuousStepsSessions());
                 }
@@ -754,6 +758,8 @@ public class PersonController implements Serializable, IFitbitFacade {
             if (!continuousSessionsSeries.getData().isEmpty()) {
                 sessionsLineChartModel.addSeries(continuousSessionsSeries);
             }
+
+            sessionsLineChartModel.setExtender("monthSessionsChartExtender");
         }
     }
 
@@ -1000,12 +1006,8 @@ public class PersonController implements Serializable, IFitbitFacade {
         return tempLinkedHashMap;
     }
 
-    private LinkedHashMap<Long, Integer> fillEmptyMinutes(LinkedHashMap<Date, Integer> values) {
+    private LinkedHashMap<Long, Integer> fillSessionEmptyMinutes(List<ActivitySession> values) {
         TreeMap<Long, Integer> treeMap = new TreeMap<>();
-
-        for (Map.Entry<Date, Integer> entry : values.entrySet()) {
-            treeMap.put(entry.getKey().getTime(), entry.getValue());
-        }
 
         // Un día tiene 1440 minutos.
         for (int i = 0; i < 1440; i++) {
@@ -1013,6 +1015,48 @@ public class PersonController implements Serializable, IFitbitFacade {
 
             if (!treeMap.containsKey(millis)) {
                 treeMap.put(millis, null);
+            }
+        }
+
+        for (ActivitySession as : values) {
+            LocalTime start = new LocalTime(as.getStartDate());
+            LocalTime end = new LocalTime(as.getEndDate());
+            int minutes = org.joda.time.Minutes.minutesBetween(start, end).getMinutes();
+            int averageSteps = as.getSteps() / minutes;
+            for (int i = 0; i <= minutes; i++) {
+                treeMap.put(((long) start.getMillisOfDay()), averageSteps);
+                start = start.plusMinutes(1);
+            }
+        }
+
+        LinkedHashMap tempLinkedHashMap = new LinkedHashMap<>();
+
+        treeMap.entrySet().stream().forEach((entry) -> {
+            tempLinkedHashMap.put(entry.getKey(), entry.getValue());
+        });
+
+        return tempLinkedHashMap;
+    }
+
+    private LinkedHashMap<Long, Integer> fillRestSessionEmptyMinutes(List<RestSession> values) {
+        TreeMap<Long, Integer> treeMap = new TreeMap<>();
+
+        // Un día tiene 1440 minutos.
+        for (int i = 0; i < 1440; i++) {
+            Long millis = new Long(i * 60 * 1000);
+
+            if (!treeMap.containsKey(millis)) {
+                treeMap.put(millis, null);
+            }
+        }
+
+        for (RestSession rs : values) {
+            LocalTime start = new LocalTime(rs.getStartDate());
+            LocalTime end = new LocalTime(rs.getEndDate());
+            int minutes = org.joda.time.Minutes.minutesBetween(start, end).getMinutes();
+            for (int i = 0; i < minutes; i++) {
+                treeMap.put(((long) start.getMillisOfDay()), 1);
+                start = start.plusMinutes(1);
             }
         }
 
@@ -1103,7 +1147,7 @@ public class PersonController implements Serializable, IFitbitFacade {
 
             if (weekActivityList != null && !weekActivityList.isEmpty()) {
                 for (ActivityLog activityLog : weekActivityList) {
-                    activeSessions.putAll(activityLog.getSessions());
+                    activeSessions.put(activityLog.getDateLog(), activityLog.getSessions().size());
                 }
                 if (!activeSessions.isEmpty()) {
                     Iterator it = activeSessions.keySet().iterator();
@@ -1333,7 +1377,7 @@ public class PersonController implements Serializable, IFitbitFacade {
 
     public void itemSelectSessions(ItemSelectEvent event) {
         try {
-            selectedActivity = chartMonthActivityLogList.get(event.getItemIndex());
+            selectedActivity = rangeActivityLogList.get(event.getItemIndex());
             LOG.log(Level.INFO, "itemSelectSessions() - Obtener las sesiones del día: {0}", Constants.df.format(selectedActivity.getDateLog()));
 //            initActivityLogLineChartModel();
 //            initActivityLogSessionsLineChartModel();
@@ -1389,8 +1433,8 @@ public class PersonController implements Serializable, IFitbitFacade {
         selectedActivitySessionsLineChartModel = null;
 
         if (selectedActivity != null) {
-            LinkedHashMap<Date, Integer> valuesSessions = selectedActivity.getSessions();
-            LinkedHashMap<Long, Integer> filledValuesSessions = fillEmptyMinutes(valuesSessions);
+            List<ActivitySession> valuesSessions = selectedActivity.getSessions();
+            LinkedHashMap<Long, Integer> filledValuesSessions = fillSessionEmptyMinutes(valuesSessions);
 
             selectedActivitySessionsLineChartModel = new LineChartModel();
             LineChartSeries sessionsSeries = new LineChartSeries();
@@ -1420,7 +1464,7 @@ public class PersonController implements Serializable, IFitbitFacade {
             }
 
             // JYFR: Extensión para gráficos. Así podemos cambiar más características. Ver las opciones en la web de 'jqPlot'.
-            selectedActivitySessionsLineChartModel.setExtender("stepsChartExtender");
+            selectedActivitySessionsLineChartModel.setExtender("stepsSessionsChartExtender");
         }
     }
 
@@ -1431,44 +1475,44 @@ public class PersonController implements Serializable, IFitbitFacade {
     private void initActivityLogStepsSessionsLineChartModel() {
         if (selectedActivity != null) {
             selectedActivity.setAggregation(Constants.TimeAggregations.Minutes.toString());
-            LinkedHashMap<Date, Integer> activityLogSteps = new LinkedHashMap<>();
-                    
-            int max = 0;
-            for (StepLog sl : selectedActivity.getStepLogList()) {
-                
-                activityLogSteps.put(sl.getTimeLog(), sl.getSteps());
-                
-                // Buscamos el máximo número de pasos para representar la línea de las sesiones a escala.
-                if (sl.getSteps() > max) {
-                    max = sl.getSteps();
-                }
-            }
-            // Pondremos la línea de las sesiones a la mitad del valor más alto de pasos.
-            max = max / 2;
 
-            LinkedHashMap<Date, Integer> activityLogSessions = selectedActivity.getSessions();
-            LinkedHashMap<Long, Integer> noGapSessions = fillEmptyMinutes(activityLogSessions);
-            LinkedHashMap<Long, Integer> noGapSteps = fillEmptyMinutes(activityLogSteps);
+            int sessionsRestsMark = selected.getConfigurationIntValue(Person.PersonOptions.RestStepsThreshold.name());
+
+            LinkedHashMap<Long, Integer> noGapSessions = fillSessionEmptyMinutes(selectedActivity.getSessions());
+            List<RestSession> restSessionList = new ArrayList<>();
+            for (ActivitySession as : selectedActivity.getSessions()) {
+                restSessionList.addAll(as.getRestsList());
+            }
+            LinkedHashMap<Long, Integer> noGapSessionsRests = fillRestSessionEmptyMinutes(restSessionList);
 
             selectedActivityLogStepsSessionsLineChartModel = new LineChartModel();
             LineChartSeries stepsSeries = new LineChartSeries();
             LineChartSeries sessionsSeries = new LineChartSeries();
+            LineChartSeries sessionsRestsSeries = new LineChartSeries();
+
+            sessionsSeries.setFill(true);
+            sessionsRestsSeries.setFill(true);
+            sessionsSeries.setFillAlpha(0.4);
+            sessionsRestsSeries.setFillAlpha(0.4);
 
             // Rellenamos la serie con los minutos y los pasos y sesiones realizadas.
-            for (Long key : noGapSessions.keySet()) {
-                stepsSeries.set(key, noGapSteps.get(key));
-                sessionsSeries.set(key, noGapSessions.get(key) != null ? max : 0);
+            for (StepLog sl : selectedActivity.getStepLogList()) {
+                long t = sl.getTimeLog().getTime();
+                stepsSeries.set(t, sl.getSteps());
+                sessionsSeries.set(t, noGapSessions.get(t) != null ? noGapSessions.get(t) : 0);
+                sessionsRestsSeries.set(t, noGapSessionsRests.get(t) != null ? sessionsRestsMark : 0);
             }
 
             // Indicamos el texto de la leyenda.
             stepsSeries.setLabel(LocaleBean.getBundle().getString("Steps"));
             sessionsSeries.setLabel(LocaleBean.getBundle().getString("Sessions"));
+            sessionsRestsSeries.setLabel(LocaleBean.getBundle().getString("SessionsRests"));
 
             selectedActivityLogStepsSessionsLineChartModel.setLegendPosition("ne");
             selectedActivityLogStepsSessionsLineChartModel.setShowPointLabels(false);
             selectedActivityLogStepsSessionsLineChartModel.setShowDatatip(true);
             selectedActivityLogStepsSessionsLineChartModel.setMouseoverHighlight(true);
-            selectedActivityLogStepsSessionsLineChartModel.setSeriesColors("4C9141, C2185B");
+            selectedActivityLogStepsSessionsLineChartModel.setSeriesColors("4C9141, C2185B, 03A9F4");
             selectedActivityLogStepsSessionsLineChartModel.setAnimate(true);
             selectedActivityLogStepsSessionsLineChartModel.setZoom(true);
 
@@ -1478,10 +1522,11 @@ public class PersonController implements Serializable, IFitbitFacade {
             if (!sessionsSeries.getData().isEmpty()) {
                 selectedActivityLogStepsSessionsLineChartModel.addSeries(stepsSeries);
                 selectedActivityLogStepsSessionsLineChartModel.addSeries(sessionsSeries);
+                selectedActivityLogStepsSessionsLineChartModel.addSeries(sessionsRestsSeries);
             }
 
             // JYFR: Extensión para gráficos. Así podemos cambiar más características. Ver las opciones en la web de 'jqPlot'.
-            selectedActivityLogStepsSessionsLineChartModel.setExtender("stepsChartExtender");
+            selectedActivityLogStepsSessionsLineChartModel.setExtender("stepsSessionsChartExtender");
         }
     }
 
@@ -1646,4 +1691,46 @@ public class PersonController implements Serializable, IFitbitFacade {
 
         return model;
     }
+
+//    public List<> getSessionsData() {
+//        if (rangeActivityLogList != null && !rangeActivityLogList.isEmpty()) {
+//            selectedActivity.setAggregation(Constants.TimeAggregations.Minutes.toString());
+//            LinkedHashMap<Date, Integer> activityLogSteps = new LinkedHashMap<>();
+//
+//            int max = 0;
+//            for (StepLog sl : selectedActivity.getStepLogList()) {
+//
+//                activityLogSteps.put(sl.getTimeLog(), sl.getSteps());
+//
+//                // Buscamos el máximo número de pasos para representar la línea de las sesiones a escala.
+//                if (sl.getSteps() > max) {
+//                    max = sl.getSteps();
+//                }
+//            }
+//            // Pondremos la línea de las sesiones a la mitad del valor más alto de pasos y la de las paradas a la tercera parte.
+//            int sessionsMark = max / 2;
+//            int sessionsRestsMark = selected.getConfigurationIntValue(Person.PersonOptions.RestStepsThreshold.name());
+//
+//            LinkedHashMap<Long, Integer> noGapSteps = fillEmptyMinutes(activityLogSteps);
+//            LinkedHashMap<Long, Integer> noGapSessions = fillSessionEmptyMinutes(selectedActivity.getSessions());
+//            LinkedHashMap<Long, Integer> noGapSessionsRests = fillSessionEmptyMinutes(selectedActivity.getSessionsRests());
+//
+//            selectedActivityLogStepsSessionsLineChartModel = new LineChartModel();
+//            LineChartSeries stepsSeries = new LineChartSeries();
+//            LineChartSeries sessionsSeries = new LineChartSeries();
+//            LineChartSeries sessionsRestsSeries = new LineChartSeries();
+//
+//            sessionsSeries.setFill(true);
+//            sessionsRestsSeries.setFill(true);
+//            sessionsSeries.setFillAlpha(0.4);
+//            sessionsRestsSeries.setFillAlpha(0.4);
+//
+//            // Rellenamos la serie con los minutos y los pasos y sesiones realizadas.
+//            for (Long key : noGapSteps.keySet()) {
+//                stepsSeries.set(key, noGapSteps.get(key));
+//                sessionsSeries.set(key, noGapSessions.get(key) != null ? sessionsMark : 0);
+//                sessionsRestsSeries.set(key, noGapSessionsRests.get(key) != null ? sessionsRestsMark : 0);
+//            }
+//        }
+//    }
 }

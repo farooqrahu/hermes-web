@@ -1,4 +1,4 @@
-function stepsChartExtender() {
+function stepsSessionsChartExtender() {
     this.cfg.axes.xaxis = {
         showTicks: false
     };
@@ -15,13 +15,32 @@ function stepsChartExtender() {
             var fminutes = (minutes > 9) ? minutes : ('0' + minutes);
             var fseconds = (seconds > 9) ? seconds : ('0' + seconds);
             var ftime = fhours + ":" + fminutes + ":" + fseconds;
-            if (seriesIndex > 0)
-                return parts[1] > 0 ? ftime + " -> " + "En sesión" :  ftime + " -> " + "Inactivo";
-            else
-                return  ftime + " -> " + parts[1];
+            switch (seriesIndex) {
+                case 1:
+                    return parts[1] > 0 ? ftime + " -> " + "En sesión" : ftime + " -> " + parts[1];
+                    break;
+                case 2:
+                    return parts[1] > 0 ? ftime + " -> " + "Parada" : ftime + " -> " + parts[1];
+                    break;
+                default:
+                    return  ftime + " -> " + parts[1];
+            }
         }
     };
     this.cfg.seriesDefaults = {
+        lineWidth: 2, 
         markerOptions: {size: 2}
+    };
+}
+
+function monthStepsChartExtender() {
+    this.cfg.axes.yaxis = {
+        showTicks: false
+    };
+}
+
+function monthSessionsChartExtender() {
+    this.cfg.axes.yaxis = {
+        showTicks: false
     };
 }

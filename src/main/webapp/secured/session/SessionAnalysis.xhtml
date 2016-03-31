@@ -9,9 +9,9 @@
         <h:head>
         </h:head>
         <h:body>
-            <p:dialog widgetVar="IntervalDataDialog" modal="true" resizable="true" appendTo="@(body)" header="#{bundle.IntervalData}" maximizable="true" closeOnEscape="true" height="auto" width="auto">
-                <h:form id="IntervalDataForm">
-                    <p:panelGrid columns="2">
+            <p:dialog widgetVar="SessionAnalysisDialog" modal="true" resizable="true" appendTo="@(body)" header="#{bundle.Analysis}" maximizable="true" closeOnEscape="true" height="auto" width="auto">
+                <h:form id="SessionAnalysisForm">
+<!--                    <p:panelGrid columns="2">
                         <p:column>
                             <p:outputLabel for="avgHeartRate" value="#{bundle.TrackAverageHeartRate}: "/>
                             <strong>
@@ -26,8 +26,9 @@
                                 <p:ajax update="datalist" process="@this" />
                             </p:spinner>
                         </p:column>
-                    </p:panelGrid>
-                    <p:dataTable id="datalist" value="#{locationLogController.intervalDataList}" var="item"
+                    </p:panelGrid>-->
+
+<!--                    <p:dataTable id="datalist" value="#{locationLogController.intervalDataList}" var="item"
                                  selectionMode="single" 
                                  selection="#{locationLogController.selectedInterval}"
                                  paginator="true"
@@ -42,7 +43,7 @@
                                  scrollable="true"
                                  >
 
-                        <!-- Para poner 'tooltips' en las cabeceras de las columnas de la tabla -->
+                         Para poner 'tooltips' en las cabeceras de las columnas de la tabla 
                         <p:tooltip/>
 
                         <p:column width="25px;" exportable="false">
@@ -290,12 +291,12 @@
                     <h:commandLink>
                         <p:graphicImage value="/resources/img/csv.png" alt="#{bundle.ExportCSV}"/>
                         <p:dataExporter type="csv" target="datalist" fileName="data" pageOnly="false" />
-                    </h:commandLink>
+                    </h:commandLink>-->
 
-                    <p:commandButton value="#{bundle.Close}" onclick="PF('IntervalDataDialog').hide()" style="float: right"/>
+                    <p:commandButton value="#{bundle.Close}" onclick="PF('SessionAnalysisDialog').hide()" style="float: right"/>
                 </h:form>
             </p:dialog>
         </h:body>
-        <ui:include src="SelectedIntervalData.xhtml"/>
+        <!--<ui:include src="SelectedIntervalData.xhtml"/>-->
     </ui:composition>
 </html>

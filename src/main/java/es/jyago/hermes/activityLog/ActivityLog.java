@@ -18,8 +18,6 @@ import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.ResourceBundle;
-import java.util.TreeMap;
-import javax.annotation.PostConstruct;
 import javax.persistence.Basic;
 import javax.persistence.CascadeType;
 import javax.persistence.Column;
@@ -92,14 +90,9 @@ public class ActivityLog implements Serializable {
     @Transient
     private HashMap stepLogHashMap;
     @Transient
-    private LinkedHashMap<Date, Integer> sessions;
+    private List<ActivitySession> sessionsList;
 
     public ActivityLog() {
-    }
-
-    @PostConstruct
-    public void init() {
-        calculateSessions();
     }
 
     public Integer getActivityLogId() {
@@ -134,11 +127,12 @@ public class ActivityLog implements Serializable {
         this.person = person;
     }
 
-    public LinkedHashMap<Date, Integer> getSessions() {
-        if (sessions == null) {
+    public List<ActivitySession> getSessions() {
+        if (sessionsList == null) {
             calculateSessions();
         }
-        return sessions;
+
+        return sessionsList;
     }
 
     /**
@@ -147,24 +141,11 @@ public class ActivityLog implements Serializable {
      * @return Total de sesiones del día.
      */
     public int getTotalSessions() {
-        int result = 0;
-
-        boolean inSession = false;
-        for (Integer currentValue : getSessions().values()) {
-            // Cuando se pase de un valor nulo a un valor válido, se estará entrando en una sesión y cuando vuelva a null, se saldrá de la sesión.
-            if (currentValue != null) {
-                if (!inSession) {
-                    // Inicio de una sesión.
-                    result++;
-                    inSession = true;
-                }
-            } else {
-                // No está en una sesión.
-                inSession = false;
-            }
+        if (sessionsList == null) {
+            calculateSessions();
         }
 
-        return result;
+        return sessionsList.size();
     }
 
     /**
@@ -176,32 +157,13 @@ public class ActivityLog implements Serializable {
     public int getTotalContinuousStepsSessions() {
         int result = 0;
 
-        boolean inSession = false;
-        boolean continuousSession = false;
-        int restStepsThreshold = person.getConfigurationIntValue(Person.PersonOptions.RestStepsThreshold.name());
+        if (sessionsList == null) {
+            calculateSessions();
+        }
 
-        for (Integer currentValue : getSessions().values()) {
-            // Cuando se pase de un valor nulo a un valor válido, se estará entrando en una sesión y cuando vuelva a null, se saldrá de la sesión.
-            if (currentValue != null) {
-                if (!inSession) {
-                    if (currentValue >= restStepsThreshold) {
-                        // Inicio de una sesión.
-                        result++;
-                        inSession = true;
-                        continuousSession = true;
-                    }
-                } // Ya estamos en una sesión, pero ¿es continua? 
-                else if (continuousSession) {
-                    // Analizamos cada conjunto de pasos, por si no llega al umbral.
-                    if (currentValue < restStepsThreshold) {
-                        // No llega al umbral.
-                        result--;
-                        continuousSession = false;
-                    }
-                }
-            } else {
-                // No está en una sesión.
-                inSession = false;
+        for (ActivitySession as : sessionsList) {
+            if (as.getRestsList().isEmpty()) {
+                result++;
             }
         }
 
@@ -216,7 +178,8 @@ public class ActivityLog implements Serializable {
     }
 
     @Override
-    public boolean equals(Object object) {
+    public boolean equals(Object object
+    ) {
         if (!(object instanceof ActivityLog)) {
             return false;
         }
@@ -279,7 +242,7 @@ public class ActivityLog implements Serializable {
 
         return model;
     }
-    
+
 //    public LineChartModel getAreaModel(String title) {
 //        LineChartModel model = new LineChartModel();
 //        LineChartSeries areaSeries = new LineChartSeries();
@@ -329,43 +292,62 @@ public class ActivityLog implements Serializable {
      */
     private void calculateSessions() {
         int restStepsThreshold = person.getConfigurationIntValue(Person.PersonOptions.RestStepsThreshold.name());
+        int restMinutesThreshold = person.getConfigurationIntValue(Person.PersonOptions.RestMinutesThreshold.name());
         int restMinutes = 0;
         int endSessionStoppedMinutes = person.getConfigurationIntValue(Person.PersonOptions.EndSessionStoppedMinutes.name());
         int minSessionMinutes = person.getConfigurationIntValue(Person.PersonOptions.MinimumSessionMinutes.name());
 
+        sessionsList = new ArrayList();
+        boolean isRestingInSession = false;
+
         List<Date> currentSessionTime = new ArrayList();
         prepareStepLogHashMap();
-        HashMap<Date, Integer> tempSessions = new HashMap<>();
         SessionStateMachine ssm = new SessionStateMachine();
 
         if (stepLogList != null) {
+            ActivitySession as = new ActivitySession();
             // Vamos procesando los datos de pasos.
             for (StepLog stepLog : stepLogList) {
 
                 // Si el valor de los pasos es menor que el umbral de parada establecido para la persona...
                 if (stepLog.getSteps() < restStepsThreshold) {
                     // ... vemos si no hay una sesión en curso.
-                    if (!ssm.isInSession()) {
-                        // Si no hay sesión en curso, añadimos 'inactividad' (null) al contenedor de sesiones.
-                        tempSessions.put(stepLog.getTimeLog(), null);
-                    } else {
+                    if (ssm.isInSession()) {
                         // Si había una sesión en curso, añadimos un minuto más de inactividad.
                         restMinutes++;
+
+                        // Comprobamos si ha superado el umbral de minutos descansando, para considerarlo una parada.
+                        if (restMinutes > restMinutesThreshold && !isRestingInSession) {
+                            isRestingInSession = true;
+                        }
+
                         // Vemos si el número de minutos de inactividad supera el número de minutos para considerar una sesión terminada.
                         if (restMinutes > endSessionStoppedMinutes) {
                             ssm.changeToNormal();
-                            // Indicamos los minutos previos hasta la conclusión de fin de sesión, como sesión inactiva.
-                            DateTime restStart = new DateTime(stepLog.getTimeLog());
-                            restStart = restStart.minusMinutes(restMinutes);
-                            for (int i = 0; i <= restMinutes; i++) {
-                                tempSessions.put(restStart.toDate(), null);
-                                restStart = restStart.plusMinutes(1);
-                            }
+                            isRestingInSession = false;
+//                            // Marcamos como descansando los minutos previos al umbral.
+//                            DateTime restStart = new DateTime(stepLog.getTimeLog());
+//                            restStart = restStart.minusMinutes(restMinutes - 1);
+//                            RestSession rs = new RestSession();
+//                            rs.setStartDate(restStart.toDate());
+//                            rs.setEndDate(stepLog.getTimeLog());
+//                            as.getRestsList().add(rs);
                         }
                     }
                 } else {
+                    // Vemos si estaba en una parada.
+                    if (isRestingInSession) {
+                        // Marcamos como descansando los minutos previos al umbral.
+                        DateTime restStart = new DateTime(stepLog.getTimeLog());
+                        restStart = restStart.minusMinutes(restMinutes - 1);
+                        RestSession rs = new RestSession();
+                        rs.setStartDate(restStart.toDate());
+                        rs.setEndDate(stepLog.getTimeLog());
+                        as.getRestsList().add(rs);
+                    }
                     // Si el valor de los pasos es mayor que el umbral de parada, reiniciamos los minutos de inactividad y añadimos el tiempo a la lista de tiempos de sesión.
                     restMinutes = 0;
+                    isRestingInSession = false;
                     ssm.changeToInSession();
                     currentSessionTime.add(stepLog.getTimeLog());
 
@@ -383,43 +365,44 @@ public class ActivityLog implements Serializable {
                     // Vemos si el conjunto de tiempos de sesión supera lo que se considera una sesión para la persona.
                     if (currentSessionTime.size() > minSessionMinutes) {
                         // Indicamos el rango como sesión activa.
+                        as.setStartDate(min.toDate());
+                        as.setEndDate(max.toDate());
+                        int steps = 0;
                         for (int i = 0; i < minutes; i++) {
-                            tempSessions.put(min.toDate(), ((StepLog) stepLogHashMap.get(min.toDate())).getSteps());
+                            steps += ((StepLog) stepLogHashMap.get(min.toDate())).getSteps();
                             min = min.plusMinutes(1);
                         }
-                    } else {
-                        // Indicamos el rango como inactivo.
-                        for (int i = 0; i < minutes; i++) {
-                            tempSessions.put(min.toDate(), null);
-                            min = min.plusMinutes(1);
-                        }
+                        as.setSteps(steps);
+                        sessionsList.add(as);
+                        as = new ActivitySession();
                     }
+
                     // Reiniciamos el contenedor de tiempos de sesión.
                     currentSessionTime.clear();
                 }
             }
-        }
+            // Procesamos los tiempos que hayan quedado en el contenedor de tiempos de sesión.
+            // Tomamos los instantes de inicio y fin de la sesión, para calcular el tiempo de sesión.
+            if (currentSessionTime.size() > 0) {
+                DateTime min = new DateTime(currentSessionTime.get(0));
+                DateTime max = new DateTime(currentSessionTime.get(currentSessionTime.size() - 1));
+                int minutes = org.joda.time.Minutes.minutesBetween(min, max).getMinutes();
 
-        // Procesamos los tiempos que hayan quedado en el contenedor de tiempos de sesión.
-        if (currentSessionTime.size() > minSessionMinutes) {
-            // Indicamos el rango como sesión activa.
-            for (Date time : currentSessionTime) {
-                tempSessions.put(time, ((StepLog) stepLogHashMap.get(time)).getSteps());
+                // Vemos si el conjunto de tiempos de sesión supera lo que se considera una sesión para la persona.
+                if (currentSessionTime.size() > minSessionMinutes) {
+                    // Indicamos el rango como sesión activa.
+                    as.setStartDate(min.toDate());
+                    as.setEndDate(max.toDate());
+                    int steps = 0;
+                    for (int i = 0; i < minutes; i++) {
+                        steps += ((StepLog) stepLogHashMap.get(min.toDate())).getSteps();
+                        min = min.plusMinutes(1);
+                    }
+                    as.setSteps(steps);
+                    sessionsList.add(as);
+                }
             }
-        } else {
-            // Indicamos el rango como sesión inactiva.
-            for (Date time : currentSessionTime) {
-                tempSessions.put(time, 0);
-            }
         }
-        
-        TreeMap<Date, Integer> treeMap = new TreeMap<>(tempSessions);
-
-        sessions = new LinkedHashMap<>();
-
-        treeMap.entrySet().stream().forEach((entry) -> {
-            sessions.put(entry.getKey(), entry.getValue());
-        });
     }
 
     public Map<String, Integer> getSummary() {
@@ -576,5 +559,15 @@ public class ActivityLog implements Serializable {
 
     public void setSent(boolean sent) {
         this.sent = sent;
+    }
+
+    public int getTotalSessionsRests() {
+        int result = 0;
+
+        for (ActivitySession as : sessionsList) {
+            result += as.getRestsList().size();
+        }
+
+        return result;
     }
 }

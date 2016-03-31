@@ -315,6 +315,12 @@
     width: 16px !important;
 }
 
+.list-icon-16 {
+    background: url(img/list16.png) no-repeat !important;
+    height: 16px !important;
+    width: 16px !important;
+}
+
 .zip-icon-24 {
     background: url(img/zip24.png) no-repeat !important;
     height: 24px !important;

@@ -9,11 +9,11 @@
         <h:head>
         </h:head>
 
-        <p:dialog id="DaySessions" widgetVar="DaySessionsDialog" modal="true" resizable="true" appendTo="@(body)" header="#{bundle.GraphicSessions}" closeOnEscape="true" maximizable="true" dynamic="true" width="1024px">
+        <p:dialog id="DaySessions" widgetVar="DaySessionsDialog" modal="true" resizable="true" appendTo="@(body)" header="#{bundle.GraphicSessions}" closeOnEscape="true" maximizable="true" dynamic="true" width="1280px">
 
             <h:form id="DaySessionsForm">
                 <div style="width: 100%; display: flex;">
-                    <h:panelGrid columns="1" style="width: 200px;">
+                    <h:panelGrid columns="1" style="width: 220px;">
                         <p:panel header="#{bundle.Steps}">
                             <p:panelGrid columns="2">
                                 <h:outputText value="#{bundle.Achieved}"/>
@@ -34,6 +34,16 @@
                                 <h:outputText value="#{personController.selectedActivity.person.configurationHashMap.RestMinutesThreshold.value}" title="#{bundle.RestMinutesThreshold}" styleClass="bold"/>
                                 <h:outputText value="#{bundle.EndSessionStoppedMinutes}"/>
                                 <h:outputText value="#{personController.selectedActivity.person.configurationHashMap.EndSessionStoppedMinutes.value}" title="#{bundle.EndSessionStoppedMinutes}" styleClass="bold"/>
+                            </p:panelGrid>
+                        </p:panel>
+                        <p:panel header="#{bundle.Summary}">
+                            <p:panelGrid columns="2">
+                                <h:outputText value="#{bundle.SessionsTotal}"/>
+                                <h:outputText value="#{personController.selectedActivity.totalSessions}" title="#{bundle.SessionsTotal}" styleClass="bold"/>
+                                <h:outputText value="#{bundle.ContinuousSessionsTotal}"/>
+                                <h:outputText value="#{personController.selectedActivity.totalContinuousStepsSessions}" title="#{bundle.ContinuousSessionsTotal}" styleClass="bold"/>
+                                <h:outputText value="#{bundle.SessionsRestsTotal}"/>
+                                <h:outputText value="#{personController.selectedActivity.totalSessionsRests}" title="#{bundle.SessionsRestsTotal}" styleClass="bold"/>
                             </p:panelGrid>
                         </p:panel>
                         <p:commandButton value="#{bundle.ZoomReset}" type="button" onclick="PF('stepsSessionsChart').resetZoom()" icon="ui-icon-cancel" />

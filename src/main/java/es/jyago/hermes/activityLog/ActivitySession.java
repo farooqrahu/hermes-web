@@ -1,5 +1,6 @@
 package es.jyago.hermes.activityLog;
 
+import es.jyago.hermes.util.Constants;
 import java.util.ArrayList;
 import java.util.Date;
 import java.util.List;
@@ -14,7 +15,7 @@ public class ActivitySession {
     public ActivitySession() {
         restsList = new ArrayList<>();
     }
-    
+
     public Date getStartDate() {
         return startDate;
     }
@@ -45,5 +46,13 @@ public class ActivitySession {
 
     public void setRestsList(List<RestSession> restsList) {
         this.restsList = restsList;
+    }
+
+    public String getFormattedStartDate() {
+        return Constants.dfTime.format(startDate);
+    }
+
+    public String getFormattedEndDate() {
+        return Constants.dfTime.format(endDate);
     }
 }

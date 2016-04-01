@@ -331,10 +331,28 @@
     cursor:pointer;
 }
 
+.csv-icon-24 {
+    background: url(img/csv.png) no-repeat !important;
+    height: 24px !important;
+    width: 24px !important;
+    border-style: none !important;
+    padding: 0px !important;
+    margin-left: 10px;
+    cursor:pointer;
+}
+
 .simulator-icon {
     background: url(img/robot.png) no-repeat !important;
     height: 32px !important;
     width: 32px !important;
+}
+
+.hide-column-names table thead tr {
+    display: none;
+}
+
+.align-top-rows table tbody td {
+    vertical-align: top
 }
 
 /* JYFR - Inicio */

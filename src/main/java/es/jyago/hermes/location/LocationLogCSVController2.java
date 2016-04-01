@@ -67,7 +67,7 @@ public class LocationLogCSVController2 implements ICSVController<LocationLogCSV2
     }
 
     @Override
-    public List<LocationLogCSV2> getItems() {
+    public List<LocationLogCSV2> getCSVItems() {
         // No necesitamos devolver los elementos leídos del archivo CSV.
         return null;
     }

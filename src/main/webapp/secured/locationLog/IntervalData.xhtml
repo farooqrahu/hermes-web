@@ -62,13 +62,13 @@
                         </p:column>
                         <p:column sortBy="#{item.startDate}" filterBy="#{item.formattedStartDate}" filterStyle="width: 30px;" filterMatchMode="contains" width="50px;">
                             <f:facet name="header">
-                                <h:outputText value="T0" title="#{bundle.StartHour}" escape="false" style="white-space:pre-line;"/>
+                                <h:outputText value="T0" title="#{bundle.StartTime}" escape="false" style="white-space:pre-line;"/>
                             </f:facet>
                             <h:outputText value="#{item.formattedStartDate}" style="float:right"/>
                         </p:column>
                         <p:column sortBy="#{item.endDate}" filterBy="#{item.formattedEndDate}" filterStyle="width: 30px;" filterMatchMode="contains" width="50px;">
                             <f:facet name="header">
-                                <h:outputText value="T1" title="#{bundle.EndHour}" escape="false" style="white-space:pre-line;"/>
+                                <h:outputText value="T1" title="#{bundle.EndTime}" escape="false" style="white-space:pre-line;"/>
                             </f:facet>
                             <h:outputText value="#{item.formattedEndDate}" style="float:right"/>
                         </p:column>

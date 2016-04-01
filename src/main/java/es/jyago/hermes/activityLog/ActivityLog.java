@@ -570,4 +570,8 @@ public class ActivityLog implements Serializable {
 
         return result;
     }
+
+    public String getFormattedDateLog() {
+        return Constants.df.format(this.dateLog);
+    }
 }

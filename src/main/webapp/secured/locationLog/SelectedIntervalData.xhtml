@@ -19,13 +19,13 @@
                             </strong>                            
                         </p:column>
                         <p:column>
-                            <p:outputLabel value="T0: " for="t0" style="padding-right: 5px;" title="#{bundle.StartHour}"/>
+                            <p:outputLabel value="T0: " for="t0" style="padding-right: 5px;" title="#{bundle.StartTime}"/>
                             <strong>
                                 <h:outputText id="t0" value="#{locationLogController.selectedInterval.formattedStartDate}" style="float:right"/>
                             </strong>
                         </p:column>
                         <p:column>
-                            <p:outputLabel value="T1: " for="t1" style="padding-right: 5px;" title="#{bundle.EndHour}"/>
+                            <p:outputLabel value="T1: " for="t1" style="padding-right: 5px;" title="#{bundle.EndTime}"/>
                             <strong>
                                 <h:outputText id="t1" value="#{locationLogController.selectedInterval.formattedEndDate}" style="float:right"/>
                             </strong>
@@ -79,13 +79,13 @@
                         </p:column>
                         <p:column sortBy="#{item.startDate}" filterBy="#{item.formattedStartDate}" filterStyle="width: 30px;" filterMatchMode="contains" width="50px;">
                             <f:facet name="header">
-                                <h:outputText value="T0" title="#{bundle.StartHour}" escape="false" style="white-space:pre-line;"/>
+                                <h:outputText value="T0" title="#{bundle.StartTime}" escape="false" style="white-space:pre-line;"/>
                             </f:facet>
                             <h:outputText value="#{item.formattedStartDate}" style="float:right"/>
                         </p:column>
                         <p:column sortBy="#{item.endDate}" filterBy="#{item.formattedEndDate}" filterStyle="width: 30px;" filterMatchMode="contains" width="50px;">
                             <f:facet name="header">
-                                <h:outputText value="T1" title="#{bundle.EndHour}" escape="false" style="white-space:pre-line;"/>
+                                <h:outputText value="T1" title="#{bundle.EndTime}" escape="false" style="white-space:pre-line;"/>
                             </f:facet>
                             <h:outputText value="#{item.formattedEndDate}" style="float:right"/>
                         </p:column>
@@ -298,13 +298,13 @@
 
                         <p:column sortBy="#{item.previousIntervalData.startDate}" filterBy="#{item.previousIntervalData.formattedStartDate}" filterStyle="width: 30px;" filterMatchMode="contains" width="50px;" visible="false">
                             <f:facet name="header">
-                                <h:outputText value="PT0" title="#{bundle.StartHour}" escape="false" style="white-space:pre-line;"/>
+                                <h:outputText value="PT0" title="#{bundle.StartTime}" escape="false" style="white-space:pre-line;"/>
                             </f:facet>
                             <h:outputText value="#{item.previousIntervalData.formattedStartDate}" style="float:right"/>
                         </p:column>
                         <p:column sortBy="#{item.previousIntervalData.endDate}" filterBy="#{item.previousIntervalData.formattedEndDate}" filterStyle="width: 30px;" filterMatchMode="contains" width="50px;" visible="false">
                             <f:facet name="header">
-                                <h:outputText value="PT1" title="#{bundle.EndHour}" escape="false" style="white-space:pre-line;"/>
+                                <h:outputText value="PT1" title="#{bundle.EndTime}" escape="false" style="white-space:pre-line;"/>
                             </f:facet>
                             <h:outputText value="#{item.previousIntervalData.formattedEndDate}" style="float:right"/>
                         </p:column>

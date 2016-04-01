@@ -1190,11 +1190,11 @@ public class LocationLogController implements Serializable, ICSVController<Inter
     @Override
     public void processReadElement(IntervalData element) throws HermesException {
         // No se usará porque sólo vamos a exportar los datos de los intervalos, no a importarlos.
-        throw new UnsupportedOperationException("Not supported yet."); //To change body of generated methods, choose Tools | Templates.
+        throw new UnsupportedOperationException("Not supported yet.");
     }
 
     @Override
-    public List<IntervalData> getItems() {
+    public List<IntervalData> getCSVItems() {
         // Devolvemos la lista de intervalos para poder generar el CSV de intervalos.
         return this.intervalDataList;
     }

@@ -39,6 +39,8 @@ public class CSVUtil<T> {
         StreamedContent file = null;
         InputStream is;
 
+        bean.init(null);
+
         try {
             // Creamos un archivo temporal para procesar los elementos.
             File temporal = File.createTempFile("temporal", ".csv");
@@ -53,18 +55,22 @@ public class CSVUtil<T> {
             final CellProcessor[] processors = bean.getProcessors();
 
             if (!ignoreHeaders) {
-                // Ponemos la cabecerra con los nombres de los atributos.
-                beanWriter.writeHeader(fields);
+                // Ponemos la cabecera con los nombres de los atributos.
+                if (bean.getHeaders() != null) {
+                    beanWriter.writeHeader(bean.getHeaders());
+                } else {
+                    beanWriter.writeHeader(fields);
+                }
             }
 
             // Procesamos los elementos.
-            for (final T elemento : ci.getItems()) {
+            for (final T elemento : ci.getCSVItems()) {
                 beanWriter.write(elemento, fields, processors);
             }
 
             // Creamos el archivo con los datos que vamos a devolver.
             is = new FileInputStream(temporal);
-            file = new DefaultStreamedContent(is, "text/plain", "lista.csv");
+            file = new DefaultStreamedContent(is, "text/plain", "data.csv");
         } catch (Exception ex) {
             LOG.log(Level.SEVERE, "getData() - Error al exportar a CSV", ex);
         } finally {
@@ -97,7 +103,7 @@ public class CSVUtil<T> {
             final CellProcessor[] processors = bean.getProcessors();
 
             if (!ignoreHeaders) {
-                // Ponemos la cabecerra con los nombres de los atributos.
+                // Ponemos la cabecera con los nombres de los atributos.
                 if (bean.getHeaders() != null) {
                     beanWriter.writeHeader(bean.getHeaders());
                 } else {
@@ -106,7 +112,7 @@ public class CSVUtil<T> {
             }
 
             // Procesamos los elementos.
-            for (final T elemento : ci.getItems()) {
+            for (final T elemento : ci.getCSVItems()) {
                 beanWriter.write(elemento, fields, processors);
             }
 

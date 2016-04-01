@@ -1,5 +1,6 @@
 package es.jyago.hermes.activityLog;
 
+import es.jyago.hermes.util.Constants;
 import java.util.Date;
 
 public class RestSession {
@@ -21,5 +22,13 @@ public class RestSession {
 
     public void setEndDate(Date endDate) {
         this.endDate = endDate;
+    }
+
+    public String getFormattedStartDate() {
+        return Constants.dfTime.format(startDate);
+    }
+
+    public String getFormattedEndDate() {
+        return Constants.dfTime.format(endDate);
     }
 }

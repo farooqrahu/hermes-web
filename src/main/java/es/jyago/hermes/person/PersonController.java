@@ -1,6 +1,7 @@
 package es.jyago.hermes.person;
 
 import es.jyago.hermes.activityLog.ActivityLog;
+import es.jyago.hermes.activityLog.ActivityLogCSV;
 import es.jyago.hermes.activityLog.ActivityLogHermesZtreamyFacade;
 import es.jyago.hermes.activityLog.ActivitySession;
 import es.jyago.hermes.activityLog.RestSession;
@@ -8,6 +9,8 @@ import es.jyago.hermes.bean.LocaleBean;
 import es.jyago.hermes.contextLog.ContextLog;
 import es.jyago.hermes.contextLog.ContextLogDetail;
 import es.jyago.hermes.contextLog.ContextLogHermesZtreamyFacade;
+import es.jyago.hermes.csv.CSVUtil;
+import es.jyago.hermes.csv.ICSVController;
 import es.jyago.hermes.util.Constants;
 import es.jyago.hermes.util.JsfUtil;
 import es.jyago.hermes.util.JsfUtil.PersistAction;
@@ -62,6 +65,7 @@ import org.primefaces.context.RequestContext;
 import org.primefaces.event.ItemSelectEvent;
 import org.primefaces.event.SelectEvent;
 import org.primefaces.event.map.OverlaySelectEvent;
+import org.primefaces.model.StreamedContent;
 import org.primefaces.model.chart.Axis;
 import org.primefaces.model.chart.AxisType;
 import org.primefaces.model.chart.BarChartModel;
@@ -71,10 +75,11 @@ import org.primefaces.model.chart.ChartSeries;
 import org.primefaces.model.chart.DateAxis;
 import org.primefaces.model.chart.LineChartModel;
 import org.primefaces.model.chart.LineChartSeries;
+import org.supercsv.prefs.CsvPreference;
 
 @Named("personController")
 @SessionScoped
-public class PersonController implements Serializable, IFitbitFacade {
+public class PersonController implements Serializable, IFitbitFacade, ICSVController<ActivityLogCSV> {
 
     private static final Logger LOG = Logger.getLogger(PersonController.class.getName());
 
@@ -108,6 +113,8 @@ public class PersonController implements Serializable, IFitbitFacade {
     private LineChartModel selectedActivityLineChartModel;
     private LineChartModel selectedActivitySessionsLineChartModel;
     private LineChartModel selectedActivityLogStepsSessionsLineChartModel;
+
+    private List<ActivityLogCSV> activityLogCsvList;
 
     public PersonController() {
         LOG.log(Level.INFO, "PersonController() - Inicialización del controlador de personas");
@@ -795,9 +802,9 @@ public class PersonController implements Serializable, IFitbitFacade {
             BarChartSeries hoursInBedSeries = new BarChartSeries();
             BarChartSeries awakeningsSeries = new BarChartSeries();
 
-            ChartSeries startHourSeries = new ChartSeries();
+            ChartSeries startTimeSeries = new ChartSeries();
             ChartSeries startMinuteSeries = new ChartSeries();
-            ChartSeries endHourSeries = new ChartSeries();
+            ChartSeries endTimeSeries = new ChartSeries();
             ChartSeries endMinuteSeries = new ChartSeries();
             // Rellenamos la serie con las fechas y los datos de sueño.
             for (Date key : filledValues.keySet()) {
@@ -808,18 +815,18 @@ public class PersonController implements Serializable, IFitbitFacade {
                     hoursInBedSeries.set(onlyDate, value.getMinutesInBed() / 60.0f);
                     awakeningsSeries.set(onlyDate, (float) value.getAwakenings());
                     LocalTime lts = new LocalTime(value.getStartTime());
-                    startHourSeries.set(onlyDate, lts.getHourOfDay());
+                    startTimeSeries.set(onlyDate, lts.getHourOfDay());
                     startMinuteSeries.set(onlyDate, lts.getMinuteOfHour());
                     LocalTime lte = new LocalTime(value.getEndTime());
-                    endHourSeries.set(onlyDate, lte.getHourOfDay());
+                    endTimeSeries.set(onlyDate, lte.getHourOfDay());
                     endMinuteSeries.set(onlyDate, lte.getMinuteOfHour());
                 } else {
                     hoursAsleepSeries.set(onlyDate, 0.0f);
                     hoursInBedSeries.set(onlyDate, 0.0f);
                     awakeningsSeries.set(onlyDate, 0.0f);
-                    startHourSeries.set(onlyDate, 0);
+                    startTimeSeries.set(onlyDate, 0);
                     startMinuteSeries.set(onlyDate, 0);
-                    endHourSeries.set(onlyDate, 0);
+                    endTimeSeries.set(onlyDate, 0);
                     endMinuteSeries.set(onlyDate, 0);
                 }
             }
@@ -870,14 +877,14 @@ public class PersonController implements Serializable, IFitbitFacade {
             if (!awakeningsSeries.getData().isEmpty()) {
                 sleepLogBarChartModel.addSeries(awakeningsSeries);
             }
-            if (!startHourSeries.getData().isEmpty()) {
-                sleepLogBarChartModel.addSeries(startHourSeries);
+            if (!startTimeSeries.getData().isEmpty()) {
+                sleepLogBarChartModel.addSeries(startTimeSeries);
             }
             if (!startMinuteSeries.getData().isEmpty()) {
                 sleepLogBarChartModel.addSeries(startMinuteSeries);
             }
-            if (!endHourSeries.getData().isEmpty()) {
-                sleepLogBarChartModel.addSeries(endHourSeries);
+            if (!endTimeSeries.getData().isEmpty()) {
+                sleepLogBarChartModel.addSeries(endTimeSeries);
             }
             if (!endMinuteSeries.getData().isEmpty()) {
                 sleepLogBarChartModel.addSeries(endMinuteSeries);
@@ -1730,6 +1737,118 @@ public class PersonController implements Serializable, IFitbitFacade {
 //                stepsSeries.set(key, noGapSteps.get(key));
 //                sessionsSeries.set(key, noGapSessions.get(key) != null ? sessionsMark : 0);
 //                sessionsRestsSeries.set(key, noGapSessionsRests.get(key) != null ? sessionsRestsMark : 0);
+//            }
+//        }
+//    }
+    public List<ActivityLog> getRangeActivityLogList() {
+        return rangeActivityLogList;
+    }
+
+    @Override
+    public void processReadElement(ActivityLogCSV element) throws HermesException {
+        // No se usará porque sólo vamos a exportar los datos, no a importarlos.
+        throw new UnsupportedOperationException("Not supported yet.");
+    }
+
+    @Override
+    public List<ActivityLogCSV> getCSVItems() {
+        return activityLogCsvList;
+    }
+
+    private void generateActivityLogCSVList() {
+        activityLogCsvList = new ArrayList<>();
+
+        for (ActivityLog al : rangeActivityLogList) {
+            if (al.getSessions() != null && !al.getSessions().isEmpty()) {
+                for (ActivitySession as : al.getSessions()) {
+                    if (as.getRestsList() != null && !as.getRestsList().isEmpty()) {
+                        for (RestSession rs : as.getRestsList()) {
+                            ActivityLogCSV alCsv = new ActivityLogCSV();
+
+                            alCsv.setDate(al.getDateLog());
+                            alCsv.setTotalSteps(al.getTotal());
+                            alCsv.setSessionStartTime(as.getStartDate());
+                            alCsv.setSessionEndTime(as.getEndDate());
+                            alCsv.setSessionSteps(as.getSteps());
+                            alCsv.setRestStartTime(rs.getStartDate());
+                            alCsv.setRestEndTime(rs.getEndDate());
+
+                            activityLogCsvList.add(alCsv);
+                        }
+                    } else {
+                        ActivityLogCSV alCsv = new ActivityLogCSV();
+
+                        alCsv.setDate(al.getDateLog());
+                        alCsv.setTotalSteps(al.getTotal());
+                        alCsv.setSessionStartTime(as.getStartDate());
+                        alCsv.setSessionEndTime(as.getEndDate());
+                        alCsv.setSessionSteps(as.getSteps());
+
+                        activityLogCsvList.add(alCsv);
+                    }
+                }
+            }
+        }
+    }
+
+    public StreamedContent getFile() {
+        generateActivityLogCSVList();
+        return new CSVUtil<ActivityLogCSV>().getData(new ActivityLogCSV(), this, CsvPreference.EXCEL_NORTH_EUROPE_PREFERENCE, false);
+    }
+
+//    public void exportSessionsCSV() {
+//        if (rangeActivityLogList != null && !rangeActivityLogList.isEmpty()) {
+//            try {
+//                // Creamos un directorio temporal para contener los archivos generados.
+//                Path tempDir = Files.createTempDirectory("Hermes_web");
+//                String tempDirPath = tempDir.toAbsolutePath().toString() + File.separator;
+//                LOG.log(Level.INFO, "exportSessionsCSV() - Directorio temporal para almacenar el CSV: {0}", tempDirPath);
+//
+//                CSVUtil<ActivityLogCSV> csvUtil = new CSVUtil<>();
+//                generateActivityLogCSVList();
+//
+//                String fileName = Constants.dfSmartDriver.format(rangeActivityLogList.get(0).getDateLog()) + "_" + Constants.dfTimeSmartDriver.format(rangeActivityLogList.get(rangeActivityLogList.size() - 1).getLocationLogDetailList().get(0).getTimeLog()) + ".csv";
+//                LOG.log(Level.INFO, "exportSessionsCSV() - Generando archivo CSV: {0}", fileName);
+//                File file = new File(tempDir.toUri().getPath(), fileName);
+//                csvUtil.getFileData(new IntervalData(), this, CsvPreference.EXCEL_NORTH_EUROPE_PREFERENCE, false, file);
+//
+//                FacesContext facesContext = FacesContext.getCurrentInstance();
+//                ExternalContext externalContext = facesContext.getExternalContext();
+//                HttpServletResponse response = (HttpServletResponse) externalContext.getResponse();
+//                ServletContext servletContext = (ServletContext) externalContext.getContext();
+//
+//                response.reset();
+//                response.setContentType(servletContext.getMimeType(fileName));
+//                response.setContentLength((int) file.length());
+//                response.setHeader("Content-Disposition", "attachment; filename=\"" + (file.getName().toString()).split("_")[0] + ".csv\"");
+//
+//                ServletOutputStream out = null;
+//
+//                try {
+//                    FileInputStream input = new FileInputStream(file);
+//                    byte[] buffer = new byte[1024];
+//                    out = response.getOutputStream();
+//                    int i = 0;
+//                    while ((i = input.read(buffer)) != -1) {
+//                        out.write(buffer);
+//                        out.flush();
+//                    }
+//                    FacesContext.getCurrentInstance().getResponseComplete();
+//                } catch (IOException ex) {
+//                    LOG.log(Level.SEVERE, "exportSessionsCSV() - No se ha podido enviar el archivo CSV", ex);
+//                } finally {
+//                    try {
+//                        if (out != null) {
+//                            out.close();
+//                        }
+//                    } catch (IOException ex) {
+//                        LOG.log(Level.SEVERE, "exportSessionsCSV() - No se ha podido cerrar el archivo CSV", ex);
+//                    }
+//                }
+//
+//                facesContext.responseComplete();
+//            } catch (IOException ex) {
+//                LOG.log(Level.SEVERE, "exportSessionsCSV() - No se ha podido generar el archivo con los datos de las sesiones", ex);
 //            }
 //        }
 //    }

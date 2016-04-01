@@ -15,7 +15,7 @@ import java.util.List;
  */
 public interface ICSVController<T> {
 
-    public List<T> getItems();
+    public List<T> getCSVItems();
 
     public void processReadElement(T element) throws HermesException;
 }

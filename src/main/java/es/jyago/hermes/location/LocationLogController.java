@@ -10,6 +10,14 @@ import es.jyago.hermes.bean.LocaleBean;
 import es.jyago.hermes.csv.CSVUtil;
 import es.jyago.hermes.csv.ICSVController;
 import es.jyago.hermes.location.detail.LocationLogDetail;
+import es.jyago.hermes.location.google.GeocodedWaypoints;
+import es.jyago.hermes.location.google.Leg;
+import es.jyago.hermes.location.google.Location;
+import es.jyago.hermes.location.google.PolylineDecoder;
+import es.jyago.hermes.location.google.Route;
+import es.jyago.hermes.location.google.SimpleStep;
+import es.jyago.hermes.location.google.Step;
+import es.jyago.hermes.location.google.TrackInfo;
 import es.jyago.hermes.person.Person;
 import es.jyago.hermes.util.Constants;
 import es.jyago.hermes.util.HermesException;
@@ -27,6 +35,7 @@ import java.util.ArrayList;
 import java.util.Collections;
 import java.util.Date;
 import java.util.List;
+import java.util.Random;
 import java.util.ResourceBundle;
 import java.util.Set;
 import java.util.TreeMap;
@@ -34,6 +43,7 @@ import java.util.logging.Level;
 import java.util.logging.Logger;
 import java.util.zip.ZipEntry;
 import java.util.zip.ZipOutputStream;
+import javax.annotation.PostConstruct;
 import javax.enterprise.context.SessionScoped;
 import javax.faces.component.UIOutput;
 import javax.faces.context.ExternalContext;
@@ -108,6 +118,11 @@ public class LocationLogController implements Serializable, ICSVController<Inter
 
     private int stressPercentThreshold;
 
+    private int distance;
+    private int distanceFromSevilleCenter;
+    private TrackInfo generatedTrackInfo;
+    private MapModel simulatedMapModel;
+
     public LocationLogController() {
         showMaximumSpeedLocation = false;
         showMinimumHeartRateLocation = false;
@@ -130,6 +145,13 @@ public class LocationLogController implements Serializable, ICSVController<Inter
         selectedInterval = null;
         selectedIntervalDataList = null;
         stressPercentThreshold = 20;
+    }
+
+    @PostConstruct
+    public void init() {
+        distanceFromSevilleCenter = 0;
+        distance = 10;
+        generateSimulatedTrack();
     }
 
     public void setPerson(Person person) {
@@ -1199,35 +1221,125 @@ public class LocationLogController implements Serializable, ICSVController<Inter
         return this.intervalDataList;
     }
 
+    public Location getLocation(double latitude, double longitude, int radius) {
+        Random random = new Random();
+
+        // El radio se considerará en kilómetros. Lo convertimos a grados.
+        double radiusInDegrees = radius / 111f;
+
+        double u = random.nextDouble();
+        double v = random.nextDouble();
+        double w = radiusInDegrees * Math.sqrt(u);
+        double t = 2 * Math.PI * v;
+        double x = w * Math.cos(t);
+        double y = w * Math.sin(t);
+
+        // Adjust the x-coordinate for the shrinking of the east-west distances
+        double new_x = x / Math.cos(latitude);
+
+        double foundLongitude = new_x + longitude;
+        double foundLatitude = y + latitude;
+
+        System.out.println("Longitude: " + foundLongitude + "  Latitude: " + foundLatitude);
+        Location result = new Location();
+        result.setLat(foundLatitude);
+        result.setLng(foundLongitude);
+        return result;
+    }
+
     public void generateSimulatedTrack() {
         String json;
         try {
-            json = IOUtils.toString(new URL("http://www.javascriptkit.com/dhtmltutors/javascriptkit.json"));
+            Location seville = new Location(37.3898358, -5.986069);
+            Location origin = getLocation(seville.getLat(), seville.getLng(), distanceFromSevilleCenter);
+            Location destination = getLocation(origin.getLat(), origin.getLng(), distance);
+            json = IOUtils.toString(new URL("https://maps.googleapis.com/maps/api/directions/json?origin=" + origin.getLat() + "," + origin.getLng() + "&destination=" + destination.getLat() + "," + destination.getLng()));
             Gson gson = new Gson();
-            Page page = gson.fromJson(json, Page.class);
-
-            System.out.println(page.title);
-            for (Item item : page.items) {
-                System.out.println("    " + item.title);
-            }
+            GeocodedWaypoints gcwp = gson.fromJson(json, GeocodedWaypoints.class);
+            initSimulatedMapModel(gcwp);
+            LatLng originLatLng = new LatLng(origin.getLat(), origin.getLng());
+            marker = new Marker(originLatLng);
+//            Circle circle1 = new Circle(originLatLng, distance * 1000);
+//            circle1.setStrokeColor("#d93c3c");
+//            circle1.setFillColor("#d93c3c");
+//            circle1.setFillOpacity(0.2);
+//            mapModel.addOverlay(circle1);
         } catch (IOException ex) {
             Logger.getLogger(LocationLogController.class.getName()).log(Level.SEVERE, null, ex);
         }
     }
 
-    static class Item {
-
-        String title;
-        String link;
-        String description;
+    public MapModel getSimulatedMapModel() {
+        return simulatedMapModel;
     }
 
-    static class Page {
+    private void initSimulatedMapModel(GeocodedWaypoints gcwp) {
+        simulatedMapModel = new DefaultMapModel();
 
-        String title;
-        String link;
-        String description;
-        String language;
-        List<Item> items;
+        if (gcwp.getRoutes() != null) {
+
+            generatedTrackInfo = new TrackInfo();
+            Polyline polyline = new Polyline();
+            polyline.setStrokeWeight(4);
+            polyline.setStrokeOpacity(0.7);
+            polyline.setStrokeColor("#00FF00");
+
+            for (Route r : gcwp.getRoutes()) {
+                if (r.getLegs() != null) {
+                    for (Leg l : r.getLegs()) {
+                        SimpleStep summary = new SimpleStep();
+                        summary.setDistance(l.getDistance().getValue());
+                        summary.setDuration(l.getDuration().getValue());
+                        summary.setStartLocation(l.getStartLocation());
+                        summary.setStartAddress(l.getStartAddress());
+                        summary.setEndLocation(l.getEndLocation());
+                        summary.setEndAddress(l.getEndAddress());
+                        generatedTrackInfo.setSummary(summary);
+
+                        if (l.getSteps() != null) {
+                            for (Step s : l.getSteps()) {
+                                Location start = s.getStartLocation();
+                                LatLng lls = new LatLng(start.getLat(), start.getLng());
+                                polyline.getPaths().add(lls);
+                                if (s.getPolyline() != null) {
+                                    ArrayList<Location> plist = PolylineDecoder.decodePoly(s.getPolyline().getPoints());
+                                    if (plist != null) {
+                                        for (Location location : plist) {
+                                            LatLng ll = new LatLng(location.getLat(), location.getLng());
+                                            polyline.getPaths().add(ll);
+                                        }
+                                    }
+                                }
+                                Location end = s.getEndLocation();
+                                LatLng lle = new LatLng(end.getLat(), end.getLng());
+                                polyline.getPaths().add(lle);
+//                    mapModel.addOverlay(createMarker(locationLogDetail, false, "https://maps.google.com/mapfiles/ms/micons/red.png"));
+                            }
+                        }
+                    }
+                }
+            }
+            simulatedMapModel.addOverlay(polyline);
+        }
+    }
+
+    public int getDistance() {
+        return distance;
+    }
+
+    public void setDistance(int distance) {
+        this.distance = distance;
+    }
+
+    public int getDistanceFromSevilleCenter() {
+        return distanceFromSevilleCenter;
+    }
+
+    public void setDistanceFromSevilleCenter(int distanceFromSevilleCenter) {
+        this.distanceFromSevilleCenter = distanceFromSevilleCenter;
+    }
+
+    public TrackInfo getGeneratedTrackInfo() {
+        return generatedTrackInfo;
     }
 }

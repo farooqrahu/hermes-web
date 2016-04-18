@@ -17,12 +17,7 @@ import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
-import java.util.logging.Level;
 import java.util.logging.Logger;
-import javax.ws.rs.core.MediaType;
-import org.apache.commons.codec.binary.Hex;
-import org.apache.commons.codec.digest.DigestUtils;
-import ztreamy.Event;
 
 /**
  * Clase para transmitir los registros de sueño por Ztreamy.
@@ -35,11 +30,11 @@ public class SleepLogHermesZtreamyFacade extends AbstractHermesZtreamyFacade<Sle
     private static final Logger LOG = Logger.getLogger(SleepLogHermesZtreamyFacade.class.getName());
 
     public SleepLogHermesZtreamyFacade(SleepLog sleepLog, Person person, String url) throws MalformedURLException, HermesException {
-        super(sleepLog, person, url);
+        super(sleepLog, person, url, SLEEP_DATA);
     }
 
     public SleepLogHermesZtreamyFacade(Collection<SleepLog> collectionSleepLog, Person person, String url) throws MalformedURLException, HermesException {
-        super(collectionSleepLog, person, url, false);
+        super(collectionSleepLog, person, url, SLEEP_DATA, false);
     }
 
     @Override
@@ -72,16 +67,6 @@ public class SleepLogHermesZtreamyFacade extends AbstractHermesZtreamyFacade<Sle
         collectionSleepLog.add(sleepLog);
 
         return getBodyObject(collectionSleepLog);
-    }
-
-    @Override
-    public Event prepareEvent() {
-        LOG.log(Level.INFO, "init() - Preparando el envío de datos de sueño por Ztreamy de: {0}", getPerson().getFullName());
-        String sha = getPerson().getSha();
-        if (sha == null || sha.length() == 0) {
-            sha = new String(Hex.encodeHex(DigestUtils.sha256(getPerson().getEmail())));
-        }
-        return new Event(sha, MediaType.APPLICATION_JSON, Constants.getInstance().getConfigurationValueByKey("ZtreamySleepApplicationId"), SLEEP_DATA);
     }
 
     @Override

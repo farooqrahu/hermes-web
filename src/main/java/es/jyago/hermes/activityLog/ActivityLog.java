@@ -325,13 +325,6 @@ public class ActivityLog implements Serializable {
                         if (restMinutes > endSessionStoppedMinutes) {
                             ssm.changeToNormal();
                             isRestingInSession = false;
-//                            // Marcamos como descansando los minutos previos al umbral.
-//                            DateTime restStart = new DateTime(stepLog.getTimeLog());
-//                            restStart = restStart.minusMinutes(restMinutes - 1);
-//                            RestSession rs = new RestSession();
-//                            rs.setStartDate(restStart.toDate());
-//                            rs.setEndDate(stepLog.getTimeLog());
-//                            as.getRestsList().add(rs);
                         }
                     }
                 } else {
@@ -374,11 +367,11 @@ public class ActivityLog implements Serializable {
                         }
                         as.setSteps(steps);
                         sessionsList.add(as);
-                        as = new ActivitySession();
                     }
 
                     // Reiniciamos el contenedor de tiempos de sesión.
                     currentSessionTime.clear();
+                    as = new ActivitySession();
                 }
             }
             // Procesamos los tiempos que hayan quedado en el contenedor de tiempos de sesión.

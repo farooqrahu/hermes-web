@@ -56,7 +56,7 @@
                             <p:commandButton value="#{bundle.ZoomReset}" type="button" onclick="PF('monthStepsChart').resetZoom(), PF('monthSessionsChart').resetZoom()" icon="ui-icon-cancel" />
                             
                             <p:panel id="analysis" header="#{bundle.Analysis}">
-                                <p:commandButton value="#{bundle.SessionsAnalysis}" title="#{bundle.SessionsAnalysis}" actionListener="#{personController.rangeActivityLogList}" update=":SessionAnalysisForm" oncomplete="PF('SessionAnalysisDialog').show()" icon="list-icon-16"/>
+                                <p:commandButton value="#{bundle.SessionsAnalysis}" title="#{bundle.SessionsAnalysis}" update=":SessionAnalysisForm" oncomplete="PF('SessionAnalysisDialog').show()" icon="list-icon-16"/>
                             </p:panel>
                         </h:panelGrid>
 

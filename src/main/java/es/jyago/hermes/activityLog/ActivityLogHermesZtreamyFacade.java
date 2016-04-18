@@ -19,12 +19,7 @@ import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
-import java.util.logging.Level;
 import java.util.logging.Logger;
-import javax.ws.rs.core.MediaType;
-import org.apache.commons.codec.binary.Hex;
-import org.apache.commons.codec.digest.DigestUtils;
-import ztreamy.Event;
 
 /**
  * Clase para transmitir los registros de actividad por Ztreamy.
@@ -37,11 +32,11 @@ public class ActivityLogHermesZtreamyFacade extends AbstractHermesZtreamyFacade<
     private static final Logger LOG = Logger.getLogger(ActivityLogHermesZtreamyFacade.class.getName());
 
     public ActivityLogHermesZtreamyFacade(ActivityLog activityLog, Person person, String url) throws MalformedURLException, HermesException {
-        super(activityLog, person, url);
+        super(activityLog, person, url, STEPS_DATA);
     }
 
     public ActivityLogHermesZtreamyFacade(Collection<ActivityLog> collectionActivityLog, Person person, String url) throws MalformedURLException, HermesException {
-        super(collectionActivityLog, person, url, false);
+        super(collectionActivityLog, person, url, STEPS_DATA, false);
     }
 
     @Override
@@ -91,16 +86,6 @@ public class ActivityLogHermesZtreamyFacade extends AbstractHermesZtreamyFacade<
         collectionActivityLog.add(activityLog);
 
         return getBodyObject(collectionActivityLog);
-    }
-
-    @Override
-    public Event prepareEvent() {
-        LOG.log(Level.INFO, "init() - Preparando el envío de datos de pasos por Ztreamy de: {0}", getPerson().getFullName());
-        String sha = getPerson().getSha();
-        if (sha == null || sha.length() == 0) {
-            sha = new String(Hex.encodeHex(DigestUtils.sha256(getPerson().getEmail())));
-        }
-        return new Event(sha, MediaType.APPLICATION_JSON, Constants.getInstance().getConfigurationValueByKey("ZtreamyContextApplicationId"), STEPS_DATA);
     }
 
     @Override

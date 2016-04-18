@@ -19,12 +19,7 @@ import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
-import java.util.logging.Level;
 import java.util.logging.Logger;
-import javax.ws.rs.core.MediaType;
-import org.apache.commons.codec.binary.Hex;
-import org.apache.commons.codec.digest.DigestUtils;
-import ztreamy.Event;
 
 /**
  * Clase para transmitir los registros de ritmo cardíaco por Ztreamy.
@@ -38,11 +33,11 @@ public class HealthLogHermesZtreamyFacade extends AbstractHermesZtreamyFacade<He
     private static final Logger LOG = Logger.getLogger(HealthLogHermesZtreamyFacade.class.getName());
 
     public HealthLogHermesZtreamyFacade(HealthLog healthLog, Person person, String url) throws MalformedURLException, HermesException {
-        super(healthLog, person, url);
+        super(healthLog, person, url, HEART_RATE_DATA);
     }
 
     public HealthLogHermesZtreamyFacade(Collection<HealthLog> collectionHealthLog, Person person, String url) throws MalformedURLException, HermesException {
-        super(collectionHealthLog, person, url, false);
+        super(collectionHealthLog, person, url, HEART_RATE_DATA, false);
     }
 
     @Override
@@ -92,16 +87,6 @@ public class HealthLogHermesZtreamyFacade extends AbstractHermesZtreamyFacade<He
         collectionHealthLog.add(healthLog);
 
         return getBodyObject(collectionHealthLog);
-    }
-
-    @Override
-    public Event prepareEvent() {
-        LOG.log(Level.INFO, "init() - Preparando el envío de datos de ritmo cardíaco por Ztreamy de: {0}", getPerson().getFullName());
-        String sha = getPerson().getSha();
-        if (sha == null || sha.length() == 0) {
-            sha = new String(Hex.encodeHex(DigestUtils.sha256(getPerson().getEmail())));
-        }
-        return new Event(sha, MediaType.APPLICATION_JSON, Constants.getInstance().getConfigurationValueByKey("ZtreamyHeartRateApplicationId"), HEART_RATE_DATA);
     }
 
     @Override

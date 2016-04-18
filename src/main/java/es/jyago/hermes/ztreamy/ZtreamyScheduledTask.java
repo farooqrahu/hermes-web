@@ -7,9 +7,6 @@ package es.jyago.hermes.ztreamy;
 
 import es.jyago.hermes.activityLog.ActivityLog;
 import es.jyago.hermes.activityLog.ActivityLogHermesZtreamyFacade;
-import es.jyago.hermes.contextLog.ContextLog;
-import es.jyago.hermes.contextLog.ContextLogDetail;
-import es.jyago.hermes.contextLog.ContextLogHermesZtreamyFacade;
 import es.jyago.hermes.healthLog.HealthLog;
 import es.jyago.hermes.healthLog.HealthLogHermesZtreamyFacade;
 import es.jyago.hermes.heartLog.HeartLog;
@@ -33,17 +30,17 @@ public class ZtreamyScheduledTask {
 
     private static final Logger LOG = Logger.getLogger(ZtreamyScheduledTask.class.getName());
 
-    // Cantidad máxima de elementos que se enviará por Ztreamy en cada conexión.
-    private static final int PACKET_SIZE = 250;
-
     @Inject
     private es.jyago.hermes.activityLog.ActivityLogFacade activityLogFacade;
     @Inject
     private es.jyago.hermes.sleepLog.SleepLogFacade sleepLogFacade;
     @Inject
     private es.jyago.hermes.healthLog.HealthLogFacade healthLogFacade;
-    @Inject
-    private es.jyago.hermes.contextLog.ContextLogFacade contextLogFacade;
+    // JYFR - Inicio
+    // 18-04-2016: Los datos de contexto se enviarán mediante la aplicación de SmartCitizen.
+//    @Inject
+//    private es.jyago.hermes.contextLog.ContextLogFacade contextLogFacade;
+    // JYFR - Fin
 
     @PostConstruct
     public void onStartup() {
@@ -126,23 +123,26 @@ public class ZtreamyScheduledTask {
             }
         }
 
-        //////////////
-        // CONTEXTO //
-        //////////////
-        for (ContextLog cl : contextLogFacade.findNotSent()) {
-            try {
-                ContextLogHermesZtreamyFacade contextLogZtreamy = new ContextLogHermesZtreamyFacade(cl, cl.getPerson(), url);
-                if (contextLogZtreamy.send()) {
-                    LOG.log(Level.INFO, "run() - Datos de contexto del día {0} enviados correctamente", Constants.df.format(cl.getDateLog()));
-                    for (ContextLogDetail cld : cl.getContextLogDetailList()) {
-                        cld.setSent(true);
-                    }
-                    cl.setSent(true);
-                    contextLogFacade.getEntityManager().persist(cl);
-                }
-            } catch (HermesException | IOException ex) {
-                LOG.log(Level.SEVERE, "run() - Error al enviar por Ztreamy automáticamente los datos de contexto de " + cl.getPerson().toString(), ex);
-            }
-        }
+        // JYFR - Inicio
+        // 18-04-2016: Los datos de contexto se enviarán mediante la aplicación de SmartCitizen.
+//        //////////////
+//        // CONTEXTO //
+//        //////////////
+//        for (ContextLog cl : contextLogFacade.findNotSent()) {
+//            try {
+//                ContextLogHermesZtreamyFacade contextLogZtreamy = new ContextLogHermesZtreamyFacade(cl, cl.getPerson(), url);
+//                if (contextLogZtreamy.send()) {
+//                    LOG.log(Level.INFO, "run() - Datos de contexto del día {0} enviados correctamente", Constants.df.format(cl.getDateLog()));
+//                    for (ContextLogDetail cld : cl.getContextLogDetailList()) {
+//                        cld.setSent(true);
+//                    }
+//                    cl.setSent(true);
+//                    contextLogFacade.getEntityManager().persist(cl);
+//                }
+//            } catch (HermesException | IOException ex) {
+//                LOG.log(Level.SEVERE, "run() - Error al enviar por Ztreamy automáticamente los datos de contexto de " + cl.getPerson().toString(), ex);
+//            }
+//        }
+        // JYFR- Fin
     }
 }

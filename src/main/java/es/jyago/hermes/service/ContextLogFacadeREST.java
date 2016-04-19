@@ -174,6 +174,7 @@ public class ContextLogFacadeREST extends AbstractFacade<ContextLog> {
                     for (AndroidContextDetail acd : androidContext.getItems()) {
                         acdList.addAll(createContextLogDetail(acd, contextLog));
                     }
+                    List<ContextLogDetail> removeList = new ArrayList();
                     for (ContextLogDetail cld : contextLog.getContextLogDetailList()) {
                         for (int i = acdList.size() - 1; i >= 0; i--) {
                             ContextLogDetail newAcd = acdList.get(i);
@@ -194,11 +195,12 @@ public class ContextLogFacadeREST extends AbstractFacade<ContextLog> {
                                     cld.setDetectedActivity(newAcd.getDetectedActivity());
                                     cld.setSent(false);
                                 }
-                                acdList.remove(i);
+                                removeList.add(acdList.get(i));
                                 break;
                             }
                         }
                     }
+                    acdList.removeAll(removeList);
                     contextLog.getContextLogDetailList().addAll(acdList);
                     contextLog.setSent(false);
                 } else {

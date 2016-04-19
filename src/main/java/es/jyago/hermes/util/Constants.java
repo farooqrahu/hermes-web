@@ -106,7 +106,9 @@ public class Constants {
     public static final Date FITBIT_RELEASE_DATE = new Date(1367366400000l); // 01/05/2013 Fitbit estrenó su pulsera en mayo de 2013. No puede haber datos anteriores a esa fecha.
 
     public String getVersion() {
-        return configurationController.getValueFromItemByKey("Version");
+//        return configurationController.getValueFromItemByKey("Version");
+        // La devolveremos del código en lugar de la B.D.
+        return "0.6.5";
     }
 
     public boolean isDebug() {

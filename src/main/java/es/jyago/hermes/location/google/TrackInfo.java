@@ -6,10 +6,11 @@ public class TrackInfo {
 
     private SimpleStep summary;
     private List<SimpleStep> simpleStepList;
+    private int totalLocations;
 
     public TrackInfo() {
     }
-
+    
     public SimpleStep getSummary() {
         return summary;
     }
@@ -24,5 +25,13 @@ public class TrackInfo {
 
     public void setSimpleStepList(List<SimpleStep> simpleStepList) {
         this.simpleStepList = simpleStepList;
+    }
+
+    public int getTotalLocations() {
+        return totalLocations;
+    }
+
+    public void setTotalLocations(int totalLocations) {
+        this.totalLocations = totalLocations;
     }
 }

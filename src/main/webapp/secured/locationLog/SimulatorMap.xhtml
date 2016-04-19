@@ -68,6 +68,12 @@
                                     </f:facet>
                                     <h:outputText value="#{item.summary.formattedTime}" style="float:right"/>
                                 </p:column>
+                                <p:column sortBy="#{item.totalLocations}" style="width:80px;">
+                                    <f:facet name="header">
+                                        <h:outputText value="#{bundle.TotalLocations}" title="#{bundle.TotalLocations}" escape="false" style="white-space:pre-line;"/>
+                                    </f:facet>
+                                    <h:outputText value="#{item.totalLocations}" style="float:right"/>
+                                </p:column>
                                 <p:column sortBy="#{item.summary.startAddress}">
                                     <f:facet name="header">
                                         <h:outputText value="#{bundle.StartAddress}" title="#{bundle.StartAddress}" escape="false" style="white-space:pre-line;"/>

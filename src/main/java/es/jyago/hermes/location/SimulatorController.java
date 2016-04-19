@@ -1,6 +1,7 @@
 package es.jyago.hermes.location;
 
 import com.google.gson.Gson;
+import es.jyago.hermes.location.detail.LocationLogDetail;
 import es.jyago.hermes.location.google.GeocodedWaypoints;
 import es.jyago.hermes.location.google.Leg;
 import es.jyago.hermes.location.google.Location;
@@ -9,12 +10,14 @@ import es.jyago.hermes.location.google.Route;
 import es.jyago.hermes.location.google.SimpleStep;
 import es.jyago.hermes.location.google.Step;
 import es.jyago.hermes.location.google.TrackInfo;
+import es.jyago.hermes.util.Constants;
 import java.io.IOException;
 import java.io.Serializable;
 import java.net.URL;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Random;
+import java.util.ResourceBundle;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 import javax.annotation.PostConstruct;
@@ -76,9 +79,10 @@ public class SimulatorController implements Serializable {
                 Gson gson = new Gson();
                 GeocodedWaypoints gcwp = gson.fromJson(json, GeocodedWaypoints.class);
                 TrackInfo trackInfo = createTrack(gcwp);
-                if (trackInfo != null)
+                if (trackInfo != null) {
                     trackInfoList.add(trackInfo);
-                
+                }
+
 //            Circle circle1 = new Circle(originLatLng, distance * 1000);
 //            circle1.setStrokeColor("#d93c3c");
 //            circle1.setFillColor("#d93c3c");
@@ -102,7 +106,9 @@ public class SimulatorController implements Serializable {
             Polyline polyline = new Polyline();
             polyline.setStrokeWeight(4);
             polyline.setStrokeOpacity(0.7);
-            polyline.setStrokeColor("#00FF00");
+//            polyline.setStrokeColor("#00FF00");
+            Random rand = new Random();
+            polyline.setStrokeColor(String.format("#%02x", rand.nextInt(0x100)) + "FF" + String.format("%02x", rand.nextInt(0x100)));
 
             for (Route r : gcwp.getRoutes()) {
                 if (r.getLegs() != null) {
@@ -115,6 +121,7 @@ public class SimulatorController implements Serializable {
                         summary.setEndLocation(l.getEndLocation());
                         summary.setEndAddress(l.getEndAddress());
                         trackInfo.setSummary(summary);
+                        int totalLocations = 2;
 
                         if (l.getSteps() != null) {
                             for (Step s : l.getSteps()) {
@@ -127,21 +134,25 @@ public class SimulatorController implements Serializable {
                                         for (Location location : plist) {
                                             LatLng ll = new LatLng(location.getLat(), location.getLng());
                                             polyline.getPaths().add(ll);
+                                            totalLocations++;
+                                            simulatedMapModel.addOverlay(createMarker(location, false, "https://maps.google.com/mapfiles/ms/micons/red.png"));
                                         }
                                     }
                                 }
                                 Location end = s.getEndLocation();
                                 LatLng lle = new LatLng(end.getLat(), end.getLng());
                                 polyline.getPaths().add(lle);
-//                    mapModel.addOverlay(createMarker(locationLogDetail, false, "https://maps.google.com/mapfiles/ms/micons/red.png"));
+                                totalLocations++;
+                                simulatedMapModel.addOverlay(createMarker(end, false, "https://maps.google.com/mapfiles/ms/micons/red.png"));
                             }
                         }
+                        trackInfo.setTotalLocations(totalLocations);
                     }
                 }
             }
             simulatedMapModel.addOverlay(polyline);
         }
-        
+
         return trackInfo;
     }
 
@@ -171,6 +182,23 @@ public class SimulatorController implements Serializable {
         result.setLng(foundLongitude);
 
         return result;
+    }
+
+    private Marker createMarker(Location location, boolean showMarker, String iconUrl) {
+        LatLng ll = new LatLng(location.getLat(), location.getLng());
+
+        StringBuilder sb = new StringBuilder();
+//        sb.append(ResourceBundle.getBundle("/Bundle").getString("Time")).append(": ").append(Constants.dfTime.format(location.getTimeLog()));
+//        sb.append(" ");
+//        sb.append(ResourceBundle.getBundle("/Bundle").getString("HeartRate")).append(": ").append(Integer.toString(location.getHeartRate()));
+//        sb.append(" ");
+//        sb.append(ResourceBundle.getBundle("/Bundle").getString("Speed")).append(": ").append(location.getSpeed());
+//        sb.append(" (").append(location.getLatitude()).append(", ").append(location.getLongitude()).append(")");
+
+        Marker m = new Marker(ll, sb.toString(), location, iconUrl);
+        m.setVisible(showMarker);
+
+        return m;
     }
 
     public int getDistance() {

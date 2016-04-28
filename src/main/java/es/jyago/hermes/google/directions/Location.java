@@ -1,5 +1,5 @@
 
-package es.jyago.hermes.location.google;
+package es.jyago.hermes.google.directions;
 
 import javax.annotation.Generated;
 import com.google.gson.annotations.Expose;

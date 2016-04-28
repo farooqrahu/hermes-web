@@ -1,8 +1,3 @@
-/*
- * To change this license header, choose License Headers in Project Properties.
- * To change this template file, choose Tools | Templates
- * and open the template in the editor.
- */
 package es.jyago.hermes.contextLog;
 
 import es.jyago.hermes.person.Person;
@@ -37,10 +32,7 @@ import org.apache.commons.lang.builder.EqualsBuilder;
 import org.apache.commons.lang.builder.HashCodeBuilder;
 import org.primefaces.model.chart.PieChartModel;
 
-/**
- *
- * @author Jorge Yago
- */
+
 @Entity
 @Table(name = "context_log")
 @XmlRootElement

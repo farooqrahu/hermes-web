@@ -1,8 +1,3 @@
-/*
- * To change this license header, choose License Headers in Project Properties.
- * To change this template file, choose Tools | Templates
- * and open the template in the editor.
- */
 package es.jyago.hermes.alert;
 
 import es.jyago.hermes.activityLog.ActivityLog;
@@ -41,10 +36,6 @@ import org.joda.time.DateTimeConstants;
 import org.joda.time.Days;
 import org.joda.time.LocalDate;
 
-/**
- *
- * @author Jorge Yago
- */
 @Entity
 @Table(name = "alert")
 @XmlRootElement

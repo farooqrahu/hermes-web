@@ -1,18 +1,10 @@
-/*
- * To change this license header, choose License Headers in Project Properties.
- * To change this template file, choose Tools | Templates
- * and open the template in the editor.
- */
 package es.jyago.hermes.location;
 
 import org.supercsv.cellprocessor.ParseDouble;
 import org.supercsv.cellprocessor.ParseInt;
 import org.supercsv.cellprocessor.ift.CellProcessor;
 
-/**
- *
- * @author Jorge Yago
- */
+
 public class LocationLogCSV2 extends LocationLogCSV {
 
     private static final long serialVersionUID = 1L;

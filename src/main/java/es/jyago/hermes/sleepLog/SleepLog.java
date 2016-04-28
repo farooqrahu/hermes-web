@@ -1,8 +1,3 @@
-/*
- * To change this license header, choose License Headers in Project Properties.
- * To change this template file, choose Tools | Templates
- * and open the template in the editor.
- */
 package es.jyago.hermes.sleepLog;
 
 import com.fasterxml.jackson.annotation.JsonIgnore;
@@ -32,10 +27,7 @@ import org.apache.commons.lang.builder.HashCodeBuilder;
 import org.primefaces.model.chart.BarChartModel;
 import org.primefaces.model.chart.ChartSeries;
 
-/**
- *
- * @author Jorge Yago
- */
+
 @Entity
 @Table(name = "sleep_log", uniqueConstraints = @UniqueConstraint(columnNames = {"date_log", "person_id"}))
 @XmlRootElement

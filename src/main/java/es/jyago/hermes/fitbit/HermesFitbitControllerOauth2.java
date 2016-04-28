@@ -31,9 +31,7 @@ import org.joda.time.Days;
 import org.joda.time.LocalDate;
 import org.joda.time.LocalTime;
 
-/**
- * @author Jorge Yago
- */
+
 public class HermesFitbitControllerOauth2 {
 
     private static final String[] scopes = new String[]{

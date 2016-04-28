@@ -1,8 +1,3 @@
-/*
- * To change this license header, choose License Headers in Project Properties.
- * To change this template file, choose Tools | Templates
- * and open the template in the editor.
- */
 package es.jyago.hermes.login;
 
 import java.io.IOException;
@@ -21,8 +16,6 @@ import javax.servlet.http.HttpServletResponse;
  * Filtro de acceso por rol de ADMINISTRADOR. Para cualquier petición de URL, si
  * el usuario no es ADMINISTRADOR, se le manda a la página de inicio. Las URLs
  * que se filtrarán se definen en el 'web.xml'.
- *
- * @author Jorge Yago
  */
 public class AdminRoleFilter implements Filter {
 

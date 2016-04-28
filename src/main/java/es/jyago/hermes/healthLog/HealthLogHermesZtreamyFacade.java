@@ -1,8 +1,3 @@
-/*
- * To change this license header, choose License Headers in Project Properties.
- * To change this template file, choose Tools | Templates
- * and open the template in the editor.
- */
 package es.jyago.hermes.healthLog;
 
 import es.jyago.hermes.heartLog.HeartLog;
@@ -22,9 +17,7 @@ import java.util.Map;
 import java.util.logging.Logger;
 
 /**
- * Clase para transmitir los registros de ritmo cardíaco por Ztreamy.
- *
- * @author Jorge Yago
+ * Clase para transmitir los registros de ritmo cardíaco por Ztreamy. 
  */
 public class HealthLogHermesZtreamyFacade extends AbstractHermesZtreamyFacade<HealthLog> {
     

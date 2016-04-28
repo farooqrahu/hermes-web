@@ -25,10 +25,10 @@
 
                 <c:otherwise>
                     <!-- FIXME: Poner 'fitBounds' cuando se corrija el 'bug' que tiene Primefaces con Google Maps -->
-                    <p:gmap id="gmap" widgetVar="gmap" center="#{simulatorController.markerLatitudeLongitude}" zoom="10" type="ROADMAP" model="#{simulatorController.simulatedMapModel}" style="height:500px" fitBounds="true">
+                    <p:gmap id="gmap" widgetVar="gmap" center="#{simulatorController.markerLatitudeLongitude}" zoom="10" type="ROADMAP" model="#{simulatorController.simulatedMapModel}" style="height:400px" fitBounds="true">
                     </p:gmap>
                     <div style="width: 100%; display: flex;">
-                        <p:panel header="#{bundle.TrackConditions}" style="width: 280px; margin: 10px">
+                        <p:panel header="#{bundle.TrackConditions}" style="width: 30%; margin: 10px">
                             <h:panelGrid columns="1">
                                 <h:outputText value="#{bundle.DistanceFromSevilleCenter} (Km)" />
                                 <p:inputText id="distanceFromSevilleCenter" value="#{simulatorController.distanceFromSevilleCenter}" />
@@ -39,6 +39,8 @@
                                 <h:outputText value="#{bundle.TracksAmount}" />
                                 <p:inputText id="tracksAmount" value="#{simulatorController.tracksAmount}" />
                                 <p:slider for="tracksAmount" minValue="1" maxValue="100"/>
+                                <p:outputLabel value="#{bundle.CreateSimulatedUser}" for="createSimulatedUser" />
+                                <p:selectBooleanCheckbox id="createSimulatedUser" value="#{simulatorController.createSimulatedUser}" />
                             </h:panelGrid>
                             <p:commandButton value="#{bundle.GenerateTracks}" action="#{simulatorController.generateSimulatedTracks()}" update="gmap, trackInfoPanel"/>
                         </p:panel>
@@ -68,11 +70,27 @@
                                     </f:facet>
                                     <h:outputText value="#{item.summary.formattedTime}" style="float:right"/>
                                 </p:column>
-                                <p:column sortBy="#{item.totalLocations}" style="width:80px;">
+                                <p:column sortBy="#{item.totalLocations}" style="width:50px;">
                                     <f:facet name="header">
-                                        <h:outputText value="#{bundle.TotalLocations}" title="#{bundle.TotalLocations}" escape="false" style="white-space:pre-line;"/>
+                                        <h:outputText value="NºLoc" title="#{bundle.TotalLocations}" escape="false" style="white-space:pre-line;"/>
                                     </f:facet>
                                     <h:outputText value="#{item.totalLocations}" style="float:right"/>
+                                </p:column>
+                                <p:column sortBy="#{item.averageLocationsDistance}" style="width:50px;">
+                                    <f:facet name="header">
+                                        <h:outputText value="AvgD" title="#{bundle.AverageLocationsDistance}" escape="false" style="white-space:pre-line;"/>
+                                    </f:facet>
+                                    <h:outputText value="#{item.averageLocationsDistance}" style="float:right">
+                                            <f:convertNumber pattern="#0.00m"/>
+                                    </h:outputText>
+                                </p:column>
+                                <p:column sortBy="#{item.maximumLocationsDistance}" style="width:50px;">
+                                    <f:facet name="header">
+                                        <h:outputText value="MaxD" title="#{bundle.MaximumLocationsDistance}" escape="false" style="white-space:pre-line;"/>
+                                    </f:facet>
+                                    <h:outputText value="#{item.maximumLocationsDistance}" style="float:right">
+                                        <f:convertNumber pattern="#0.00m"/>
+                                    </h:outputText>
                                 </p:column>
                                 <p:column sortBy="#{item.summary.startAddress}">
                                     <f:facet name="header">

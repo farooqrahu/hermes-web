@@ -1,8 +1,3 @@
-/*
- * To change this license header, choose License Headers in Project Properties.
- * To change this template file, choose Tools | Templates
- * and open the template in the editor.
- */
 package es.jyago.hermes.util;
 
 import java.util.Map;
@@ -17,8 +12,6 @@ import javax.faces.convert.FacesConverter;
 /**
  * Clase para la conversión de objetos al usar la etiqueta 'p:pickList', ya que
  * por defecto, usa 'String' para todo.
- *
- * @author Jorge Yago
  */
 @FacesConverter(value = "entityConverter")
 public class EntityConverter implements Converter {

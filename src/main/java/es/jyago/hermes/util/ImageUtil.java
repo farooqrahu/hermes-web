@@ -6,10 +6,7 @@ import java.io.IOException;
 import java.net.URL;
 import javax.imageio.ImageIO;
 
-/**
- *
- * @author Jorge Yago
- */
+
 public class ImageUtil {
 
     public static byte[] getPhotoImageAsByteArray(URL url) throws IOException {

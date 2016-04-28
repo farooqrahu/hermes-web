@@ -7,8 +7,6 @@ import java.util.ResourceBundle;
  * Excepción controlada para Hermes. Su uso será para poder mostrar mensajes
  * informativos internacionalizados al usuario, de posibles excepciones de
  * cualquier tipo que pudieran ocurrir en el sistema.
- *
- * @author Jorge Yago
  */
 public class HermesException extends Exception {
 

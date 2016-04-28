@@ -30,8 +30,7 @@ import org.joda.time.Interval;
 import org.joda.time.LocalDate;
 
 /**
- *
- * @author Jorge Yago Ejemplo de URL para probar:
+ * Ejemplo de URL para probar:
  * http://localhost:8080/HermesWeb/webresources/hermes.citizen.context/create
  * Pasándole el JSON correspondiente. Es útil el plugin de Chrome: Advanced REST
  * Client

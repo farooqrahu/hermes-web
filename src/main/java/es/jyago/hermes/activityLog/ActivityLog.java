@@ -1,8 +1,3 @@
-/*
- * To change this license header, choose License Headers in Project Properties.
- * To change this template file, choose Tools | Templates
- * and open the template in the editor.
- */
 package es.jyago.hermes.activityLog;
 
 import es.jyago.hermes.person.Person;
@@ -47,10 +42,6 @@ import org.primefaces.model.chart.AxisType;
 import org.primefaces.model.chart.LineChartModel;
 import org.primefaces.model.chart.LineChartSeries;
 
-/**
- *
- * @author Jorge Yago
- */
 @Entity
 @Table(name = "activity_log", uniqueConstraints = @UniqueConstraint(columnNames = {"date_log", "person_id"}))
 @XmlRootElement

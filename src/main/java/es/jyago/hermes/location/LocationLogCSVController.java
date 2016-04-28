@@ -1,8 +1,3 @@
-/*
- * To change this license header, choose License Headers in Project Properties.
- * To change this template file, choose Tools | Templates
- * and open the template in the editor.
- */
 package es.jyago.hermes.location;
 
 import es.jyago.hermes.csv.ICSVController;
@@ -18,10 +13,7 @@ import java.util.logging.Logger;
 import org.primefaces.model.UploadedFile;
 import org.supercsv.prefs.CsvPreference;
 
-/**
- *
- * @author Jorge Yago
- */
+
 public class LocationLogCSVController implements ICSVController<LocationLogCSV> {
 
     private static final Logger LOG = Logger.getLogger(LocationLogCSVController.class.getName());

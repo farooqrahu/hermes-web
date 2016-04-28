@@ -1,8 +1,3 @@
-/*
- * To change this license header, choose License Headers in Project Properties.
- * To change this template file, choose Tools | Templates
- * and open the template in the editor.
- */
 package es.jyago.hermes.csv;
 
 import es.jyago.hermes.util.HermesException;
@@ -26,10 +21,7 @@ import org.supercsv.io.ICsvBeanWriter;
 import org.supercsv.io.ICsvListReader;
 import org.supercsv.prefs.CsvPreference;
 
-/**
- *
- * @author Jorge Yago
- */
+
 public class CSVUtil<T> {
 
     private static final Logger LOG = Logger.getLogger(CSVUtil.class.getName());

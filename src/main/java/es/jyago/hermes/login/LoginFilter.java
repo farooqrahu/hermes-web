@@ -1,8 +1,3 @@
-/*
- * To change this license header, choose License Headers in Project Properties.
- * To change this template file, choose Tools | Templates
- * and open the template in the editor.
- */
 package es.jyago.hermes.login;
 
 import java.io.IOException;
@@ -18,8 +13,6 @@ import javax.servlet.http.HttpServletResponse;
 /**
  * Filtro de acceso. Para cualquier petición de URL, si el usuario no está
  * registrado se le manda a la página de inicio.
- *
- * @author Jorge Yago
  */
 public class LoginFilter implements Filter {
 

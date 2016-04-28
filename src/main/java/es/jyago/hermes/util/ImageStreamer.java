@@ -1,8 +1,3 @@
-/*
- * To change this license header, choose License Headers in Project Properties.
- * To change this template file, choose Tools | Templates
- * and open the template in the editor.
- */
 package es.jyago.hermes.util;
 
 import es.jyago.hermes.person.Person;
@@ -20,8 +15,6 @@ import org.primefaces.model.StreamedContent;
 /**
  * ManagedBean para obtener las fotos de las personas como 'StreamedContent' a
  * partir de los 'blob' de la base de datos.
- *
- * @author Jorge Yago
  */
 // JYFR: Tiene que ser @ManagedBean en lugar de @Named para que pueda gestionarlo PrimeFaces.
 @ManagedBean

@@ -1,8 +1,3 @@
-/*
- * To change this license header, choose License Headers in Project Properties.
- * To change this template file, choose Tools | Templates
- * and open the template in the editor.
- */
 package es.jyago.hermes.ztreamy;
 
 import es.jyago.hermes.person.Person;
@@ -25,11 +20,6 @@ import ztreamy.Publisher;
 import ztreamy.Event;
 import ztreamy.JSONSerializer;
 
-/**
- *
- * @author Jorge Yago
- * @param <T>
- */
 public abstract class AbstractHermesZtreamyFacade<T> {
 
     private static final Logger LOG = Logger.getLogger(AbstractHermesZtreamyFacade.class.getName());

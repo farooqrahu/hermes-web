@@ -1,8 +1,3 @@
-/*
- * To change this license header, choose License Headers in Project Properties.
- * To change this template file, choose Tools | Templates
- * and open the template in the editor.
- */
 package es.jyago.hermes.location;
 
 import es.jyago.hermes.bean.LocaleBean;
@@ -13,6 +8,7 @@ import es.jyago.hermes.person.Person;
 import es.jyago.hermes.util.Constants;
 import es.jyago.hermes.util.HermesException;
 import es.jyago.hermes.util.JsfUtil;
+import es.jyago.hermes.util.Util;
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.IOException;
@@ -63,10 +59,7 @@ import org.primefaces.model.map.Marker;
 import org.primefaces.model.map.Polyline;
 import org.supercsv.prefs.CsvPreference;
 
-/**
- *
- * @author Jorge Yago
- */
+
 @Named("locationLogController")
 @SessionScoped
 public class LocationLogController implements Serializable, ICSVController<IntervalData> {
@@ -356,7 +349,7 @@ public class LocationLogController implements Serializable, ICSVController<Inter
                         decelerationStats.addValue(currentAcceleration);
                     }
                     if (lldPrev.getLatitude() != 0.0d && lldPrev.getLongitude() != 0.0d) {
-                        length += distFrom(lldPrev.getLatitude(), lldPrev.getLongitude(), lld.getLatitude(), lld.getLongitude());
+                        length += Util.distanceHaversine(lldPrev.getLatitude(), lldPrev.getLongitude(), lld.getLatitude(), lld.getLongitude());
                         // Análisis del PKE (Positive Kinetic Energy)
                         cummulativePositiveSpeeds += analyzePKE(lld, lldPrev);
                     }
@@ -427,7 +420,7 @@ public class LocationLogController implements Serializable, ICSVController<Inter
             double length = 0.0d;
             double cummulativePositiveSpeeds = 0.0d;
             LocationLogDetail lldPrev = ll.getLocationLogDetailList().get(0);
-            double currentMinDistance = distFrom(lldPrev.getLatitude(), lldPrev.getLongitude(), selectedInterval.getStartLatitude(), selectedInterval.getStartLongitude());
+            double currentMinDistance = Util.distanceHaversine(lldPrev.getLatitude(), lldPrev.getLongitude(), selectedInterval.getStartLatitude(), selectedInterval.getStartLongitude());
             Date timeAtStart = lldPrev.getTimeLog();
             double speedAtStart = lldPrev.getSpeed();
             int heartRateAtStart = lldPrev.getHeartRate();
@@ -455,7 +448,7 @@ public class LocationLogController implements Serializable, ICSVController<Inter
                 if (enterInterval) {
                     currentMinDistance = checkInOutInterval(lld, selectedInterval.getEndLatitude(), selectedInterval.getEndLongitude(), currentMinDistance);
                     if (currentMinDistance != 0.0d && length <= selectedInterval.getLength()) {
-                        length += distFrom(lldPrev.getLatitude(), lldPrev.getLongitude(), lld.getLatitude(), lld.getLongitude());
+                        length += Util.distanceHaversine(lldPrev.getLatitude(), lldPrev.getLongitude(), lld.getLatitude(), lld.getLongitude());
                         // Análisis del PKE (Positive Kinetic Energy)
                         speedStats.addValue(lld.getSpeed());
                         heartRateStats.addValue(lld.getHeartRate());
@@ -629,7 +622,7 @@ public class LocationLogController implements Serializable, ICSVController<Inter
             // Sólo consideramos el registro si tiene datos válidos.
             if (lld.getLatitude() != 0.0d && lld.getLongitude() != 0.0d) {
                 if (lldPrev.getLatitude() != 0.0d && lldPrev.getLongitude() != 0.0d) {
-                    cummulativeLength += distFrom(lldPrev.getLatitude(), lldPrev.getLongitude(), lld.getLatitude(), lld.getLongitude());
+                    cummulativeLength += Util.distanceHaversine(lldPrev.getLatitude(), lldPrev.getLongitude(), lld.getLatitude(), lld.getLongitude());
                 }
                 if (cummulativeLength >= length) {
                     // Ya se ha recorrido la distancia del tramo hacia atrás.
@@ -687,7 +680,7 @@ public class LocationLogController implements Serializable, ICSVController<Inter
     }
 
     private double checkInOutInterval(LocationLogDetail lld, double latitude, double longitude, double currentMinDistance) {
-        double distanceFromIntervalStart = distFrom(lld.getLatitude(), lld.getLongitude(), latitude, longitude);
+        double distanceFromIntervalStart = Util.distanceHaversine(lld.getLatitude(), lld.getLongitude(), latitude, longitude);
 
         // Definimos un margen de 50m para empezar a analizar las posiciones, es decir, si la distancia hasta el inicio del tramo es menor que este margen,
         // comenzamos a analizar los puntos.
@@ -718,22 +711,6 @@ public class LocationLogController implements Serializable, ICSVController<Inter
         }
 
         return 0.0d;
-    }
-
-    // Implementación de la Fórmula de Haversine.
-    // https://es.wikipedia.org/wiki/Fórmula_del_Haversine
-    private double distFrom(double lat1, double lng1, double lat2, double lng2) {
-        double earthRadius = 6371000.0d;
-        double dLat = Math.toRadians(lat2 - lat1);
-        double dLng = Math.toRadians(lng2 - lng1);
-        double sindLat = Math.sin(dLat / 2);
-        double sindLng = Math.sin(dLng / 2);
-        double a = Math.pow(sindLat, 2) + Math.pow(sindLng, 2)
-                * Math.cos(Math.toRadians(lat1)) * Math.cos(Math.toRadians(lat2));
-        double c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
-        double dist = earthRadius * c;
-
-        return dist;
     }
 
     public List<IntervalData> getIntervalDataList() {

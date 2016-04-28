@@ -1,5 +1,5 @@
 
-package es.jyago.hermes.location.google;
+package es.jyago.hermes.google.directions;
 
 import javax.annotation.Generated;
 import com.google.gson.annotations.Expose;
@@ -17,21 +17,12 @@ public class Step {
     @SerializedName("end_location")
     @Expose
     private Location endLocation;
-//    @SerializedName("html_instructions")
-//    @Expose
-//    private String htmlInstructions;
     @SerializedName("polyline")
     @Expose
     private Polyline polyline;
     @SerializedName("start_location")
     @Expose
     private Location startLocation;
-    @SerializedName("travel_mode")
-    @Expose
-    private String travelMode;
-    @SerializedName("maneuver")
-    @Expose
-    private String maneuver;
 
     /**
      * 
@@ -87,24 +78,6 @@ public class Step {
         this.endLocation = endLocation;
     }
 
-//    /**
-//     * 
-//     * @return
-//     *     The htmlInstructions
-//     */
-//    public String getHtmlInstructions() {
-//        return htmlInstructions;
-//    }
-//
-//    /**
-//     * 
-//     * @param htmlInstructions
-//     *     The html_instructions
-//     */
-//    public void setHtmlInstructions(String htmlInstructions) {
-//        this.htmlInstructions = htmlInstructions;
-//    }
-
     /**
      * 
      * @return
@@ -139,42 +112,6 @@ public class Step {
      */
     public void setStartLocation(Location startLocation) {
         this.startLocation = startLocation;
-    }
-
-    /**
-     * 
-     * @return
-     *     The travelMode
-     */
-    public String getTravelMode() {
-        return travelMode;
-    }
-
-    /**
-     * 
-     * @param travelMode
-     *     The travel_mode
-     */
-    public void setTravelMode(String travelMode) {
-        this.travelMode = travelMode;
-    }
-
-    /**
-     * 
-     * @return
-     *     The maneuver
-     */
-    public String getManeuver() {
-        return maneuver;
-    }
-
-    /**
-     * 
-     * @param maneuver
-     *     The maneuver
-     */
-    public void setManeuver(String maneuver) {
-        this.maneuver = maneuver;
     }
 
 }

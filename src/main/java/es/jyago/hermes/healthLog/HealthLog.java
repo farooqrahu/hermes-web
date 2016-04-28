@@ -1,8 +1,3 @@
-/*
- * To change this license header, choose License Headers in Project Properties.
- * To change this template file, choose Tools | Templates
- * and open the template in the editor.
- */
 package es.jyago.hermes.healthLog;
 
 import es.jyago.hermes.heartLog.HeartLog;
@@ -50,10 +45,7 @@ import org.primefaces.model.chart.DateAxis;
 import org.primefaces.model.chart.LineChartModel;
 import org.primefaces.model.chart.LineChartSeries;
 
-/**
- *
- * @author Jorge Yago
- */
+
 @Entity
 @Table(name = "health_log", uniqueConstraints = @UniqueConstraint(columnNames = {"date_log", "person_id"}))
 @XmlRootElement

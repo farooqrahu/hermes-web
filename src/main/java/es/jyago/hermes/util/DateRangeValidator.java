@@ -1,8 +1,3 @@
-/*
- * To change this license header, choose License Headers in Project Properties.
- * To change this template file, choose Tools | Templates
- * and open the template in the editor.
- */
 package es.jyago.hermes.util;
 
 import java.util.Date;
@@ -20,8 +15,6 @@ import org.joda.time.LocalDate;
 /**
  * Clase de validación de un rango de fechas. Los atributos deben ser
  * 'startDate' y 'endDate'.
- *
- * @author Jorge Yago
  */
 @FacesValidator("dateRangeValidator")
 public class DateRangeValidator implements Validator {

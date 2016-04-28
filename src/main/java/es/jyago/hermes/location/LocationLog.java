@@ -1,8 +1,3 @@
-/*
- * To change this license header, choose License Headers in Project Properties.
- * To change this template file, choose Tools | Templates
- * and open the template in the editor.
- */
 package es.jyago.hermes.location;
 
 import es.jyago.hermes.location.detail.LocationLogDetail;
@@ -38,10 +33,7 @@ import org.apache.commons.lang.builder.EqualsBuilder;
 import org.apache.commons.lang.builder.HashCodeBuilder;
 import org.apache.commons.math3.stat.descriptive.DescriptiveStatistics;
 
-/**
- *
- * @author Jorge Yago
- */
+
 @Entity
 @Table(name = "location_log")
 @XmlRootElement

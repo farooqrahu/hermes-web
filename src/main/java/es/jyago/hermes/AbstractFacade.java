@@ -12,11 +12,6 @@ import javax.validation.ConstraintViolation;
 import javax.validation.Validation;
 import javax.validation.ValidatorFactory;
 
-/**
- *
- * @author Jorge Yago
- * @param <T>
- */
 public abstract class AbstractFacade<T> {
 
     private static final Logger LOG = Logger.getLogger(AbstractFacade.class.getName());
@@ -40,7 +35,7 @@ public abstract class AbstractFacade<T> {
             Iterator<ConstraintViolation<T>> iterator = constraintViolations.iterator();
             while (iterator.hasNext()) {
                 ConstraintViolation<T> cv = iterator.next();
-                LOG.log(Level.SEVERE, "constraintValidationsDetected() - Validación no superada: ", cv.getRootBeanClass().getName() + "." + cv.getPropertyPath() + " " + cv.getMessage());
+                LOG.log(Level.SEVERE, "constraintValidationsDetected() - Validación no superada: {0}.{1} {2}", new Object[]{cv.getRootBeanClass().getName(), cv.getPropertyPath(), cv.getMessage()});
 
                 JsfUtil.addErrorMessage(cv.getRootBeanClass().getSimpleName() + "." + cv.getPropertyPath() + " " + cv.getMessage());
             }

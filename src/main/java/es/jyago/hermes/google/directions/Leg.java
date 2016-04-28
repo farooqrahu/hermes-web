@@ -1,5 +1,5 @@
 
-package es.jyago.hermes.location.google;
+package es.jyago.hermes.google.directions;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -30,10 +30,7 @@ public class Leg {
     private Location startLocation;
     @SerializedName("steps")
     @Expose
-    private List<Step> steps = new ArrayList<Step>();
-    @SerializedName("via_waypoint")
-    @Expose
-    private List<Object> viaWaypoint = new ArrayList<Object>();
+    private List<Step> steps = new ArrayList<>();
 
     /**
      * 
@@ -159,24 +156,6 @@ public class Leg {
      */
     public void setSteps(List<Step> steps) {
         this.steps = steps;
-    }
-
-    /**
-     * 
-     * @return
-     *     The viaWaypoint
-     */
-    public List<Object> getViaWaypoint() {
-        return viaWaypoint;
-    }
-
-    /**
-     * 
-     * @param viaWaypoint
-     *     The via_waypoint
-     */
-    public void setViaWaypoint(List<Object> viaWaypoint) {
-        this.viaWaypoint = viaWaypoint;
     }
 
 }

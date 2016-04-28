@@ -1,4 +1,4 @@
-package es.jyago.hermes.location.google;
+package es.jyago.hermes.google.directions;
 
 import java.util.ArrayList;
 

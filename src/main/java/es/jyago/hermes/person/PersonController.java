@@ -554,7 +554,7 @@ public class PersonController implements Serializable, IFitbitFacade, ICSVContro
 
         try {
             // Los parámetros de configuración de Ztreamy estarán en la tabla de configuración.
-            String url = Constants.getInstance().getConfigurationValueByKey("ZtreamyStepsApplicationId");
+            String url = Constants.getInstance().getConfigurationValueByKey("ZtreamyUrl");
             List<ActivityLog> activityLogList = this.getSelected().getActivityLogList(startDate, endDate, aggregation);
             ActivityLogHermesZtreamyFacade activityLogZtreamy = new ActivityLogHermesZtreamyFacade(activityLogList, this.getSelected(), url);
             List<SleepLog> sleepLogList = this.getSelected().getSleepLogList(startDate, endDate);

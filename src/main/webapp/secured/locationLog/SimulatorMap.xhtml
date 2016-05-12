@@ -13,31 +13,6 @@
     </ui:define>
     <h:head>
         <h:outputScript name="locationLogMap.js" library="js"/>
-        <script>
-//            function handleComplete(xhr, status, args) {
-//                var g = PF('gmap').getMap();
-//                for (var i in g.markers)
-//                {
-////                    var newMarker = eval("args.marker" + i);
-//                    var oldMarker = g.markers[i];
-////                    oldMarker.icon = newMarker.icon;
-//                    oldMarker.setMap(g);
-//                }
-//            }
-//<![CDATA[
-function initUpdater(){
-            setInterval(function () {
-                var g = PF('gmap').getMap();
-                for (var i in g.markers)
-                {
-                    var oldMarker = g.markers[i];
-                    alert(oldMarker);
-                    oldMarker.setMap(g);
-                }
-            }, 1000);
-        }
-// ]]>
-        </script>
     </h:head>
     <h:body>
         <h:form id="PersonMapForm">
@@ -77,9 +52,12 @@ function initUpdater(){
                                     <f:selectItem itemValue="0" itemLabel="Google Maps"/>
                                     <f:selectItem itemValue="1" itemLabel="OpenStreetMap"/>
                                 </h:selectOneRadio>
+                                <p:commandButton value="#{bundle.GenerateTracks}" action="#{simulatorController.generateSimulatedTracks()}" update="gmap, trackInfoPanel"/>
+                                <h:outputText value="#{bundle.simulatedSmartDriversPerTrack}" />
+                                <p:inputText id="simulatedSmartDrivers" value="#{simulatorController.simulatedSmartDrivers}" />
+                                <p:slider for="simulatedSmartDrivers" minValue="1" maxValue="1000"/>
+                                <p:commandButton value="#{simulatorController.simulating ? bundle.StopSimulation : bundle.StartSimulation}" action="#{simulatorController.realTimeSimulate()}" update="@this, gmap" onclick="initUpdater()"/>
                             </h:panelGrid>
-                            <p:commandButton value="#{bundle.GenerateTracks}" action="#{simulatorController.generateSimulatedTracks()}" update="gmap, trackInfoPanel"/>
-                            <p:commandButton value="#{simulatorController.simulating ? bundle.StopSimulation : bundle.StartSimulation}" action="#{simulatorController.realTimeSimulate()}" update="@this, gmap" onclick="initUpdater()"/>
                         </p:panel>
                         <p:panel id="trackInfoPanel" header="#{bundle.TrackInfo}" style="margin: 10px;">
                             <p:dataTable id="datalist" value="#{simulatorController.trackInfoList}" var="item"

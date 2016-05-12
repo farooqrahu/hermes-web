@@ -1,18 +1,10 @@
 
 package es.jyago.hermes.google.directions;
 
-import javax.annotation.Generated;
-import com.google.gson.annotations.Expose;
-import com.google.gson.annotations.SerializedName;
 
-@Generated("org.jsonschema2pojo")
 public class Distance {
 
-    @SerializedName("text")
-    @Expose
     private String text;
-    @SerializedName("value")
-    @Expose
     private Integer value;
 
     /**

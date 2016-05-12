@@ -19,6 +19,7 @@ public class ApplicationConfig extends Application {
      */
     private void addRestResourceClasses(Set<Class<?>> resources) {
         resources.add(es.jyago.hermes.service.ContextLogFacadeREST.class);
+        resources.add(es.jyago.hermes.service.GeocodedWaypointsFacadeREST.class);
         resources.add(es.jyago.hermes.service.PersonFacadeREST.class);
         resources.add(es.jyago.hermes.service.SleepLogFacadeREST.class);
     }

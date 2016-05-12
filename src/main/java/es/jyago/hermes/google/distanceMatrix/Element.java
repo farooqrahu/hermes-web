@@ -1,20 +1,12 @@
 
 package es.jyago.hermes.google.distanceMatrix;
 
-import javax.annotation.Generated;
-import com.google.gson.annotations.Expose;
-import com.google.gson.annotations.SerializedName;
 import es.jyago.hermes.google.directions.Distance;
 import es.jyago.hermes.google.directions.Duration;
 
-@Generated("org.jsonschema2pojo")
 public class Element {
 
-    @SerializedName("distance")
-    @Expose
     private Distance distance;
-    @SerializedName("duration")
-    @Expose
     private Duration duration;
 
     /**

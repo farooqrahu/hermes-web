@@ -1,49 +1,49 @@
-package es.jyago.hermes.google.directions;
+package es.jyago.hermes.simulator;
 
 import es.jyago.hermes.util.Constants;
 
-public class SimpleStep {
+public class SectionInfo {
 
-    public SimpleStep() {
+    public SectionInfo() {
     }
 
-    private Integer distance;
-    private Integer duration;
-    private Location startLocation;
-    private Location endLocation;
+    private int distance;
+    private int duration;
+    private LocationInfo startLocation;
+    private LocationInfo endLocation;
     private String travelMode;
     private String startAddress;
     private String endAddress;
 
-    public Integer getDistance() {
+    public int getDistance() {
         return distance;
     }
 
-    public void setDistance(Integer distance) {
+    public void setDistance(int distance) {
         this.distance = distance;
     }
 
-    public Integer getDuration() {
+    public int getDuration() {
         return duration;
     }
 
-    public void setDuration(Integer duration) {
+    public void setDuration(int duration) {
         this.duration = duration;
     }
 
-    public Location getEndLocation() {
+    public LocationInfo getEndLocation() {
         return endLocation;
     }
 
-    public void setEndLocation(Location endLocation) {
+    public void setEndLocation(LocationInfo endLocation) {
         this.endLocation = endLocation;
     }
 
-    public Location getStartLocation() {
+    public LocationInfo getStartLocation() {
         return startLocation;
     }
 
-    public void setStartLocation(Location startLocation) {
+    public void setStartLocation(LocationInfo startLocation) {
         this.startLocation = startLocation;
     }
 
@@ -76,6 +76,6 @@ public class SimpleStep {
     }
 
     public String getFormattedDistance() {
-        return String.format( "%.2f", (distance / 1000.0f)) + " Km.";
+        return String.format("%.2f", (distance / 1000.0f)) + " Km.";
     }
 }

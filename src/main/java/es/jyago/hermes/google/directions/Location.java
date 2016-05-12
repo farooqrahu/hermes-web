@@ -1,18 +1,9 @@
 
 package es.jyago.hermes.google.directions;
 
-import javax.annotation.Generated;
-import com.google.gson.annotations.Expose;
-import com.google.gson.annotations.SerializedName;
-
-@Generated("org.jsonschema2pojo")
 public class Location {
 
-    @SerializedName("lat")
-    @Expose
     private Double lat;
-    @SerializedName("lng")
-    @Expose
     private Double lng;
 
     public Location() {

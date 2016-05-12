@@ -3,24 +3,12 @@ package es.jyago.hermes.google.distanceMatrix;
 
 import java.util.ArrayList;
 import java.util.List;
-import javax.annotation.Generated;
-import com.google.gson.annotations.Expose;
-import com.google.gson.annotations.SerializedName;
 
-@Generated("org.jsonschema2pojo")
 public class DistanceMatrix {
 
-    @SerializedName("destination_addresses")
-    @Expose
     private List<String> destinationAddresses = new ArrayList<>();
-    @SerializedName("origin_addresses")
-    @Expose
     private List<String> originAddresses = new ArrayList<>();
-    @SerializedName("rows")
-    @Expose
     private List<Row> rows = new ArrayList<>();
-    @SerializedName("status")
-    @Expose
     private String status;
 
     /**

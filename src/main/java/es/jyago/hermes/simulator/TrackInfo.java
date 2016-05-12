@@ -1,20 +1,20 @@
-package es.jyago.hermes.google.directions;
+package es.jyago.hermes.simulator;
 
 public class TrackInfo {
 
-    private final SimpleStep summary;
+    private final SectionInfo summary;
     private int totalLocations;
     private double averageLocationsDistance;
     private double maximumLocationsDistance;
 
     public TrackInfo() {
-        summary = new SimpleStep();
+        summary = new SectionInfo();
         totalLocations = 0;
         averageLocationsDistance = 0.0f;
         maximumLocationsDistance = 0.0f;
     }
 
-    public SimpleStep getSummary() {
+    public SectionInfo getSummary() {
         return summary;
     }
 

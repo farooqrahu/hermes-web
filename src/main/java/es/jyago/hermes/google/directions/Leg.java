@@ -3,33 +3,15 @@ package es.jyago.hermes.google.directions;
 
 import java.util.ArrayList;
 import java.util.List;
-import javax.annotation.Generated;
-import com.google.gson.annotations.Expose;
-import com.google.gson.annotations.SerializedName;
 
-@Generated("org.jsonschema2pojo")
 public class Leg {
 
-    @SerializedName("distance")
-    @Expose
     private Distance distance;
-    @SerializedName("duration")
-    @Expose
     private Duration duration;
-    @SerializedName("end_address")
-    @Expose
     private String endAddress;
-    @SerializedName("end_location")
-    @Expose
     private Location endLocation;
-    @SerializedName("start_address")
-    @Expose
     private String startAddress;
-    @SerializedName("start_location")
-    @Expose
     private Location startLocation;
-    @SerializedName("steps")
-    @Expose
     private List<Step> steps = new ArrayList<>();
 
     /**

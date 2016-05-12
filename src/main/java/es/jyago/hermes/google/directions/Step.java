@@ -1,27 +1,12 @@
 
 package es.jyago.hermes.google.directions;
 
-import javax.annotation.Generated;
-import com.google.gson.annotations.Expose;
-import com.google.gson.annotations.SerializedName;
-
-@Generated("org.jsonschema2pojo")
 public class Step {
 
-    @SerializedName("distance")
-    @Expose
     private Distance distance;
-    @SerializedName("duration")
-    @Expose
     private Duration duration;
-    @SerializedName("end_location")
-    @Expose
     private Location endLocation;
-    @SerializedName("polyline")
-    @Expose
     private Polyline polyline;
-    @SerializedName("start_location")
-    @Expose
     private Location startLocation;
 
     /**

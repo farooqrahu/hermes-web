@@ -490,11 +490,13 @@ public class SimulatorController implements Serializable {
                     simulatedMapModel.getMarkers().clear();
                     for (LocationLogWrapper llw : locationLogList) {
                         LocationLogDetail currentLocationLogDetail = null;
-                        for (int i = llw.getDetailPosition(); i < llw.getLocationLogDetailList().size(); i++) {
-                            currentLocationLogDetail = llw.getLocationLogDetailList().get(i);
-                            if ((currentLocationLogDetail.getTimeLog().getTime() - llw.getBaseTime()) >= elapsedTime) {
-                                llw.setDetailPosition(i);
-                                break;
+                        if (!llw.isFinished()) {
+                            for (int i = llw.getDetailPosition(); i < llw.getLocationLogDetailList().size(); i++) {
+                                currentLocationLogDetail = llw.getLocationLogDetailList().get(i);
+                                if ((currentLocationLogDetail.getTimeLog().getTime() - llw.getBaseTime()) >= elapsedTime) {
+                                    llw.setDetailPosition(i);
+                                    break;
+                                }
                             }
                         }
 
@@ -509,8 +511,10 @@ public class SimulatorController implements Serializable {
                         m.setVisible(true);
                         simulatedMapModel.addOverlay(m);
 
-                        if (elapsedTime % 10 == 0) {
-                            sendToZtreamy(currentLocationLogDetail);
+                        if (!llw.isFinished()) {
+                            if (elapsedTime % 10 == 0) {
+                                sendToZtreamy(currentLocationLogDetail);
+                            }
                         }
                     }
 
@@ -628,6 +632,6 @@ public class SimulatorController implements Serializable {
         public void setFinished(boolean finished) {
             this.finished = finished;
         }
-        
+
     }
 }

@@ -13,6 +13,40 @@
     </ui:define>
     <h:head>
         <h:outputScript name="locationLogMap.js" library="js"/>
+        <script>
+            //<![CDATA[
+            function handleComplete(xhr, status, args) {
+//                alert(args.firstParam);
+//                var g = gmap.getMap();
+//                for (var i in g.markers)
+//                {
+//                    var newMarker = eval("args.marker" + i);
+//                    var oldMarker = g.markers[i];
+//                    oldMarker.icon = newMarker.icon;
+//                    oldMarker.setMap(g);
+//                }
+
+//                var myLatlng = new google.maps.LatLng(37.358390, -5.988042);
+                var map = PF('gmap').getMap();
+
+
+
+                for (var i in map.markers)
+                {
+                    var marker = map.markers[i];
+
+
+                    marker.setPosition(new google.maps.LatLng(args.firstParam));
+//                    var marker = new google.maps.Marker({
+//                        position: myLatlng,
+//                        title: "Hello World!"
+//                    });
+//
+                    marker.setMap(map);
+                }
+            }
+// ]]>
+        </script>
     </h:head>
     <h:body>
         <h:form id="PersonMapForm">
@@ -25,7 +59,7 @@
 
                 <c:otherwise>
                     <!-- FIXME: Poner 'fitBounds' cuando se corrija el 'bug' que tiene Primefaces con Google Maps -->
-                    <!--<p:poll interval="3" listener="#{simulatorController.ajaxPoll}" oncomplete="handleComplete(xhr, status, args)" />-->
+                    <p:poll id="gmapUpdater" interval="3" listener="#{simulatorController.getRealTimeLatLng()}" oncomplete="handleComplete(xhr, status, args)" rendered="#{simulatorController.simulating}"/>
                     <p:gmap id="gmap" widgetVar="gmap" center="#{simulatorController.markerLatitudeLongitude}" zoom="10" type="ROADMAP" model="#{simulatorController.simulatedMapModel}" style="height:400px" fitBounds="true">
                         <p:ajax event="overlaySelect" listener="#{simulatorController.onMarkerSelect}"/>
                         <p:gmapInfoWindow id="infoWindow">
@@ -56,7 +90,7 @@
                                 <h:outputText value="#{bundle.simulatedSmartDriversPerTrack}" />
                                 <p:inputText id="simulatedSmartDrivers" value="#{simulatorController.simulatedSmartDrivers}" />
                                 <p:slider for="simulatedSmartDrivers" minValue="1" maxValue="1000"/>
-                                <p:commandButton value="#{simulatorController.simulating ? bundle.StopSimulation : bundle.StartSimulation}" action="#{simulatorController.realTimeSimulate()}" update="@this, gmap" onclick="initUpdater()"/>
+                                <p:commandButton value="#{simulatorController.simulating ? bundle.StopSimulation : bundle.StartSimulation}" action="#{simulatorController.realTimeSimulate()}" update="@this, gmap, gmapUpdater" onclick="initUpdater()"/>
                             </h:panelGrid>
                         </p:panel>
                         <p:panel id="trackInfoPanel" header="#{bundle.TrackInfo}" style="margin: 10px;">

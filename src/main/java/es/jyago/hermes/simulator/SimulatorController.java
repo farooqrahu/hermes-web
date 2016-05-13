@@ -44,6 +44,7 @@ import javax.inject.Inject;
 import javax.inject.Named;
 import org.apache.commons.io.IOUtils;
 import org.joda.time.LocalTime;
+import org.primefaces.context.RequestContext;
 import org.primefaces.event.map.OverlaySelectEvent;
 import org.primefaces.model.map.DefaultMapModel;
 import org.primefaces.model.map.LatLng;
@@ -75,7 +76,7 @@ public class SimulatorController implements Serializable {
     // FIXME: Quitar. Solo es de prueba.
     private ArrayList<LocationLogWrapper> locationLogList;
 
-    private static Timer simulationTimer;
+    private Timer simulationTimer;
     private long elapsedTime;
     private int simulatedSmartDrivers;
 
@@ -93,6 +94,7 @@ public class SimulatorController implements Serializable {
         distanceFromSevilleCenter = 1;
         distance = 10;
         tracksAmount = 1;
+        simulatedSmartDrivers = 1;
         createSimulatedUser = false;
         simulationMethod = Track_Simulation_Method.GOOGLE;
         marker = new Marker(new LatLng(SEVILLE.getLat(), SEVILLE.getLng()));
@@ -115,8 +117,8 @@ public class SimulatorController implements Serializable {
             Date currentTime = new Date();
 
             // Creamos un objeto de localizaciones de 'SmartDriver'.
-            LocationLogWrapper llw = new LocationLogWrapper();
-            llw.setDateLog(currentTime);
+            LocationLog ll = new LocationLog();
+            ll.setDateLog(currentTime);
 
             if (simulationMethod.equals(Track_Simulation_Method.GOOGLE)) {
                 Future future = GoogleWebService.submitTask(new Callable() {
@@ -139,7 +141,7 @@ public class SimulatorController implements Serializable {
                             .setFieldNamingPolicy(FieldNamingPolicy.LOWER_CASE_WITH_UNDERSCORES)
                             .create();
                     GeocodedWaypoints gcwp = gson.fromJson(json, GeocodedWaypoints.class);
-                    trackInfo = createTrack(gcwp, llw);
+                    trackInfo = createTrack(gcwp, ll);
                 } catch (InterruptedException | ExecutionException | JsonSyntaxException ex) {
                     LOG.log(Level.SEVERE, "Error al decodificar el JSON de la ruta", ex);
                 }
@@ -149,7 +151,7 @@ public class SimulatorController implements Serializable {
                     Type listType = new TypeToken<ArrayList<GeomWaySteps>>() {
                     }.getType();
                     List<GeomWaySteps> gws = new Gson().fromJson(json, listType);
-                    trackInfo = createTrack(gws, llw);
+                    trackInfo = createTrack(gws, ll);
                 } catch (IOException | JsonSyntaxException ex) {
                     LOG.log(Level.SEVERE, "Error al decodificar el JSON de la ruta", ex);
                 }
@@ -164,14 +166,16 @@ public class SimulatorController implements Serializable {
                 // Creamos un usuario simulado, al que le asignaremos el trayecto.
                 Person person = createSimPerson(currentTime.getTime());
 
-                llw.setFilename(person.getFullName());
-                llw.setPerson(person);
+                ll.setFilename(person.getFullName());
+                ll.setPerson(person);
 
                 personFacade.create(person);
-                locationLogFacade.create(llw);
+                locationLogFacade.create(ll);
             }
 
-            llw.setBaseTime(llw.getLocationLogDetailList().get(0).getTimeLog().getTime());
+            LocationLogWrapper llw = new LocationLogWrapper();
+            llw.setLocationLog(ll);
+            llw.setBaseTime(ll.getLocationLogDetailList().get(0).getTimeLog().getTime());
             llw.setDetailPosition(0);
 
             locationLogList.add(llw);
@@ -316,9 +320,10 @@ public class SimulatorController implements Serializable {
                         lld.setLatitude(location.getLat());
                         lld.setLongitude(location.getLng());
 
-                        // Calculamos la distancia entre los puntos previo y actual, así como el tiempo necesario para recorrer dicha distancia.
+                        // Calculamos la distancia en metros entre los puntos previo y actual, así como el tiempo necesario para recorrer dicha distancia.
                         Double pointDistance = Util.distanceHaversine(previous.getLat(), previous.getLng(), location.getLat(), location.getLng());
-                        Double pointDuration = l.getDuration().getValue() * pointDistance / l.getDistance().getValue();
+                        // Calculamos el tiempo en segundos que tarda en recorrer la distancia entre los puntos.
+                        Double pointDuration = l.getDuration().getValue() * 60 * pointDistance / l.getDistance().getValue();
 
                         // Convertimos la velocidad a Km/h.
                         speed = pointDuration > 0 ? pointDistance * 3.6 / pointDuration : 0.0d;
@@ -474,6 +479,18 @@ public class SimulatorController implements Serializable {
         return simulationTimer != null;
     }
 
+    public void getRealTimeLatLng() {
+        try {
+            LatLng latLng = simulatedMapModel.getMarkers().get(0).getLatlng();
+            if (latLng != null) {
+                RequestContext context = RequestContext.getCurrentInstance();
+                context.addCallbackParam("firstParam", latLng.getLat() + "," + latLng.getLng());
+            }
+        } catch (Exception ex) {
+        }
+
+    }
+
     public void realTimeSimulate() {
         // Si el temporizador está instanciado, es que hay una simulación en marcha y se quiere parar.
         if (simulationTimer != null) {
@@ -489,10 +506,11 @@ public class SimulatorController implements Serializable {
                 public void run() {
                     simulatedMapModel.getMarkers().clear();
                     for (LocationLogWrapper llw : locationLogList) {
+                        LocationLog currentLocationLog = llw.getLocationLog();
                         LocationLogDetail currentLocationLogDetail = null;
                         if (!llw.isFinished()) {
-                            for (int i = llw.getDetailPosition(); i < llw.getLocationLogDetailList().size(); i++) {
-                                currentLocationLogDetail = llw.getLocationLogDetailList().get(i);
+                            for (int i = llw.getDetailPosition(); i < currentLocationLog.getLocationLogDetailList().size(); i++) {
+                                currentLocationLogDetail = currentLocationLog.getLocationLogDetailList().get(i);
                                 if ((currentLocationLogDetail.getTimeLog().getTime() - llw.getBaseTime()) >= elapsedTime) {
                                     llw.setDetailPosition(i);
                                     break;
@@ -502,7 +520,7 @@ public class SimulatorController implements Serializable {
 
                         if (currentLocationLogDetail == null) {
                             // Ha terminado el trayecto. Asignamos la última posición.
-                            currentLocationLogDetail = llw.getLocationLogDetailList().get(llw.getLocationLogDetailList().size() - 1);
+                            currentLocationLogDetail = currentLocationLog.getLocationLogDetailList().get(currentLocationLog.getLocationLogDetailList().size() - 1);
                             llw.setFinished(true);
                         }
 
@@ -571,6 +589,7 @@ public class SimulatorController implements Serializable {
 
             // FIXME!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 //            String url = Constants.getInstance().getConfigurationValueByKey("ZtreamyUrl");
+//            String url = "http://hermes1.gast.it.uc3m.es:9105/test/publish";
             String url = "";
 
             Person simPerson = createSimPerson(System.currentTimeMillis());
@@ -603,11 +622,12 @@ public class SimulatorController implements Serializable {
         }
     }
 
-    class LocationLogWrapper extends LocationLog {
+    class LocationLogWrapper {
 
         private int detailPosition;
         private long baseTime;
         private boolean finished;
+        private LocationLog locationLog;
 
         public int getDetailPosition() {
             return detailPosition;
@@ -633,5 +653,12 @@ public class SimulatorController implements Serializable {
             this.finished = finished;
         }
 
+        public LocationLog getLocationLog() {
+            return locationLog;
+        }
+
+        public void setLocationLog(LocationLog locationLog) {
+            this.locationLog = locationLog;
+        }
     }
 }

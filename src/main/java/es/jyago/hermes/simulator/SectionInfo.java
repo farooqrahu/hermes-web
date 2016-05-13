@@ -1,6 +1,7 @@
 package es.jyago.hermes.simulator;
 
 import es.jyago.hermes.util.Constants;
+import java.util.Date;
 
 public class SectionInfo {
 
@@ -72,7 +73,7 @@ public class SectionInfo {
     }
 
     public String getFormattedTime() {
-        return Constants.dfTime.format(duration * 1000);
+        return Constants.dfTimeGMT.format(new Date(duration * 1000));
     }
 
     public String getFormattedDistance() {

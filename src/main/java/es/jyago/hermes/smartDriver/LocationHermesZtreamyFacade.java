@@ -13,14 +13,15 @@ import java.util.Map;
 
 public class LocationHermesZtreamyFacade extends AbstractHermesZtreamyFacade<Location> {
 
-    private static final String VEHICLE_LOCATION = "Vehicle Location";
+    private static final String EVENT_TYPE = "Vehicle Location";
+    private static final String BODY_ELEMENTS_TYPE = "Location";
 
     public LocationHermesZtreamyFacade(Location location, Person person, String url) throws MalformedURLException, HermesException {
-        super(location, person, url, VEHICLE_LOCATION);
+        super(location, person, url, EVENT_TYPE);
     }
 
     public LocationHermesZtreamyFacade(Collection<Location> locationCollection, Person person, String url) throws MalformedURLException, HermesException {
-        super(locationCollection, person, url, VEHICLE_LOCATION, false);
+        super(locationCollection, person, url, EVENT_TYPE, false);
     }
 
     @Override
@@ -39,9 +40,9 @@ public class LocationHermesZtreamyFacade extends AbstractHermesZtreamyFacade<Loc
         if (locationCollection != null && !locationCollection.isEmpty()) {
             bodyObject = new HashMap<>();
             if (locationCollection.size() == 1) {
-                bodyObject.put(VEHICLE_LOCATION, locationCollection.iterator().next());
+                bodyObject.put(BODY_ELEMENTS_TYPE, locationCollection.iterator().next());
             } else {
-                bodyObject.put(VEHICLE_LOCATION, locationCollection);
+                bodyObject.put(BODY_ELEMENTS_TYPE, locationCollection);
             }
         }
 
@@ -61,7 +62,7 @@ public class LocationHermesZtreamyFacade extends AbstractHermesZtreamyFacade<Loc
 
     @Override
     public String getType() {
-        return VEHICLE_LOCATION;
+        return BODY_ELEMENTS_TYPE;
     }
 
 }

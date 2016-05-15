@@ -17,7 +17,9 @@ import es.jyago.hermes.openStreetMap.GeomWay;
 import es.jyago.hermes.openStreetMap.GeomWaySteps;
 import es.jyago.hermes.person.Person;
 import es.jyago.hermes.person.PersonFacade;
+import es.jyago.hermes.smartDriver.DataSection;
 import es.jyago.hermes.smartDriver.LocationHermesZtreamyFacade;
+import es.jyago.hermes.smartDriver.RoadSection;
 import es.jyago.hermes.util.Constants;
 import es.jyago.hermes.util.HermesException;
 import es.jyago.hermes.util.Util;
@@ -59,6 +61,8 @@ public class SimulatorController implements Serializable {
     private static final Logger LOG = Logger.getLogger(SimulatorController.class.getName());
 
     private static final Location SEVILLE = new Location(37.3898358, -5.986069);
+    private static final int ZTREAMY_SEND_INTERVAL_SECONDS = 10;
+    private static final int ZTREAMY_SEND_INTERVAL_METERS = 500;
 
     public static enum Track_Simulation_Method {
         GOOGLE, OPENSTREETMAP
@@ -79,6 +83,7 @@ public class SimulatorController implements Serializable {
     private Timer simulationTimer;
     private long elapsedTime;
     private int simulatedSmartDrivers;
+    private String url;
 
     @Inject
     private PersonFacade personFacade;
@@ -98,11 +103,21 @@ public class SimulatorController implements Serializable {
         createSimulatedUser = false;
         simulationMethod = Track_Simulation_Method.GOOGLE;
         marker = new Marker(new LatLng(SEVILLE.getLat(), SEVILLE.getLng()));
+        // Los parámetros de configuración de Ztreamy estarán en la tabla de configuración.
+
+            // FIXME!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+//            String url = Constants.getInstance().getConfigurationValueByKey("ZtreamyUrl");
+//            String url = "http://hermes1.gast.it.uc3m.es:9105/test/publish";
+        url = "";
         generateSimulatedTracks();
     }
 
     public String getMarkerLatitudeLongitude() {
-        return marker.getLatlng().getLat() + "," + marker.getLatlng().getLng();
+        if (marker != null) {
+            return marker.getLatlng().getLat() + "," + marker.getLatlng().getLng();
+        }
+
+        return "";
     }
 
     public void generateSimulatedTracks() {
@@ -162,13 +177,13 @@ public class SimulatorController implements Serializable {
                 continue;
             }
 
+            // Creamos un usuario simulado, al que le asignaremos el trayecto.
+            Person person = createSimPerson(currentTime.getTime());
+            ll.setPerson(person);
+            ll.setFilename(person.getFullName());
+
             if (createSimulatedUser) {
-                // Creamos un usuario simulado, al que le asignaremos el trayecto.
-                Person person = createSimPerson(currentTime.getTime());
-
-                ll.setFilename(person.getFullName());
-                ll.setPerson(person);
-
+                // Pero sólo lo grabaremos en la B.D. si lo indica el usuario.
                 personFacade.create(person);
                 locationLogFacade.create(ll);
             }
@@ -323,7 +338,7 @@ public class SimulatorController implements Serializable {
                         // Calculamos la distancia en metros entre los puntos previo y actual, así como el tiempo necesario para recorrer dicha distancia.
                         Double pointDistance = Util.distanceHaversine(previous.getLat(), previous.getLng(), location.getLat(), location.getLng());
                         // Calculamos el tiempo en segundos que tarda en recorrer la distancia entre los puntos.
-                        Double pointDuration = l.getDuration().getValue() * 60 * pointDistance / l.getDistance().getValue();
+                        Double pointDuration = l.getDuration().getValue() * pointDistance / l.getDistance().getValue();
 
                         // Convertimos la velocidad a Km/h.
                         speed = pointDuration > 0 ? pointDistance * 3.6 / pointDuration : 0.0d;
@@ -468,13 +483,6 @@ public class SimulatorController implements Serializable {
         this.simulatedSmartDrivers = simulatedSmartDrivers;
     }
 
-//    public void ajaxPoll() {
-//        for (int i = 0; i < simulatedMapModel.getMarkers().size(); i++) {
-////            RequestContext.getCurrentInstance().addCallbackParam("marker" + i, simulatedMapModel.getMarkers().get(i));
-//            LatLng latLng = simulatedMapModel.getMarkers().get(i).getLatlng();
-//            System.out.println(latLng.getLat() + " - " + latLng.getLng());
-//        }
-//    }
     public boolean isSimulating() {
         return simulationTimer != null;
     }
@@ -484,7 +492,8 @@ public class SimulatorController implements Serializable {
             LatLng latLng = simulatedMapModel.getMarkers().get(0).getLatlng();
             if (latLng != null) {
                 RequestContext context = RequestContext.getCurrentInstance();
-                context.addCallbackParam("firstParam", latLng.getLat() + "," + latLng.getLng());
+                context.addCallbackParam("latitude", latLng.getLat());
+                context.addCallbackParam("longitude", latLng.getLng());
             }
         } catch (Exception ex) {
         }
@@ -504,11 +513,16 @@ public class SimulatorController implements Serializable {
 
                 @Override
                 public void run() {
+                    // Eliminamos los 'Marker' previos.
                     simulatedMapModel.getMarkers().clear();
+                    
+                    boolean allSimulationsFinished = true;
+                    
                     for (LocationLogWrapper llw : locationLogList) {
                         LocationLog currentLocationLog = llw.getLocationLog();
                         LocationLogDetail currentLocationLogDetail = null;
                         if (!llw.isFinished()) {
+                            allSimulationsFinished = false;
                             for (int i = llw.getDetailPosition(); i < currentLocationLog.getLocationLogDetailList().size(); i++) {
                                 currentLocationLogDetail = currentLocationLog.getLocationLogDetailList().get(i);
                                 if ((currentLocationLogDetail.getTimeLog().getTime() - llw.getBaseTime()) >= elapsedTime) {
@@ -519,9 +533,20 @@ public class SimulatorController implements Serializable {
                         }
 
                         if (currentLocationLogDetail == null) {
+                            // FIXME: Probar
                             // Ha terminado el trayecto. Asignamos la última posición.
                             currentLocationLogDetail = currentLocationLog.getLocationLogDetailList().get(currentLocationLog.getLocationLogDetailList().size() - 1);
                             llw.setFinished(true);
+                        }
+                        else
+                        {
+                            // Creamos un elementos de tipo 'RoadSection', para añadirlo al 'DataSection' que se envía a 'Ztreamy' cada 500 metros.
+                            RoadSection rd = new RoadSection();
+                            rd.setLatitude(currentLocationLogDetail.getLatitude());
+                            rd.setLongitude(currentLocationLogDetail.getLongitude());
+                            rd.setSpeed(currentLocationLogDetail.getSpeed());
+                            
+                            llw.getRoadSectionList().add(rd);
                         }
 
                         LatLng latLng = new LatLng(currentLocationLogDetail.getLatitude(), currentLocationLogDetail.getLongitude());
@@ -529,90 +554,88 @@ public class SimulatorController implements Serializable {
                         m.setVisible(true);
                         simulatedMapModel.addOverlay(m);
 
+                        // Se envían los datos a Ztreamy cada 10 segundos.
                         if (!llw.isFinished()) {
-                            if (elapsedTime % 10 == 0) {
-                                sendToZtreamy(currentLocationLogDetail);
+                            if (elapsedTime % ZTREAMY_SEND_INTERVAL_SECONDS == 0) {
+                                sendLocationToZtreamy(currentLocationLogDetail);
+                            }
+
+                            // Se enviará un resumen cada 500 metros.
+                            if (llw.getSectionDistance() > ZTREAMY_SEND_INTERVAL_METERS) {
+                                sendDataSectionToZtreamy(llw);
+                                llw.getRoadSectionList().clear();
+                                llw.setSectionDistance(0.0d);
                             }
                         }
+                    }
+
+                    if (allSimulationsFinished) {
+                        // Cancelamos el 'Timer' para finalizar la simulación.
+                        simulationTimer.cancel();
+                        simulationTimer = null;
                     }
 
                     elapsedTime += 1000;
                 }
             }, 0, 1000);
         }
-
-//        for (LocationLog ll : lll) {
-//            LOG.log(Level.INFO, "realTimeSimulate() - Simulación trayecto con total de puntos: " + ll.getLocationLogDetailList().size());
-//            RealTimeSimulator.submitTask(new Runnable() {
-//                @Override
-//                public void run() {
-//                    long baseTime = ll.getLocationLogDetailList().get(0).getTimeLog().getTime();
-//                    for (LocationLogDetail lld : ll.getLocationLogDetailList()) {
-//                        try {
-//                            Thread.sleep(lld.getTimeLog().getTime() - baseTime);
-//                        } catch (InterruptedException ex) {
-//                            Logger.getLogger(SimulatorController.class.getName()).log(Level.SEVERE, null, ex);
-//                        }
-//                    }
-//                }
-//            });
-//        }
-//        Future future = RealTimeSimulator.submitTask(new Callable() {
-//            @Override
-//            public String call() {
-//                String result = "";
-//                long baseTime = ll.getLocationLogDetailList().get(0).getTimeLog().getTime();
-//                for (LocationLogDetail lld : ll.getLocationLogDetailList())
-//                {
-//                    try {
-//                        Thread.sleep(lld.getTimeLog().getTime() - baseTime);
-//                    } catch (InterruptedException ex) {
-//                        Logger.getLogger(SimulatorController.class.getName()).log(Level.SEVERE, null, ex);
-//                    }
-//                }
-//                LOG.log(Level.FINE, "Bien");
-//                return result;
-//            }
-//
-//        });
-//
-//        try {
-//            String status = (String) future.get();  // blocks
-//        } catch (Exception e) {
-//        }
     }
 
-    private void sendToZtreamy(LocationLogDetail lld) {
-
+    private void sendLocationToZtreamy(LocationLogDetail lld) {
         try {
-            // Los parámetros de configuración de Ztreamy estarán en la tabla de configuración.
-
-            // FIXME!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-//            String url = Constants.getInstance().getConfigurationValueByKey("ZtreamyUrl");
-//            String url = "http://hermes1.gast.it.uc3m.es:9105/test/publish";
-            String url = "";
-
-            Person simPerson = createSimPerson(System.currentTimeMillis());
-
+            // Creamos un objeto de tipo 'Location' de los que 'SmartDriver' envía a 'Ztreamy'.
             es.jyago.hermes.smartDriver.Location smartDriverLocation = new es.jyago.hermes.smartDriver.Location();
             smartDriverLocation.setLatitude(lld.getLatitude());
             smartDriverLocation.setLongitude(lld.getLongitude());
-            // TODO: Simular 
-            smartDriverLocation.setSpeed(0.0);
+            smartDriverLocation.setSpeed(lld.getSpeed());
             smartDriverLocation.setAccuracy(0);
             smartDriverLocation.setScore(0);
             smartDriverLocation.setTimeStamp(Constants.dfFitbitFull.format(lld.getTimeLog()));
 
-            LocationHermesZtreamyFacade locationZtreamy = new LocationHermesZtreamyFacade(smartDriverLocation, simPerson, url);
+            LocationHermesZtreamyFacade locationZtreamy = new LocationHermesZtreamyFacade(smartDriverLocation, lld.getLocationLog().getPerson(), url);
 
             // Inicialmente, vamos a hacer un envío como si fuera un autobus con X usuarios de SmartDriver, que iniciasen la aplicación al mismo tiempo.
             for (int i = 0; i < simulatedSmartDrivers; i++) {
                 if (locationZtreamy.send()) {
-                    LOG.log(Level.FINER, "sendToZtreamy() - Localización de trayecto simulado enviada correctamante. SmartDriver: {0}", i);
+                    LOG.log(Level.FINER, "sendLocationToZtreamy() - Localización de trayecto simulado enviada correctamante. SmartDriver: {0}", i);
                 } else {
-                    LOG.log(Level.SEVERE, "sendToZtreamy() - Error al enviar la localización del trayacto simulado. SmartDriver: {0}", i);
+                    LOG.log(Level.SEVERE, "sendLocationToZtreamy() - Error al enviar la localización del trayacto simulado. SmartDriver: {0}", i);
                 }
             }
+        } catch (MalformedURLException ex) {
+            LOG.log(Level.SEVERE, "sendLocationToZtreamy() - Error en la URL", ex);
+        } catch (IOException ex) {
+            LOG.log(Level.SEVERE, "sendLocationToZtreamy() - Error de I/O", ex);
+        } catch (HermesException ex) {
+            LOG.log(Level.SEVERE, "sendLocationToZtreamy() - Error al enviar datos a Ztreamy");
+        }
+    }
+
+    private void sendDataSectionToZtreamy(LocationLogWrapper llw) {
+        try {
+            // Creamos un objeto de tipo 'DataSection' de los que 'SmartDriver' envía a 'Ztreamy'.
+            DataSection dataSection = new DataSection();
+            dataSection.setRoadSection(llw.getRoadSectionList());
+            dataSection.set
+//            es.jyago.hermes.smartDriver.Location smartDriverLocation = new es.jyago.hermes.smartDriver.Location();
+//            smartDriverLocation.setLatitude(lld.getLatitude());
+//            smartDriverLocation.setLongitude(lld.getLongitude());
+//            // TODO: Simular 
+//            smartDriverLocation.setSpeed(0.0);
+//            smartDriverLocation.setAccuracy(0);
+//            smartDriverLocation.setScore(0);
+//            smartDriverLocation.setTimeStamp(Constants.dfFitbitFull.format(lld.getTimeLog()));
+//
+//            LocationHermesZtreamyFacade locationZtreamy = new LocationHermesZtreamyFacade(smartDriverLocation, simPerson, url);
+//
+//            // Inicialmente, vamos a hacer un envío como si fuera un autobus con X usuarios de SmartDriver, que iniciasen la aplicación al mismo tiempo.
+//            for (int i = 0; i < simulatedSmartDrivers; i++) {
+//                if (locationZtreamy.send()) {
+//                    LOG.log(Level.FINER, "sendToZtreamy() - Localización de trayecto simulado enviada correctamante. SmartDriver: {0}", i);
+//                } else {
+//                    LOG.log(Level.SEVERE, "sendToZtreamy() - Error al enviar la localización del trayacto simulado. SmartDriver: {0}", i);
+//                }
+//            }
         } catch (MalformedURLException ex) {
             LOG.log(Level.SEVERE, "sendToZtreamy() - Error en la URL", ex);
         } catch (IOException ex) {
@@ -628,6 +651,17 @@ public class SimulatorController implements Serializable {
         private long baseTime;
         private boolean finished;
         private LocationLog locationLog;
+        private double sectionDistance;
+        private List<RoadSection> roadSectionList;
+
+        public LocationLogWrapper() {
+            this.detailPosition = 0;
+            this.baseTime = 0l;
+            this.finished = false;
+            this.locationLog = null;
+            this.sectionDistance = 0.0d;
+            this.roadSectionList = new ArrayList();
+        }
 
         public int getDetailPosition() {
             return detailPosition;
@@ -659,6 +693,22 @@ public class SimulatorController implements Serializable {
 
         public void setLocationLog(LocationLog locationLog) {
             this.locationLog = locationLog;
+        }
+
+        public double getSectionDistance() {
+            return sectionDistance;
+        }
+
+        public void setSectionDistance(double sectionDistance) {
+            this.sectionDistance = sectionDistance;
+        }
+
+        public List<RoadSection> getRoadSectionList() {
+            return roadSectionList;
+        }
+
+        public void setRoadSectionList(List<RoadSection> roadSectionList) {
+            this.roadSectionList = roadSectionList;
         }
     }
 }

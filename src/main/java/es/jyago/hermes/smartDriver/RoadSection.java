@@ -1,17 +1,15 @@
 package es.jyago.hermes.smartDriver;
 
-import java.util.HashMap;
-import java.util.Map;
-import javax.annotation.Generated;
+import es.jyago.hermes.util.Constants;
 
 public class RoadSection {
 
     private Double latitude;
-    private String timeStamp;
+    private transient long time; // Para que no la serialice el GSON.
     private Double speed;
     private Double longitude;
     private Integer accuracy;
-
+    
     public Double getLatitude() {
         return latitude;
     }
@@ -21,11 +19,15 @@ public class RoadSection {
     }
 
     public String getTimeStamp() {
-        return timeStamp;
+        return Constants.dfISO8601.format(time);
     }
 
-    public void setTimeStamp(String timeStamp) {
-        this.timeStamp = timeStamp;
+    public void setTime(long time) {
+        this.time = time;
+    }
+    
+    public long getTime() {
+        return time;
     }
 
     public Double getSpeed() {

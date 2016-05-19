@@ -1,6 +1,5 @@
 package es.jyago.hermes.smartDriver;
 
-import es.jyago.hermes.person.Person;
 import es.jyago.hermes.util.HermesException;
 import es.jyago.hermes.ztreamy.AbstractHermesZtreamyFacade;
 import java.net.MalformedURLException;
@@ -16,12 +15,12 @@ public class DataSectionHermesZtreamyFacade extends AbstractHermesZtreamyFacade<
     private static final String EVENT_TYPE = "Data Section";
     private static final String BODY_ELEMENTS_TYPE = "Data Section";
 
-    public DataSectionHermesZtreamyFacade(DataSection dataSection, Person person, String url) throws MalformedURLException, HermesException {
-        super(dataSection, person, url, EVENT_TYPE);
+    public DataSectionHermesZtreamyFacade(String applicationId, DataSection dataSection, String sha, String url) throws MalformedURLException, HermesException {
+        super(applicationId, dataSection, sha, url, EVENT_TYPE);
     }
 
-    public DataSectionHermesZtreamyFacade(Collection<DataSection> dataSectionCollection, Person person, String url) throws MalformedURLException, HermesException {
-        super(dataSectionCollection, person, url, EVENT_TYPE, false);
+    public DataSectionHermesZtreamyFacade(String applicationId, Collection<DataSection> dataSectionCollection, String sha, String url) throws MalformedURLException, HermesException {
+        super(applicationId, dataSectionCollection, sha, url, EVENT_TYPE, false);
     }
 
     @Override

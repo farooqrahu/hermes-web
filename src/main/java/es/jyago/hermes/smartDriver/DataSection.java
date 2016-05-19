@@ -1,15 +1,12 @@
 package es.jyago.hermes.smartDriver;
 
 import java.util.ArrayList;
-import java.util.HashMap;
 import java.util.List;
-import java.util.Map;
-import javax.annotation.Generated;
 
 public class DataSection {
 
     private Double medianSpeed;
-    private List<RoadSection> roadSection = new ArrayList<RoadSection>();
+    private List<RoadSection> roadSection = new ArrayList<>();
     private Double standardDeviationSpeed;
     private Double averageRR;
     private Double averageHeartRate;
@@ -18,12 +15,12 @@ public class DataSection {
     private Integer numHighDecelerations;
     private Double averageAcceleration;
     private Double maxSpeed;
-    private List<Integer> rrSection = new ArrayList<Integer>();
+    private List<Integer> rrSection = new ArrayList<>();
     private Integer numHighAccelerations;
     private Double pke;
     private Double standardDeviationHeartRate;
     private Double averageSpeed;
-    private Integer minSpeed;
+    private Double minSpeed;
 
     public Double getMedianSpeed() {
         return medianSpeed;
@@ -145,11 +142,11 @@ public class DataSection {
         this.averageSpeed = averageSpeed;
     }
 
-    public Integer getMinSpeed() {
+    public Double getMinSpeed() {
         return minSpeed;
     }
 
-    public void setMinSpeed(Integer minSpeed) {
+    public void setMinSpeed(Double minSpeed) {
         this.minSpeed = minSpeed;
     }
 

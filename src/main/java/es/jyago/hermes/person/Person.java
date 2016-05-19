@@ -45,13 +45,14 @@ import javax.validation.constraints.NotNull;
 import javax.validation.constraints.Size;
 import javax.xml.bind.annotation.XmlRootElement;
 import javax.xml.bind.annotation.XmlTransient;
+import org.apache.commons.codec.binary.Hex;
+import org.apache.commons.codec.digest.DigestUtils;
 import org.apache.commons.io.IOUtils;
 import org.apache.commons.lang.builder.EqualsBuilder;
 import org.apache.commons.lang.builder.HashCodeBuilder;
 import org.joda.time.LocalDate;
 import org.primefaces.event.FileUploadEvent;
 import org.primefaces.model.UploadedFile;
-
 
 @Entity
 @Table(name = "person", uniqueConstraints = @UniqueConstraint(columnNames = {"username"}))
@@ -476,6 +477,10 @@ public class Person implements Serializable {
     }
 
     public String getSha() {
+        if (sha == null || sha.length() == 0) {
+            sha = new String(Hex.encodeHex(DigestUtils.sha256(email)));
+        }
+
         return sha;
     }
 
@@ -1036,7 +1041,6 @@ public class Person implements Serializable {
 //            }
 //        }
 //    }
-
     private Date getFirstSynchronization(Constants.HermesServices service) {
         switch (service) {
             case Steps:

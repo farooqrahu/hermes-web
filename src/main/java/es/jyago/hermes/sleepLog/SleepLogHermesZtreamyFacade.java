@@ -1,6 +1,5 @@
 package es.jyago.hermes.sleepLog;
 
-import es.jyago.hermes.person.Person;
 import es.jyago.hermes.util.Constants;
 import es.jyago.hermes.util.HermesException;
 import es.jyago.hermes.ztreamy.AbstractHermesZtreamyFacade;
@@ -22,12 +21,12 @@ public class SleepLogHermesZtreamyFacade extends AbstractHermesZtreamyFacade<Sle
     private static final String SLEEP_DATA = "Sleep Data";
     private static final Logger LOG = Logger.getLogger(SleepLogHermesZtreamyFacade.class.getName());
 
-    public SleepLogHermesZtreamyFacade(SleepLog sleepLog, Person person, String url) throws MalformedURLException, HermesException {
-        super(sleepLog, person, url, SLEEP_DATA);
+    public SleepLogHermesZtreamyFacade(String applicationId, SleepLog sleepLog, String sha, String url) throws MalformedURLException, HermesException {
+        super(applicationId, sleepLog, sha, url, SLEEP_DATA);
     }
 
-    public SleepLogHermesZtreamyFacade(Collection<SleepLog> collectionSleepLog, Person person, String url) throws MalformedURLException, HermesException {
-        super(collectionSleepLog, person, url, SLEEP_DATA, false);
+    public SleepLogHermesZtreamyFacade(String applicationId, Collection<SleepLog> collectionSleepLog, String sha, String url) throws MalformedURLException, HermesException {
+        super(applicationId, collectionSleepLog, sha, url, SLEEP_DATA, false);
     }
 
     @Override

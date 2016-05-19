@@ -1,6 +1,5 @@
 package es.jyago.hermes.activityLog;
 
-import es.jyago.hermes.person.Person;
 import es.jyago.hermes.stepLog.StepLog;
 import es.jyago.hermes.util.Constants;
 import es.jyago.hermes.util.HermesException;
@@ -24,12 +23,12 @@ public class ActivityLogHermesZtreamyFacade extends AbstractHermesZtreamyFacade<
     private static final String STEPS_DATA = "Steps Data";
     private static final Logger LOG = Logger.getLogger(ActivityLogHermesZtreamyFacade.class.getName());
 
-    public ActivityLogHermesZtreamyFacade(ActivityLog activityLog, Person person, String url) throws MalformedURLException, HermesException {
-        super(activityLog, person, url, STEPS_DATA);
+    public ActivityLogHermesZtreamyFacade(String applicationId, ActivityLog activityLog, String sha, String url) throws MalformedURLException, HermesException {
+        super(applicationId, activityLog, sha, url, STEPS_DATA);
     }
 
-    public ActivityLogHermesZtreamyFacade(Collection<ActivityLog> collectionActivityLog, Person person, String url) throws MalformedURLException, HermesException {
-        super(collectionActivityLog, person, url, STEPS_DATA, false);
+    public ActivityLogHermesZtreamyFacade(String applicationId, Collection<ActivityLog> collectionActivityLog, String sha, String url) throws MalformedURLException, HermesException {
+        super(applicationId, collectionActivityLog, sha, url, STEPS_DATA, false);
     }
 
     @Override

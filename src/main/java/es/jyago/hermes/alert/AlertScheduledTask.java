@@ -46,7 +46,7 @@ public class AlertScheduledTask implements IFitbitFacade {
                     // Comprobamos si se puede sincronizar correctamente.
                     hermesFitbitController.refreshFitbitTokens();
                 } catch (HermesFitbitException ex) {
-                    LOG.log(Level.SEVERE, "run() - Error al comprobar si se puede sincronizar los datos con Fitbit", ex);
+                    LOG.log(Level.SEVERE, "run() - Error al comprobar si se puede sincronizar los datos con Fitbit: {0}", ex.getMessage());
                     if (person.isAlertIfUnableToSynchronize()) {
                         try {
                             // No es posible sincronizar con Fitbit -> Se envía una notificación., si así lo tiene configurado el usuario.

@@ -47,6 +47,8 @@ public class ZtreamyScheduledTask {
     // Los envíos por Ztreamy se harán cada 15 minutos.
     @Schedule(minute = "*/15", hour = "*", persistent = false)
     public void run() {
+        
+        String applicationId = Constants.getInstance().getConfigurationValueByKey("ZtreamyContextApplicationId");
 
         // Los parámetros de configuración de Ztreamy estarán en la tabla de configuración.
         String url = Constants.getInstance().getConfigurationValueByKey("ZtreamyUrl");
@@ -68,7 +70,7 @@ public class ZtreamyScheduledTask {
         for (ActivityLog al : activityLogFacade.findNotSent()) {
             if (!al.isSent()) {
                 try {
-                    ActivityLogHermesZtreamyFacade activityLogZtreamy = new ActivityLogHermesZtreamyFacade(al, al.getPerson(), url);
+                    ActivityLogHermesZtreamyFacade activityLogZtreamy = new ActivityLogHermesZtreamyFacade(applicationId, al, al.getPerson().getSha(), url);
                     if (activityLogZtreamy.send()) {
                         LOG.log(Level.INFO, "run() - Datos de pasos del día {0} enviados correctamente", Constants.df.format(al.getDateLog()));
                         for (StepLog stepLog : al.getStepLogList()) {
@@ -88,7 +90,7 @@ public class ZtreamyScheduledTask {
         ///////////
         for (SleepLog sl : sleepLogFacade.findNotSent()) {
             try {
-                SleepLogHermesZtreamyFacade sleepLogZtreamy = new SleepLogHermesZtreamyFacade(sl, sl.getPerson(), url);
+                SleepLogHermesZtreamyFacade sleepLogZtreamy = new SleepLogHermesZtreamyFacade(applicationId, sl, sl.getPerson().getSha(), url);
                 if (sleepLogZtreamy.send()) {
                     LOG.log(Level.INFO, "run() - Datos de sueño del día {0} enviados correctamente", Constants.df.format(sl.getDateLog()));
                     sl.setSent(true);
@@ -104,7 +106,7 @@ public class ZtreamyScheduledTask {
         ////////////////////
         for (HealthLog hl : healthLogFacade.findNotSent()) {
             try {
-                HealthLogHermesZtreamyFacade healthLogZtreamy = new HealthLogHermesZtreamyFacade(hl, hl.getPerson(), url);
+                HealthLogHermesZtreamyFacade healthLogZtreamy = new HealthLogHermesZtreamyFacade(applicationId, hl, hl.getPerson().getSha(), url);
                 if (healthLogZtreamy.send()) {
                     LOG.log(Level.INFO, "run() - Datos de ritmo cardíaco del día {0} enviados correctamente", Constants.df.format(hl.getDateLog()));
                     for (HeartLog heartLog : hl.getHeartLogList()) {

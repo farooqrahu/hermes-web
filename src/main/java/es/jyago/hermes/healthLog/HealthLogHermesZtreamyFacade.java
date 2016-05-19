@@ -1,7 +1,6 @@
 package es.jyago.hermes.healthLog;
 
 import es.jyago.hermes.heartLog.HeartLog;
-import es.jyago.hermes.person.Person;
 import es.jyago.hermes.util.Constants;
 import es.jyago.hermes.util.HermesException;
 import es.jyago.hermes.ztreamy.AbstractHermesZtreamyFacade;
@@ -25,12 +24,12 @@ public class HealthLogHermesZtreamyFacade extends AbstractHermesZtreamyFacade<He
     private static final String HEART_RATE_DATA = "Heart Rate Data";
     private static final Logger LOG = Logger.getLogger(HealthLogHermesZtreamyFacade.class.getName());
 
-    public HealthLogHermesZtreamyFacade(HealthLog healthLog, Person person, String url) throws MalformedURLException, HermesException {
-        super(healthLog, person, url, HEART_RATE_DATA);
+    public HealthLogHermesZtreamyFacade(String applicationId, HealthLog healthLog, String sha, String url) throws MalformedURLException, HermesException {
+        super(applicationId, healthLog, sha, url, HEART_RATE_DATA);
     }
 
-    public HealthLogHermesZtreamyFacade(Collection<HealthLog> collectionHealthLog, Person person, String url) throws MalformedURLException, HermesException {
-        super(collectionHealthLog, person, url, HEART_RATE_DATA, false);
+    public HealthLogHermesZtreamyFacade(String applicationId, Collection<HealthLog> collectionHealthLog, String sha, String url) throws MalformedURLException, HermesException {
+        super(applicationId, collectionHealthLog, sha, url, HEART_RATE_DATA, false);
     }
 
     @Override

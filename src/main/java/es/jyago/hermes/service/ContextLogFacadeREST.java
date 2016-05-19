@@ -13,8 +13,6 @@ import java.util.Date;
 import java.util.List;
 import java.util.logging.Level;
 import java.util.logging.Logger;
-import javax.annotation.Resource;
-import javax.ejb.SessionContext;
 import javax.ejb.Stateless;
 import javax.inject.Inject;
 import javax.persistence.EntityManager;
@@ -47,9 +45,6 @@ public class ContextLogFacadeREST extends AbstractFacade<ContextLog> {
     @Inject
     private PersonFacade personFacade;
 
-    @Resource
-    private SessionContext ctx;
-
     public ContextLogFacadeREST() {
         super(ContextLog.class);
     }
@@ -64,12 +59,10 @@ public class ContextLogFacadeREST extends AbstractFacade<ContextLog> {
                 return Constants.REST_OK;
             }
         } catch (HermesException ex) {
-            LOG.log(Level.SEVERE, "create() - Error controlado", ex);
-            ctx.setRollbackOnly();
+            LOG.log(Level.SEVERE, "create() - Error controlado", ex.getMessage());
             return ex.getCode();
         } catch (Exception ex) {
-            LOG.log(Level.SEVERE, "create() - Error no controlado", ex);
-            ctx.setRollbackOnly();
+            LOG.log(Level.SEVERE, "create() - Error no controlado", ex.getMessage());
             return Constants.REST_ERROR;
         }
 
@@ -126,12 +119,10 @@ public class ContextLogFacadeREST extends AbstractFacade<ContextLog> {
                 return Constants.REST_OK;
             }
         } catch (HermesException ex) {
-            LOG.log(Level.SEVERE, "create() - Error controlado", ex);
-            ctx.setRollbackOnly();
+            LOG.log(Level.SEVERE, "create() - Error controlado", ex.getMessage());
             return ex.getCode();
         } catch (Exception ex) {
-            LOG.log(Level.SEVERE, "create() - Error no controlado", ex);
-            ctx.setRollbackOnly();
+            LOG.log(Level.SEVERE, "create() - Error no controlado", ex.getMessage());
             return Constants.REST_ERROR;
         }
 
@@ -223,7 +214,7 @@ public class ContextLogFacadeREST extends AbstractFacade<ContextLog> {
                 throw new HermesException(Constants.REST_ERROR_NO_CONTEXT_DATA);
             }
         } catch (Exception ex) {
-            LOG.log(Level.SEVERE, "processAndroidContexts() - Error al procesar los contextos", ex);
+            LOG.log(Level.SEVERE, "processAndroidContexts() - Error al procesar los contextos", ex.getMessage());
             throw new HermesException(Constants.REST_ERROR_IN_DATA);
         }
     }
@@ -299,7 +290,7 @@ public class ContextLogFacadeREST extends AbstractFacade<ContextLog> {
                 }
                 obj.setItems(details);
             } catch (CloneNotSupportedException ex) {
-                LOG.log(Level.SEVERE, "clone() - Error al clonar el objeto de tipo 'AndroidContext", ex);
+                LOG.log(Level.SEVERE, "clone() - Error al clonar el objeto de tipo 'AndroidContext", ex.getMessage());
             }
             return obj;
         }
@@ -370,7 +361,7 @@ public class ContextLogFacadeREST extends AbstractFacade<ContextLog> {
             try {
                 obj = (AndroidContextDetail) super.clone();
             } catch (CloneNotSupportedException ex) {
-                LOG.log(Level.SEVERE, "clone() - Error al clonar el objeto de tipo 'AndroidContextDetail", ex);
+                LOG.log(Level.SEVERE, "clone() - Error al clonar el objeto de tipo 'AndroidContextDetail", ex.getMessage());
             }
 
             return obj;

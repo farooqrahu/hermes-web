@@ -98,7 +98,7 @@ public class Constants {
     public static final SimpleDateFormat dfTimeSmartDriver = new SimpleDateFormat("HHmmss");
     public static final SimpleDateFormat dfFitbit = new SimpleDateFormat("yyyy-MM-dd");
     public static final SimpleDateFormat dfus = new SimpleDateFormat("yyyy/MM/dd");
-    public static final SimpleDateFormat dfFitbitFull = new SimpleDateFormat("yyyy-MM-dd'T'HH:mm:SSS");
+    public static final SimpleDateFormat dfISO8601 = new SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss.SSSZ");
     public static final SimpleDateFormat dfMonthYear = new SimpleDateFormat("MMMM yyyy");
     public static final SimpleDateFormat dfTimeGMT = new SimpleDateFormat("HH:mm:ss");
     public static final SimpleDateFormat dfMonth = new SimpleDateFormat("yyyy-MM");
@@ -108,7 +108,7 @@ public class Constants {
     public String getVersion() {
 //        return configurationController.getValueFromItemByKey("Version");
         // La devolveremos del código en lugar de la B.D.
-        return "0.6.7";
+        return "0.6.8";
     }
 
     public boolean isDebug() {

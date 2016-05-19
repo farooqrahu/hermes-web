@@ -551,18 +551,20 @@ public class PersonController implements Serializable, IFitbitFacade, ICSVContro
 
     public void sendToZtreamy() {
         FacesMessage message;
+        
+        String applicationId = Constants.getInstance().getConfigurationValueByKey("ZtreamyContextApplicationId");
 
         try {
             // Los parámetros de configuración de Ztreamy estarán en la tabla de configuración.
             String url = Constants.getInstance().getConfigurationValueByKey("ZtreamyUrl");
             List<ActivityLog> activityLogList = this.getSelected().getActivityLogList(startDate, endDate, aggregation);
-            ActivityLogHermesZtreamyFacade activityLogZtreamy = new ActivityLogHermesZtreamyFacade(activityLogList, this.getSelected(), url);
+            ActivityLogHermesZtreamyFacade activityLogZtreamy = new ActivityLogHermesZtreamyFacade(applicationId, activityLogList, this.getSelected().getSha(), url);
             List<SleepLog> sleepLogList = this.getSelected().getSleepLogList(startDate, endDate);
-            SleepLogHermesZtreamyFacade sleepLogZtreamy = new SleepLogHermesZtreamyFacade(sleepLogList, this.getSelected(), url);
+            SleepLogHermesZtreamyFacade sleepLogZtreamy = new SleepLogHermesZtreamyFacade(applicationId, sleepLogList, this.getSelected().getSha(), url);
             List<HealthLog> healthLogList = this.getSelected().getHealthLogList(startDate, endDate, aggregation);
-            HealthLogHermesZtreamyFacade healthLogZtreamy = new HealthLogHermesZtreamyFacade(healthLogList, this.getSelected(), url);
+            HealthLogHermesZtreamyFacade healthLogZtreamy = new HealthLogHermesZtreamyFacade(applicationId, healthLogList, this.getSelected().getSha(), url);
             List<ContextLog> contextLogList = this.getSelected().getContextLogList(startDate, endDate, aggregation);
-            ContextLogHermesZtreamyFacade contextLogZtreamy = new ContextLogHermesZtreamyFacade(contextLogList, this.getSelected(), url);
+            ContextLogHermesZtreamyFacade contextLogZtreamy = new ContextLogHermesZtreamyFacade(applicationId, contextLogList, this.getSelected().getSha(), url);
 
             if (activityLogZtreamy.send() && sleepLogZtreamy.send() && healthLogZtreamy.send() && contextLogZtreamy.send()) {
                 for (ActivityLog activityLog : activityLogList) {

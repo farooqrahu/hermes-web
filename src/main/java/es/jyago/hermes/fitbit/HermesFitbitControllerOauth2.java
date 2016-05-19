@@ -270,7 +270,7 @@ public class HermesFitbitControllerOauth2 {
                         SleepLog sleepLog = new SleepLog();
                         sleepLog.setPerson(fitbitFacade.getPerson());
                         sleepLog.setDateLog(currentDate.toDate());
-                        LocalTime tempLocalTime = new LocalTime(Constants.dfFitbitFull.parse(mainSleepLogFitbit.getStartTime()));
+                        LocalTime tempLocalTime = new LocalTime(Constants.dfISO8601.parse(mainSleepLogFitbit.getStartTime()));
                         sleepLog.setStartTime(tempLocalTime.toDateTimeToday().toDate());
                         tempLocalTime = tempLocalTime.plusMinutes(mainSleepLogFitbit.getTimeInBed());
                         sleepLog.setEndTime(tempLocalTime.toDateTimeToday().toDate());
@@ -414,7 +414,7 @@ public class HermesFitbitControllerOauth2 {
             }
             FitbitResetRequestsScheduledTask.setUsedRequests(fitbitFacade.getPerson().getFitbitUserId(), 1);
 
-            return Constants.dfFitbitFull.parse(syncDate);
+            return Constants.dfISO8601.parse(syncDate);
         } catch (FitbitAPIException ex) {
             if (ex.getStatusCode() == TOO_MANY_REQUESTS) {
                 int remainingTime = (60 - Calendar.getInstance().get(Calendar.MINUTE));

@@ -1,6 +1,5 @@
 package es.jyago.hermes.contextLog;
 
-import es.jyago.hermes.person.Person;
 import es.jyago.hermes.util.Constants;
 import es.jyago.hermes.util.HermesException;
 import es.jyago.hermes.ztreamy.AbstractHermesZtreamyFacade;
@@ -23,12 +22,12 @@ public class ContextLogHermesZtreamyFacade extends AbstractHermesZtreamyFacade<C
     private static final String CONTEXT_DATA = "Context Data";
     private static final Logger LOG = Logger.getLogger(ContextLogHermesZtreamyFacade.class.getName());
     
-    public ContextLogHermesZtreamyFacade(ContextLog contextLog, Person person, String url) throws MalformedURLException, HermesException {
-        super(contextLog, person, url, CONTEXT_DATA);
+    public ContextLogHermesZtreamyFacade(String applicationId, ContextLog contextLog, String sha, String url) throws MalformedURLException, HermesException {
+        super(applicationId, contextLog, sha, url, CONTEXT_DATA);
     }
 
-    public ContextLogHermesZtreamyFacade(Collection<ContextLog> collectionContextLog, Person person, String url) throws MalformedURLException, HermesException {
-        super(collectionContextLog, person, url, CONTEXT_DATA, false);
+    public ContextLogHermesZtreamyFacade(String applicationId, Collection<ContextLog> collectionContextLog, String sha, String url) throws MalformedURLException, HermesException {
+        super(applicationId, collectionContextLog, sha, url, CONTEXT_DATA, false);
     }
 
     @Override

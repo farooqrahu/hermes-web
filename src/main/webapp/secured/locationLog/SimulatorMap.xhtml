@@ -16,19 +16,29 @@
         <script>
             //<![CDATA[
             function handleComplete(xhr, status, args) {
-                var map = PF('gmap').getMap();
+                if (args !== undefined)
+                {
+                    var map = PF('gmap').getMap();
 
-                for (var i in map.markers) {
-                    var marker = map.markers[i];
-                    marker.setPosition(new google.maps.LatLng(args.latitude, args.longitude));
-//                    marker.setMap(map);
+                    for (var i in map.markers) {
+                        var marker = map.markers[i];
+                        var latitude = "latitude" + i ;
+                        var longitude = "longitude" + i;
+                        var icon = "icon" + i;
+                        if (args.hasOwnProperty(latitude) && args.hasOwnProperty(longitude)) {
+                            marker.setPosition(new google.maps.LatLng(args[latitude], args[longitude]));
+                        }
+                        if (args.hasOwnProperty(icon)) {
+                            marker.setIcon(args[icon]);
+                        }
+                    }
                 }
             }
-// ]]>
+            // ]]>
         </script>
     </h:head>
     <h:body>
-        <h:form id="PersonMapForm">
+        <h:form id="SimulatorMapForm">
             <c:choose>
                 <c:when test='#{personController.selected == null}'>
                     <h:panelGrid>
@@ -38,7 +48,7 @@
 
                 <c:otherwise>
                     <!-- FIXME: Poner 'fitBounds' cuando se corrija el 'bug' que tiene Primefaces con Google Maps -->
-                    <p:poll id="gmapUpdater" interval="3" listener="#{simulatorController.getRealTimeLatLng()}" oncomplete="handleComplete(xhr, status, args)" rendered="#{simulatorController.simulating}" update="simulateButton"/>
+                    <p:poll id="gmapUpdater" interval="3" listener="#{simulatorController.getCurrentLatLng()}" oncomplete="handleComplete(xhr, status, args)" update="simulatorMessage, simulateButton" stop="#{!simulatorController.simulating}"/>
                     <p:gmap id="gmap" widgetVar="gmap" center="#{simulatorController.markerLatitudeLongitude}" zoom="10" type="ROADMAP" model="#{simulatorController.simulatedMapModel}" style="height:400px" fitBounds="true">
                         <p:ajax event="overlaySelect" listener="#{simulatorController.onMarkerSelect}"/>
                         <p:gmapInfoWindow id="infoWindow">
@@ -47,7 +57,11 @@
                             </p:outputPanel>
                         </p:gmapInfoWindow>
                     </p:gmap>
-                    <div style="width: 100%; display: flex;">
+                    <p:outputPanel id="simulatorMessage" rendered="#{!simulatorController.allSimulationsFinished}">
+                        <h3>#{simulatorController.simulationFinishedMessage}</h3>
+                    </p:outputPanel>
+
+                    <div style="width: 100%; display: flex; overflow-y: scroll;">
                         <p:panel header="#{bundle.TrackConditions}" style="width: 30%; margin: 10px">
                             <h:panelGrid columns="1">
                                 <h:outputText value="#{bundle.DistanceFromSevilleCenter} (Km)" />
@@ -58,7 +72,7 @@
                                 <p:slider for="distance" minValue="1" maxValue="100"/>
                                 <h:outputText value="#{bundle.TracksAmount}" />
                                 <p:inputText id="tracksAmount" value="#{simulatorController.tracksAmount}" />
-                                <p:slider for="tracksAmount" minValue="1" maxValue="100"/>
+                                <p:slider for="tracksAmount" minValue="1" maxValue="100" />
                                 <p:selectBooleanCheckbox id="createSimulatedUser" value="#{simulatorController.createSimulatedUser}" itemLabel="#{bundle.CreateSimulatedUser}"/>
                                 <p:outputLabel value="#{bundle.SimulationMethod}" for="simulationMethod" />
                                 <h:selectOneRadio id="simulationMethod" value="#{simulatorController.simulationMethod}" layout="pageDirection">
@@ -69,7 +83,7 @@
                                 <h:outputText value="#{bundle.simulatedSmartDriversPerTrack}" />
                                 <p:inputText id="simulatedSmartDrivers" value="#{simulatorController.simulatedSmartDrivers}" />
                                 <p:slider for="simulatedSmartDrivers" minValue="1" maxValue="1000"/>
-                                <p:commandButton id="simulateButton" value="#{simulatorController.simulating ? bundle.StopSimulation : bundle.StartSimulation}" action="#{simulatorController.realTimeSimulate()}" update="@this, gmap, gmapUpdater" onclick="initUpdater()"/>
+                                <p:commandButton id="simulateButton" value="#{simulatorController.simulating ? bundle.StopSimulation : bundle.StartSimulation}" action="#{simulatorController.realTimeSimulate()}" update="@this, gmapUpdater"/>
                             </h:panelGrid>
                         </p:panel>
                         <p:panel id="trackInfoPanel" header="#{bundle.TrackInfo}" style="margin: 10px;">
@@ -81,6 +95,7 @@
                                          sortBy="#{item.summary.distance}"
                                          sortOrder="ascending"
                                          scrollable="true"
+                                         rows="100"
                                          styleClass="align-top-rows">
 
                                 <!-- Para poner 'tooltips' en las cabeceras de las columnas de la tabla -->

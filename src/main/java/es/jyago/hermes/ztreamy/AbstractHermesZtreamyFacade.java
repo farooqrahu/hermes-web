@@ -1,7 +1,5 @@
 package es.jyago.hermes.ztreamy;
 
-import es.jyago.hermes.person.Person;
-import es.jyago.hermes.util.Constants;
 import es.jyago.hermes.util.HermesException;
 import java.io.IOException;
 import java.net.MalformedURLException;
@@ -14,8 +12,6 @@ import java.util.Map;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 import javax.ws.rs.core.MediaType;
-import org.apache.commons.codec.binary.Hex;
-import org.apache.commons.codec.digest.DigestUtils;
 import ztreamy.Publisher;
 import ztreamy.Event;
 import ztreamy.JSONSerializer;
@@ -26,26 +22,29 @@ public abstract class AbstractHermesZtreamyFacade<T> {
     private final Publisher publisher;
     private Event model;
     private List<Event> events;
-    private final Person person;
+    private final String sha;
     private final String url;
     private final boolean oneEvent;
     private final String type;
+    private final String applicationId;
 
-    public AbstractHermesZtreamyFacade(T element, Person person, String url, String type) throws MalformedURLException, HermesException {
-        this.person = person;
+    public AbstractHermesZtreamyFacade(String applicationId, T element, String sha, String url, String type) throws MalformedURLException, HermesException {
+        this.sha = sha;
         this.url = url;
         this.oneEvent = true;
         this.type = type;
+        this.applicationId = applicationId;
         this.model = prepareEvent();
         this.publisher = new Publisher(new URL(url), new JSONSerializer());
         setBody(element);
     }
 
-    public AbstractHermesZtreamyFacade(Collection<T> collection, Person person, String url, String type, boolean oneEvent) throws MalformedURLException, HermesException {
-        this.person = person;
+    public AbstractHermesZtreamyFacade(String applicationId, Collection<T> collection, String sha, String url, String type, boolean oneEvent) throws MalformedURLException, HermesException {
+        this.sha = sha;
         this.url = url;
         this.oneEvent = false;
         this.type = type;
+        this.applicationId = applicationId;
         this.publisher = new Publisher(new URL(url), new JSONSerializer());
         setBody(collection);
     }
@@ -64,7 +63,7 @@ public abstract class AbstractHermesZtreamyFacade<T> {
 
     private void prepareOneEventBody(Map<String, Object> body) throws HermesException {
         if (body == null || body.isEmpty()) {
-            LOG.log(Level.WARNING, "El cuerpo del evento de la persona {0} está vacío. No se enviará por Ztreamy", person.getFullName());
+            LOG.log(Level.WARNING, "El cuerpo del evento de la persona con SHA: {0} está vacío. No se enviará por Ztreamy", sha);
         } else {
             model.setBody(body);
         }
@@ -72,7 +71,7 @@ public abstract class AbstractHermesZtreamyFacade<T> {
 
     private void prepareMultipleEventsBodies(Collection<Object> collection) throws HermesException {
         if (collection == null || collection.isEmpty()) {
-            LOG.log(Level.WARNING, "El cuerpo del evento de la persona {0} está vacío. No se enviará por Ztreamy", person.getFullName());
+            LOG.log(Level.WARNING, "El cuerpo del evento de la persona con SHA: {0} está vacío. No se enviará por Ztreamy", sha);
         } else {
             events = new ArrayList();
             for (Object info : collection) {
@@ -116,10 +115,6 @@ public abstract class AbstractHermesZtreamyFacade<T> {
         return ok;
     }
 
-    public Person getPerson() {
-        return this.person;
-    }
-
     public String getUrl() {
         return url;
     }
@@ -133,13 +128,7 @@ public abstract class AbstractHermesZtreamyFacade<T> {
     public abstract String getType();
 
     private Event prepareEvent() {
-        LOG.log(Level.INFO, "prepareEvent() - Preparando el env\u00edo de ''{0}'' por Ztreamy de: {1}", new Object[]{type, getPerson().getFullName()});
-
-        String sha = getPerson().getSha();
-        if (sha == null || sha.length() == 0) {
-            sha = new String(Hex.encodeHex(DigestUtils.sha256(getPerson().getEmail())));
-        }
-
-        return new Event(sha, MediaType.APPLICATION_JSON, Constants.getInstance().getConfigurationValueByKey("ZtreamyContextApplicationId"), type);
+        LOG.log(Level.INFO, "prepareEvent() - Preparando el envío de ''{0}'' por Ztreamy de la persona con SHA: {1}", new Object[]{type, sha});
+        return new Event(sha, MediaType.APPLICATION_JSON, applicationId, type);
     }
 }

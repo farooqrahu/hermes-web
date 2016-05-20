@@ -16,20 +16,23 @@
         <script>
             //<![CDATA[
             function handleComplete(xhr, status, args) {
-                if (args !== undefined)
-                {
+                if (args !== undefined) {
                     var map = PF('gmap').getMap();
 
                     for (var i in map.markers) {
                         var marker = map.markers[i];
-                        var latitude = "latitude" + i ;
-                        var longitude = "longitude" + i;
-                        var icon = "icon" + i;
+                        var latitude = "latitude" + i + "-" + marker["id"];
+                        var longitude = "longitude" + i + "-" + marker["id"];
                         if (args.hasOwnProperty(latitude) && args.hasOwnProperty(longitude)) {
                             marker.setPosition(new google.maps.LatLng(args[latitude], args[longitude]));
                         }
+                        var icon = "icon" + i + "-" + marker["id"];
                         if (args.hasOwnProperty(icon)) {
                             marker.setIcon(args[icon]);
+                        }
+                        var title = "title" + i + "-" + marker["id"];
+                        if (args.hasOwnProperty(title)) {
+                            marker.setTitle(args[title]);
                         }
                     }
                 }
@@ -47,8 +50,10 @@
                 </c:when>
 
                 <c:otherwise>
+                    <p:panel id="gmapUpdater" style="display: none">
+                        <p:poll interval="3" listener="#{simulatorController.getCurrentLatLng()}" oncomplete="handleComplete(xhr, status, args)" update="simulatorMessage, simulateButton, @this" rendered="#{simulatorController.simulating}"/>
+                    </p:panel>
                     <!-- FIXME: Poner 'fitBounds' cuando se corrija el 'bug' que tiene Primefaces con Google Maps -->
-                    <p:poll id="gmapUpdater" interval="3" listener="#{simulatorController.getCurrentLatLng()}" oncomplete="handleComplete(xhr, status, args)" update="simulatorMessage, simulateButton" stop="#{!simulatorController.simulating}"/>
                     <p:gmap id="gmap" widgetVar="gmap" center="#{simulatorController.markerLatitudeLongitude}" zoom="10" type="ROADMAP" model="#{simulatorController.simulatedMapModel}" style="height:400px" fitBounds="true">
                         <p:ajax event="overlaySelect" listener="#{simulatorController.onMarkerSelect}"/>
                         <p:gmapInfoWindow id="infoWindow">
@@ -57,7 +62,7 @@
                             </p:outputPanel>
                         </p:gmapInfoWindow>
                     </p:gmap>
-                    <p:outputPanel id="simulatorMessage" rendered="#{!simulatorController.allSimulationsFinished}">
+                    <p:outputPanel id="simulatorMessage" rendered="#{simulatorController.allSimulationsFinished}">
                         <h3>#{simulatorController.simulationFinishedMessage}</h3>
                     </p:outputPanel>
 
@@ -82,8 +87,8 @@
                                 <p:commandButton value="#{bundle.GenerateTracks}" action="#{simulatorController.generateSimulatedTracks()}" update="gmap, trackInfoPanel"/>
                                 <h:outputText value="#{bundle.simulatedSmartDriversPerTrack}" />
                                 <p:inputText id="simulatedSmartDrivers" value="#{simulatorController.simulatedSmartDrivers}" />
-                                <p:slider for="simulatedSmartDrivers" minValue="1" maxValue="1000"/>
-                                <p:commandButton id="simulateButton" value="#{simulatorController.simulating ? bundle.StopSimulation : bundle.StartSimulation}" action="#{simulatorController.realTimeSimulate()}" update="@this, gmapUpdater"/>
+                                <p:slider for="simulatedSmartDrivers" minValue="1" maxValue="100"/>
+                                <p:commandButton id="simulateButton" value="#{simulatorController.simulating ? bundle.StopSimulation : bundle.StartSimulation}" action="#{simulatorController.realTimeSimulate()}" update="gmapUpdater, gmap"/>
                             </h:panelGrid>
                         </p:panel>
                         <p:panel id="trackInfoPanel" header="#{bundle.TrackInfo}" style="margin: 10px;">

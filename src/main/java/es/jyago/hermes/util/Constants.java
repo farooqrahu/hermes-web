@@ -108,7 +108,7 @@ public class Constants {
     public String getVersion() {
 //        return configurationController.getValueFromItemByKey("Version");
         // La devolveremos del código en lugar de la B.D.
-        return "0.6.8";
+        return "0.6.9";
     }
 
     public boolean isDebug() {

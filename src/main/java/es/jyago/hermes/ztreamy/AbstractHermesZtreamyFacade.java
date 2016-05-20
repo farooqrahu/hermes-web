@@ -107,7 +107,7 @@ public abstract class AbstractHermesZtreamyFacade<T> {
 
         if (result == 200) {
             ok = true;
-            LOG.log(Level.INFO, "send() - Datos enviados por Ztreamy satisfactoriamente");
+            LOG.log(Level.FINE, "send() - Datos enviados por Ztreamy satisfactoriamente");
         } else {
             LOG.log(Level.SEVERE, "send() - Error al enviar los datos por Ztreamy", result);
         }
@@ -128,7 +128,7 @@ public abstract class AbstractHermesZtreamyFacade<T> {
     public abstract String getType();
 
     private Event prepareEvent() {
-        LOG.log(Level.INFO, "prepareEvent() - Preparando el envío de ''{0}'' por Ztreamy de la persona con SHA: {1}", new Object[]{type, sha});
+        LOG.log(Level.FINE, "prepareEvent() - Preparando el envío de ''{0}'' por Ztreamy de la persona con SHA: {1}", new Object[]{type, sha});
         return new Event(sha, MediaType.APPLICATION_JSON, applicationId, type);
     }
 }

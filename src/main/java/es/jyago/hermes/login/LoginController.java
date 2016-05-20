@@ -308,7 +308,7 @@ public class LoginController implements Serializable {
     }
 
     public void keepSessionAlive() {
-        LOG.log(Level.INFO, "keepSessionAlive() - Mantener activa la sesiónn del usuario: {0}", username);
+        LOG.log(Level.INFO, "keepSessionAlive() - Mantener activa la sesión del usuario: {0}", username);
     }
 
     public boolean isLoggedIn() {

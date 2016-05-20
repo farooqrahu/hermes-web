@@ -33,7 +33,9 @@ import java.net.URL;
 import java.text.MessageFormat;
 import java.util.ArrayList;
 import java.util.Date;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.Random;
 import java.util.ResourceBundle;
 import java.util.Timer;
@@ -68,9 +70,9 @@ public class SimulatorController implements Serializable {
     private static final String MARKER_ICON_PATH = "http://maps.google.com/mapfiles/kml/pal4/icon15.png";
     private static final String MARKER_FINISH_ICON_PATH = "http://maps.google.com/mapfiles/kml/pal5/icon13.png";
     // FIXME: ¿Dividir simulaciones entre los hilos o que cada hilo cree la misma cantidad de trayectos?
-    private static final int NUM_THREADS = 100;
     private volatile int ztreamyErrors;
-    private volatile boolean allSimulationsFinished;
+    private volatile long zTreamySends;
+    private volatile int runningThreads = 0;
     private volatile String simulationFinishedMessage;
     // Parámetros recogidos de SmartDriver.
     private static final String APPLICATION_ID = "SmartDriver";
@@ -92,10 +94,9 @@ public class SimulatorController implements Serializable {
     private List<TrackInfo> trackInfoList;
     private MapModel simulatedMapModel;
     private Track_Simulation_Method simulationMethod;
-    private ArrayList<LocationLogWrapper> locationLogList;
+    private ArrayList<LocationLog> locationLogList;
 
-    private Timer simulationTimers[];
-    private long elapsedTime;
+    private Map<String, Timer> simulationTimers;
     private int simulatedSmartDrivers;
     private String url;
 
@@ -118,7 +119,8 @@ public class SimulatorController implements Serializable {
         simulationMethod = Track_Simulation_Method.GOOGLE;
         marker = new Marker(new LatLng(SEVILLE.getLat(), SEVILLE.getLng()));
         ztreamyErrors = 0;
-        allSimulationsFinished = false;
+        zTreamySends = 0l;
+        runningThreads = 0;
 
         // Los parámetros de configuración de Ztreamy estarán en la tabla de configuración.
         url = Constants.getInstance().getConfigurationValueByKey("ZtreamyUrl");
@@ -143,7 +145,7 @@ public class SimulatorController implements Serializable {
         locationLogList = new ArrayList<>();
 
         for (int i = 0; i < tracksAmount; i++) {
-            LocationLogWrapper llw = new LocationLogWrapper();
+            LocationLog ll = new LocationLog();
 
             Location origin = getRandomLocation(SEVILLE.getLat(), SEVILLE.getLng(), distanceFromSevilleCenter);
             Location destination = getRandomLocation(origin.getLat(), origin.getLng(), distance);
@@ -151,7 +153,6 @@ public class SimulatorController implements Serializable {
             Date currentTime = new Date();
 
             // Creamos un objeto de localizaciones de 'SmartDriver'.
-            LocationLog ll = new LocationLog();
             ll.setDateLog(currentTime);
 
             if (simulationMethod.equals(Track_Simulation_Method.GOOGLE)) {
@@ -175,7 +176,7 @@ public class SimulatorController implements Serializable {
                             .setFieldNamingPolicy(FieldNamingPolicy.LOWER_CASE_WITH_UNDERSCORES)
                             .create();
                     GeocodedWaypoints gcwp = gson.fromJson(json, GeocodedWaypoints.class);
-                    trackInfo = createTrack(gcwp, ll, llw.getRandomFactor());
+                    trackInfo = createTrack(gcwp, ll);
                 } catch (InterruptedException | ExecutionException | JsonSyntaxException ex) {
                     LOG.log(Level.SEVERE, "Error al decodificar el JSON de la ruta", ex);
                 }
@@ -185,7 +186,7 @@ public class SimulatorController implements Serializable {
                     Type listType = new TypeToken<ArrayList<GeomWaySteps>>() {
                     }.getType();
                     List<GeomWaySteps> gws = new Gson().fromJson(json, listType);
-                    trackInfo = createTrack(gws, ll, llw.getRandomFactor());
+                    trackInfo = createTrack(gws, ll);
                 } catch (IOException | JsonSyntaxException ex) {
                     LOG.log(Level.SEVERE, "Error al decodificar el JSON de la ruta", ex);
                 }
@@ -207,11 +208,7 @@ public class SimulatorController implements Serializable {
                 locationLogFacade.create(ll);
             }
 
-            llw.setLocationLog(ll);
-            llw.setBaseTime(ll.getLocationLogDetailList().get(0).getTimeLog().getTime());
-            llw.setDetailPosition(0);
-
-            locationLogList.add(llw);
+            locationLogList.add(ll);
             trackInfoList.add(trackInfo);
         }
     }
@@ -231,7 +228,7 @@ public class SimulatorController implements Serializable {
         return simulatedMapModel;
     }
 
-    private TrackInfo createTrack(List<GeomWaySteps> geomWayStepsList, LocationLog ll, Double randomFactor) {
+    private TrackInfo createTrack(List<GeomWaySteps> geomWayStepsList, LocationLog ll) {
         TrackInfo trackInfo = new TrackInfo();
 
         if (geomWayStepsList != null && !geomWayStepsList.isEmpty()) {
@@ -304,7 +301,7 @@ public class SimulatorController implements Serializable {
         return trackInfo;
     }
 
-    private TrackInfo createTrack(GeocodedWaypoints gcwp, LocationLog ll, Double randomFactor) {
+    private TrackInfo createTrack(GeocodedWaypoints gcwp, LocationLog ll) {
         TrackInfo trackInfo = new TrackInfo();
 
         if (gcwp.getRoutes() != null) {
@@ -330,7 +327,7 @@ public class SimulatorController implements Serializable {
                     // Resumen que mostraremos por pantalla.
                     SectionInfo summary = trackInfo.getSummary();
                     summary.setDistance(l.getDistance().getValue());
-                    summary.setDuration((int) (l.getDuration().getValue() * randomFactor)); // Para darle un poco de aletoriedad.
+                    summary.setDuration((int) (l.getDuration().getValue()));
                     summary.setStartLocation(new LocationInfo(l.getStartLocation().getLat(), l.getStartLocation().getLng()));
                     summary.setStartAddress(l.getStartAddress());
                     summary.setEndLocation(new LocationInfo(l.getEndLocation().getLat(), l.getEndLocation().getLng()));
@@ -380,19 +377,9 @@ public class SimulatorController implements Serializable {
                     LocationLogDetail startPosition = locationLogDetailList.get(0);
                     LatLng latLng = new LatLng(startPosition.getLatitude(), startPosition.getLongitude());
                     // Creamos una marca con la información detallada, para poder mostrarla cuando se pulse en la posición en Google Maps.
-                    StringBuilder sb = new StringBuilder();
-                    sb.append(ResourceBundle.getBundle("/Bundle").getString("Time")).append(": ").append(Constants.dfTime.format(startPosition.getTimeLog()));
-                    sb.append(" ");
-//                        sb.append(ResourceBundle.getBundle("/Bundle").getString("HeartRate")).append(": ").append(Integer.toString(location.getHeartRate()));
-//                        sb.append(" ");
-                    sb.append(ResourceBundle.getBundle("/Bundle").getString("Speed")).append(": ").append(startPosition.getSpeed());
-                    sb.append(" (").append(startPosition.getLatitude()).append(", ").append(startPosition.getLongitude()).append(")");
-                    for (int i = 0; i < NUM_THREADS; i++)
-                    {
-                        Marker m = new Marker(latLng, sb.toString(), i, MARKER_ICON_PATH);
-                        m.setVisible(true);
-                        simulatedMapModel.addOverlay(m);
-                    }
+                    Marker m = new Marker(latLng);
+                    m.setVisible(true);
+                    simulatedMapModel.addOverlay(m);
 
                     trackInfo.setTotalLocations(locationLogDetailList.size());
                     trackInfo.setAverageLocationsDistance(summary.getDistance() / locationLogDetailList.size());
@@ -516,14 +503,22 @@ public class SimulatorController implements Serializable {
             for (int i = 0; i < simulatedMapModel.getMarkers().size(); i++) {
                 Marker m = simulatedMapModel.getMarkers().get(i);
                 LatLng latLng = m.getLatlng();
-                if (latLng != null) {
-                    RequestContext context = RequestContext.getCurrentInstance();
-                    context.addCallbackParam("latitude" + i + "-" + m.getId(), latLng.getLat());
-                    context.addCallbackParam("longitude" + i + "-" +  m.getId(), latLng.getLng());
-                }
-                String icon = m.getIcon();
                 RequestContext context = RequestContext.getCurrentInstance();
-                context.addCallbackParam("icon" + i + "-" +  m.getId(), icon);
+                // Posición.
+                if (latLng != null) {
+                    context.addCallbackParam("latitude" + i + "-" + m.getId(), latLng.getLat());
+                    context.addCallbackParam("longitude" + i + "-" + m.getId(), latLng.getLng());
+                }
+                // Icono
+                String icon = m.getIcon();
+                if (icon != null) {
+                    context.addCallbackParam("icon" + i + "-" + m.getId(), icon);
+                }
+                // Información
+                String title = m.getTitle();
+                if (title != null) {
+                    context.addCallbackParam("title" + i + "-" + m.getId(), title);
+                }
             }
         } catch (Exception ex) {
         }
@@ -531,132 +526,72 @@ public class SimulatorController implements Serializable {
 
     public void realTimeSimulate() {
         // Si el temporizador está instanciado, es que hay una simulación en marcha y se quiere parar.
-        if (simulationTimers != null && simulationTimers.length > 0) {
-            simulationFinishedMessage = MessageFormat.format(LocaleBean.getBundle().getString("ZtreamyErrors"), ztreamyErrors);
+        if (simulationTimers != null && simulationTimers.size() > 0) {
+            simulationFinishedMessage = MessageFormat.format(LocaleBean.getBundle().getString("ZtreamyTimeouts"), ztreamyErrors);
             if (ztreamyErrors > 0) {
                 LOG.log(Level.SEVERE, "realTimeSimulate() - Ha habido {0} errores en el envío de datos a Ztreamy", ztreamyErrors);
             } else {
-                LOG.log(Level.INFO, "realTimeSimulate() - Los envíos a Ztreamy se han realizado correctamente");
+                LOG.log(Level.FINE, "realTimeSimulate() - Los envíos a Ztreamy se han realizado correctamente");
             }
 
-            for (Timer timer : simulationTimers) {
-                if (timer != null) {
-                    timer.cancel();
-                    timer = null;
-                }
-            }
-
-            simulationTimers = null;
-        } else {
-            // No hay simulación en marcha, la comenzamos.
-            elapsedTime = 0l;
-            // Reiniciamos los valores que pudieran tener los trayectos.
-            locationLogList.stream().forEach((llw) -> {
-                llw.reset();
-            });
-
-            // Reiniciamos los 'marker'.
-            for (Marker m : simulatedMapModel.getMarkers()) {
-                m.setIcon(MARKER_ICON_PATH);
-            }
-
-            // FIXME: Varios hilos para más salida?
-            simulationTimers = new Timer[NUM_THREADS];
-
-            for (int i = 0; i < NUM_THREADS; i++) {
-                simulationTimers[i] = new Timer();
-                simulationTimers[i].scheduleAtFixedRate(new TimerTask() {
-
-                    @Override
-                    public void run() {
-
-                        allSimulationsFinished = true;
-
-                        for (int pos = 0; pos < locationLogList.size(); pos++) {
-                            LocationLogWrapper llw = locationLogList.get(pos);
-                            LocationLog currentLocationLog = llw.getLocationLog();
-                            LocationLogDetail currentLocationLogDetail = null;
-                            if (!llw.isFinished()) {
-                                allSimulationsFinished = false;
-                                for (int i = llw.getDetailPosition(); i < currentLocationLog.getLocationLogDetailList().size(); i++) {
-                                    currentLocationLogDetail = currentLocationLog.getLocationLogDetailList().get(i);
-                                    // Con el tiempo transcurrido, obtenemos la posición por la que estará.
-                                    if (((currentLocationLogDetail.getTimeLog().getTime() - llw.getBaseTime()) >= elapsedTime)
-                                            && (i > llw.getDetailPosition())) {
-                                        // Avanzamos de posición.
-                                        int previousPosition = llw.getDetailPosition();
-                                        llw.setDetailPosition(i);
-                                        Marker trackMarker = simulatedMapModel.getMarkers().get(pos);
-                                        trackMarker.setLatlng(new LatLng(currentLocationLogDetail.getLatitude(), currentLocationLogDetail.getLongitude()));
-                                        LocationLogDetail previousLocationLogDetail = currentLocationLog.getLocationLogDetailList().get(previousPosition);
-                                        // Acumulamos la distancia recorrida.
-                                        llw.addSectionDistance(Util.distanceHaversine(previousLocationLogDetail.getLatitude(), previousLocationLogDetail.getLongitude(), currentLocationLogDetail.getLatitude(), currentLocationLogDetail.getLongitude()));
-                                        // Análisis del PKE (Positive Kinetic Energy)
-                                        llw.addCummulativePositiveSpeeds(analyzePKE(currentLocationLogDetail, previousLocationLogDetail));
-
-                                        // Comprobamos si hemos llegado al destino.
-                                        if (llw.getDetailPosition() == currentLocationLog.getLocationLogDetailList().size() - 1) {
-                                            llw.setFinished(true);
-                                            trackMarker.setIcon(MARKER_FINISH_ICON_PATH);
-                                        }
-                                        break;
-                                    }
-                                }
-                            }
-
-                            if (currentLocationLogDetail != null) {
-                                // Creamos un elementos de tipo 'RoadSection', para añadirlo al 'DataSection' que se envía a 'Ztreamy' cada 500 metros.
-                                RoadSection rd = new RoadSection();
-                                rd.setTime(currentLocationLogDetail.getTimeLog().getTime());
-                                rd.setLatitude(currentLocationLogDetail.getLatitude());
-                                rd.setLongitude(currentLocationLogDetail.getLongitude());
-                                rd.setSpeed(currentLocationLogDetail.getSpeed());
-
-                                llw.getRoadSectionList().add(rd);
-                            }
-
-                            // Se envían los datos a Ztreamy cada 10 segundos.
-                            if (!llw.isFinished()) {
-                                if (elapsedTime % ZTREAMY_SEND_INTERVAL_MILLISECONDS == 0) {
-                                    sendLocationToZtreamy(currentLocationLogDetail);
-                                }
-
-                                // Se enviará un resumen cada 500 metros.
-                                if (llw.getSectionDistance() > ZTREAMY_SEND_INTERVAL_METERS) {
-                                    sendDataSectionToZtreamy(llw);
-                                    llw.getRoadSectionList().clear();
-                                    llw.resetCummulativePositiveSpeeds();
-                                    llw.resetSectionDistance();
-                                }
-                            }
-                        }
-
-                        if (allSimulationsFinished) {
-                            realTimeSimulate();
-                        }
-
-                        elapsedTime += 1000;
+            if (simulationTimers != null) {
+                for (Timer timer : simulationTimers.values()) {
+                    if (timer != null) {
+                        timer.cancel();
+                        timer = null;
                     }
-                }, 0, 1000);
+                }
+                simulationTimers = null;
+            }
+        } else {
+            // Eliminamos los 'Marker' existentes.
+            simulatedMapModel.getMarkers().clear();
+
+            simulationTimers = new HashMap<>();
+            runningThreads = simulatedSmartDrivers * locationLogList.size();
+            for (int i = 0; i < locationLogList.size(); i++) {
+                LocationLog ll = locationLogList.get(i);
+                LocationLogDetail startPosition = ll.getLocationLogDetailList().get(0);
+
+                // Creamos una marca con la información detallada, para poder mostrarla cuando se pulse en la posición en Google Maps.
+                StringBuilder sb = new StringBuilder();
+                sb.append(ResourceBundle.getBundle("/Bundle").getString("Time")).append(": ").append(Constants.dfTime.format(startPosition.getTimeLog()));
+                sb.append(" ");
+//                        sb.append(ResourceBundle.getBundle("/Bundle").getString("HeartRate")).append(": ").append(Integer.toString(location.getHeartRate()));
+//                        sb.append(" ");
+                sb.append(ResourceBundle.getBundle("/Bundle").getString("Speed")).append(": ").append(startPosition.getSpeed());
+                sb.append(" (").append(startPosition.getLatitude()).append(", ").append(startPosition.getLongitude()).append(")");
+                LatLng latLng = new LatLng(startPosition.getLatitude(), startPosition.getLongitude());
+
+                for (int j = 0; j < simulatedSmartDrivers; j++) {
+                    Timer timer = new Timer();
+                    timer.scheduleAtFixedRate(new SimTimerTask(ll, j), 0, 1000);
+                    simulationTimers.put(i + "_" + j, timer);
+
+                    Marker m = new Marker(latLng, sb.toString(), null, MARKER_ICON_PATH);
+                    m.setVisible(true);
+                    simulatedMapModel.addOverlay(m);
+                }
             }
         }
     }
 
-    private void sendLocationToZtreamy(LocationLogDetail lld) {
+    private void sendLocationToZtreamy(LocationLogDetail lld, double randomFactor) {
         try {
             // Creamos un objeto de tipo 'Location' de los que 'SmartDriver' envía a 'Ztreamy'.
             es.jyago.hermes.smartDriver.Location smartDriverLocation = new es.jyago.hermes.smartDriver.Location();
             smartDriverLocation.setLatitude(lld.getLatitude());
             smartDriverLocation.setLongitude(lld.getLongitude());
-            smartDriverLocation.setSpeed(lld.getSpeed());
+            smartDriverLocation.setSpeed(lld.getSpeed() / randomFactor);
             smartDriverLocation.setAccuracy(0);
             smartDriverLocation.setScore(0);
-            smartDriverLocation.setTimeStamp(Constants.dfISO8601.format(lld.getTimeLog()));
+            smartDriverLocation.setTimeStamp(Constants.dfISO8601.format((long)(lld.getTimeLog().getTime() * randomFactor)));
 
             // Inicialmente, vamos a hacer un envío como si fuera un autobus con X usuarios de SmartDriver, que iniciasen la aplicación al mismo tiempo.
             for (int i = 0; i < simulatedSmartDrivers; i++) {
                 LocationHermesZtreamyFacade locationZtreamy = new LocationHermesZtreamyFacade(APPLICATION_ID, smartDriverLocation, lld.getLocationLog().getPerson().getSha() + i, url);
 
+                zTreamySends++;
                 if (locationZtreamy.send()) {
                     LOG.log(Level.FINER, "sendLocationToZtreamy() - Localización de trayecto simulado enviada correctamante. SmartDriver: {0}", i);
                 } else {
@@ -666,7 +601,7 @@ public class SimulatorController implements Serializable {
         } catch (MalformedURLException ex) {
             LOG.log(Level.SEVERE, "sendLocationToZtreamy() - Error en la URL", ex);
         } catch (IOException ex) {
-            LOG.log(Level.SEVERE, "sendLocationToZtreamy() - Error de I/O: {0} - Trama: {1}", new Object[]{ex.getMessage(), Constants.dfISO8601.format(lld.getTimeLog())});
+            LOG.log(Level.SEVERE, "sendLocationToZtreamy() - Error de I/O: {0} - Trama: {1} - Enviada a las: {2} - Total de envíos actual: {3}", new Object[]{ex.getMessage(), Constants.dfISO8601.format(lld.getTimeLog()), Constants.dfISO8601.format(System.currentTimeMillis()), zTreamySends});
             ztreamyErrors++;
         } catch (HermesException ex) {
             LOG.log(Level.SEVERE, "sendLocationToZtreamy() - Error al enviar datos a Ztreamy");
@@ -685,7 +620,7 @@ public class SimulatorController implements Serializable {
             DescriptiveStatistics accelerationStats = new DescriptiveStatistics();
             DescriptiveStatistics decelerationStats = new DescriptiveStatistics();
             RoadSection rdPrevious = llw.getRoadSectionList().get(0);
-            speedStats.addValue(rdPrevious.getSpeed());
+            speedStats.addValue(rdPrevious.getSpeed() * llw.getRandomFactor());
             int numHighAccelerations = 0;
             int numHighDecelerations = 0;
 
@@ -743,6 +678,7 @@ public class SimulatorController implements Serializable {
 
             // Inicialmente, vamos a hacer un envío como si fuera un autobus con X usuarios de SmartDriver, que iniciasen la aplicación al mismo tiempo.
             for (int i = 0; i < simulatedSmartDrivers; i++) {
+                zTreamySends++;
                 if (dataSectionHermesZtreamy.send()) {
                     LOG.log(Level.FINER, "sendDataSectionToZtreamy() - Localización de trayecto simulado enviada correctamante. SmartDriver: {0}", i);
                 } else {
@@ -752,7 +688,7 @@ public class SimulatorController implements Serializable {
         } catch (MalformedURLException ex) {
             LOG.log(Level.SEVERE, "sendDataSectionToZtreamy() - Error en la URL", ex);
         } catch (IOException ex) {
-            LOG.log(Level.SEVERE, "sendLocationToZtreamy() - Error de I/O: {0} - Primera trama de la sección: {1}", new Object[]{ex.getMessage(), dataSection.getRoadSection().get(0).getTimeStamp()});
+            LOG.log(Level.SEVERE, "sendLocationToZtreamy() - Error de I/O: {0} - Primera trama de la sección: {1} - Enviada a las: {2} - Total de envíos actual: {3}", new Object[]{ex.getMessage(), dataSection.getRoadSection().get(0).getTimeStamp(), Constants.dfISO8601.format(System.currentTimeMillis()), zTreamySends});
             ztreamyErrors++;
         } catch (HermesException ex) {
             LOG.log(Level.SEVERE, "sendDataSectionToZtreamy() - Error al enviar datos a Ztreamy");
@@ -775,11 +711,12 @@ public class SimulatorController implements Serializable {
     }
 
     public boolean isAllSimulationsFinished() {
-        return allSimulationsFinished;
+        return runningThreads == 0;
     }
 
     public String getSimulationFinishedMessage() {
         return simulationFinishedMessage;
+
     }
 
     class LocationLogWrapper {
@@ -791,7 +728,7 @@ public class SimulatorController implements Serializable {
         private double sectionDistance;
         private List<RoadSection> roadSectionList;
         private double cummulativePositiveSpeeds;
-        private final double randomFactor;
+        double randomFactor;
 
         public LocationLogWrapper() {
             this.detailPosition = 0;
@@ -801,7 +738,7 @@ public class SimulatorController implements Serializable {
             this.sectionDistance = 0.0d;
             this.roadSectionList = new ArrayList();
             this.cummulativePositiveSpeeds = 0.0d;
-            this.randomFactor = 1.0d - new Random().nextDouble() * 0.1d; // Para evitar un posible valor 0.0
+            this.randomFactor = 1.0d + new Random().nextDouble(); // De este modo, la simulación puede tardar desde lo estimado por Google (1.0) hasta prácticamente el doble (<2.0).
         }
 
         public int getDetailPosition() {
@@ -878,6 +815,99 @@ public class SimulatorController implements Serializable {
             this.sectionDistance = 0.0d;
             this.roadSectionList = new ArrayList();
             this.cummulativePositiveSpeeds = 0.0d;
+        }
+    }
+
+    class SimTimerTask extends TimerTask {
+
+        private final LocationLogWrapper llw;
+        private final int pos;
+        private long elapsedTime;
+
+        public SimTimerTask(LocationLog ll, int pos) {
+            this.llw = new LocationLogWrapper();
+            this.llw.setLocationLog(ll);
+            this.llw.setBaseTime(ll.getLocationLogDetailList().get(0).getTimeLog().getTime());
+            this.pos = pos;
+            this.elapsedTime = 0l;
+        }
+
+        @Override
+        public void run() {
+
+            LocationLog currentLocationLog = llw.getLocationLog();
+            LocationLogDetail currentLocationLogDetail = null;
+            if (!llw.isFinished()) {
+                for (int d = llw.getDetailPosition(); d < currentLocationLog.getLocationLogDetailList().size(); d++) {
+                    currentLocationLogDetail = currentLocationLog.getLocationLogDetailList().get(d);
+                    // Con el tiempo transcurrido, obtenemos la posición por la que estará.
+                    if (((currentLocationLogDetail.getTimeLog().getTime() - llw.getBaseTime()) <= (elapsedTime * llw.getRandomFactor()))
+                            && (d > llw.getDetailPosition())) {
+                        // Avanzamos de posición.
+                        int previousPosition = llw.getDetailPosition();
+                        llw.setDetailPosition(d);
+                        Marker trackMarker = simulatedMapModel.getMarkers().get(pos);
+                        trackMarker.setLatlng(new LatLng(currentLocationLogDetail.getLatitude(), currentLocationLogDetail.getLongitude()));
+                        LocationLogDetail previousLocationLogDetail = currentLocationLog.getLocationLogDetailList().get(previousPosition);
+                        // Acumulamos la distancia recorrida.
+                        llw.addSectionDistance(Util.distanceHaversine(previousLocationLogDetail.getLatitude(), previousLocationLogDetail.getLongitude(), currentLocationLogDetail.getLatitude(), currentLocationLogDetail.getLongitude()));
+                        // Análisis del PKE (Positive Kinetic Energy)
+                        llw.addCummulativePositiveSpeeds(analyzePKE(currentLocationLogDetail, previousLocationLogDetail));
+
+                        // Comprobamos si hemos llegado al destino.
+                        if (llw.getDetailPosition() == currentLocationLog.getLocationLogDetailList().size() - 1) {
+                            llw.setFinished(true);
+                            trackMarker.setIcon(MARKER_FINISH_ICON_PATH);
+                            runningThreads--;
+                            this.cancel();
+                        }
+
+                        // Información
+                        StringBuilder sb = new StringBuilder();
+                        sb.append(ResourceBundle.getBundle("/Bundle").getString("Time")).append(": ").append(Constants.dfTime.format(currentLocationLogDetail.getTimeLog()));
+                        sb.append(" ");
+//                        sb.append(ResourceBundle.getBundle("/Bundle").getString("HeartRate")).append(": ").append(Integer.toString(location.getHeartRate()));
+//                        sb.append(" ");
+                        sb.append(ResourceBundle.getBundle("/Bundle").getString("Speed")).append(": ").append(currentLocationLogDetail.getSpeed());
+                        sb.append(" (").append(currentLocationLogDetail.getLatitude()).append(", ").append(currentLocationLogDetail.getLongitude()).append(")");
+                        trackMarker.setTitle(sb.toString());
+                        break;
+                    }
+                }
+            }
+
+            if (currentLocationLogDetail != null) {
+                // Creamos un elementos de tipo 'RoadSection', para añadirlo al 'DataSection' que se envía a 'Ztreamy' cada 500 metros.
+                RoadSection rd = new RoadSection();
+                rd.setTime((long) (currentLocationLogDetail.getTimeLog().getTime() * llw.getRandomFactor()));
+                rd.setLatitude(currentLocationLogDetail.getLatitude());
+                rd.setLongitude(currentLocationLogDetail.getLongitude());
+                rd.setSpeed(currentLocationLogDetail.getSpeed() / llw.getRandomFactor());
+
+                llw.getRoadSectionList().add(rd);
+            }
+
+            // Se envían los datos a Ztreamy cada 10 segundos.
+            if (!llw.isFinished()) {
+                if (elapsedTime % ZTREAMY_SEND_INTERVAL_MILLISECONDS == 0) {
+                    sendLocationToZtreamy(currentLocationLogDetail, llw.getRandomFactor());
+                }
+
+                // Se enviará un resumen cada 500 metros.
+                if (llw.getSectionDistance() > ZTREAMY_SEND_INTERVAL_METERS) {
+                    sendDataSectionToZtreamy(llw);
+                    llw.getRoadSectionList().clear();
+                    llw.resetCummulativePositiveSpeeds();
+                    llw.resetSectionDistance();
+                }
+            }
+
+            // Comprobamos si han terminado todas las simulaciones para parar los 'Timer'
+            if (runningThreads == 0) {
+                realTimeSimulate();
+            }
+
+            elapsedTime += 1000;
         }
     }
 }

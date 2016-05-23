@@ -501,24 +501,22 @@ public class SimulatorController implements Serializable {
 
     public void getCurrentLatLng() {
         try {
-            for (int i = 0; i < simulatedMapModel.getMarkers().size(); i++) {
-                Marker m = simulatedMapModel.getMarkers().get(i);
+            for (Marker m : simulatedMapModel.getMarkers()) {
                 LatLng latLng = m.getLatlng();
                 RequestContext context = RequestContext.getCurrentInstance();
                 // Posición.
                 if (latLng != null) {
-                    context.addCallbackParam("latitude" + i + "-" + m.getId(), latLng.getLat());
-                    context.addCallbackParam("longitude" + i + "-" + m.getId(), latLng.getLng());
+                    context.addCallbackParam("latLng_" + m.getId(), latLng.getLat() + "," + latLng.getLng());
                 }
                 // Icono
                 String icon = m.getIcon();
                 if (icon != null) {
-                    context.addCallbackParam("icon" + i + "-" + m.getId(), icon);
+                    context.addCallbackParam("icon_" + m.getId(), icon);
                 }
                 // Información
                 String title = m.getTitle();
                 if (title != null) {
-                    context.addCallbackParam("title" + i + "-" + m.getId(), title);
+                    context.addCallbackParam("title_" + m.getId(), title);
                 }
             }
         } catch (Exception ex) {
@@ -530,9 +528,9 @@ public class SimulatorController implements Serializable {
         if (simulationTimers != null && simulationTimers.size() > 0) {
             simulationFinishedMessage = MessageFormat.format(LocaleBean.getBundle().getString("ZtreamyTimeouts"), ztreamyErrors);
             if (ztreamyErrors > 0) {
-                LOG.log(Level.SEVERE, "realTimeSimulate() - RESULTADO: Errores: {0}/ Total: {1}", new Object[]{ztreamyErrors, zTreamySends});
+                LOG.log(Level.SEVERE, "realTimeSimulate() - RESULTADO: Errores: {0} / Total: {1}", new Object[]{ztreamyErrors, zTreamySends});
             } else {
-                LOG.log(Level.FINE, "realTimeSimulate() - Los envíos a Ztreamy se han realizado correctamente");
+                LOG.log(Level.INFO, "realTimeSimulate() - Los envíos a Ztreamy se han realizado correctamente");
             }
 
             if (simulationTimers != null) {
@@ -547,11 +545,8 @@ public class SimulatorController implements Serializable {
             LOG.log(Level.INFO, "realTimeSimulate() - Fin de la simulación: {0}", Constants.dfISO8601.format(System.currentTimeMillis()));
             LOG.log(Level.INFO, "realTimeSimulate() - Se han enviado {0} tramas, de las que {1} han fallado", new Object[]{zTreamySends, ztreamyErrors});
         } else {
+            resetSimulation();
             LOG.log(Level.INFO, "realTimeSimulate() - Comienzo de la simulación: {0}", Constants.dfISO8601.format(System.currentTimeMillis()));
-            // Eliminamos los 'Marker' existentes.
-            simulatedMapModel.getMarkers().clear();
-
-            simulationTimers = new HashMap<>();
             runningThreads = simulatedSmartDrivers * locationLogList.size();
             LOG.log(Level.INFO, "realTimeSimulate() - Se crean: {0} hilos dejecución", runningThreads);
             for (int i = 0; i < locationLogList.size(); i++) {
@@ -581,6 +576,15 @@ public class SimulatorController implements Serializable {
         }
     }
 
+    private void resetSimulation() {
+        // Eliminamos los 'Marker' existentes.
+        simulatedMapModel.getMarkers().clear();
+        simulationTimers = new HashMap<>();
+        zTreamySends = 0;
+        ztreamyErrors = 0;
+        simulationFinishedMessage = "";
+    }
+
     private void sendLocationToZtreamy(LocationLogDetail lld, double randomFactor) {
         try {
             // Creamos un objeto de tipo 'Location' de los que 'SmartDriver' envía a 'Ztreamy'.
@@ -590,7 +594,7 @@ public class SimulatorController implements Serializable {
             smartDriverLocation.setSpeed(lld.getSpeed() / randomFactor);
             smartDriverLocation.setAccuracy(0);
             smartDriverLocation.setScore(0);
-            smartDriverLocation.setTimeStamp(Constants.dfISO8601.format((long) (lld.getTimeLog().getTime() * randomFactor)));
+            smartDriverLocation.setTimeStamp(Constants.dfISO8601.format(lld.getTimeLog().getTime()));
 
             // Inicialmente, vamos a hacer un envío como si fuera un autobus con X usuarios de SmartDriver, que iniciasen la aplicación al mismo tiempo.
             for (int i = 0; i < simulatedSmartDrivers; i++) {
@@ -601,17 +605,17 @@ public class SimulatorController implements Serializable {
                     LOG.log(Level.FINER, "sendLocationToZtreamy() - Localización de trayecto simulado enviada correctamante. SmartDriver: {0}", i);
                 } else {
                     ztreamyErrors++;
-                    LOG.log(Level.SEVERE, "sendLocationToZtreamy() - Error SEND: Trama: {0} - Enviada a las: {1} - Errores: {2}/ Total: {3}", new Object[]{Constants.dfISO8601.format(lld.getTimeLog()), Constants.dfISO8601.format(System.currentTimeMillis()), ztreamyErrors, zTreamySends});
+                    LOG.log(Level.SEVERE, "sendLocationToZtreamy() - Error SEND: Trama: {0} - Enviada a las: {1} - Errores: {2} / Total: {3}", new Object[]{Constants.dfISO8601.format(lld.getTimeLog()), Constants.dfISO8601.format(System.currentTimeMillis()), ztreamyErrors, zTreamySends});
                 }
             }
         } catch (MalformedURLException ex) {
             LOG.log(Level.SEVERE, "sendLocationToZtreamy() - Error en la URL", ex);
         } catch (IOException ex) {
             ztreamyErrors++;
-            LOG.log(Level.SEVERE, "sendLocationToZtreamy() - Error I/O: {0} - Trama: {1} - Enviada a las: {2} - Errores: {3}/ Total: {4}", new Object[]{ex.getMessage(), Constants.dfISO8601.format(lld.getTimeLog()), Constants.dfISO8601.format(System.currentTimeMillis()), ztreamyErrors, zTreamySends});
+            LOG.log(Level.SEVERE, "sendLocationToZtreamy() - Error I/O: {0} - Trama: {1} - Enviada a las: {2} - Errores: {3} / Total: {4}", new Object[]{ex.getMessage(), Constants.dfISO8601.format(lld.getTimeLog()), Constants.dfISO8601.format(System.currentTimeMillis()), ztreamyErrors, zTreamySends});
         } catch (HermesException ex) {
             ztreamyErrors++;
-            LOG.log(Level.SEVERE, "sendLocationToZtreamy() - Error HERMES: {0} - Trama: {1} - Enviada a las: {2} - Errores: {3}/ Total: {4}", new Object[]{ex.getMessage(), Constants.dfISO8601.format(lld.getTimeLog()), Constants.dfISO8601.format(System.currentTimeMillis()), ztreamyErrors, zTreamySends});
+            LOG.log(Level.SEVERE, "sendLocationToZtreamy() - Error HERMES: {0} - Trama: {1} - Enviada a las: {2} - Errores: {3} / Total: {4}", new Object[]{ex.getMessage(), Constants.dfISO8601.format(lld.getTimeLog()), Constants.dfISO8601.format(System.currentTimeMillis()), ztreamyErrors, zTreamySends});
         }
     }
 
@@ -690,17 +694,17 @@ public class SimulatorController implements Serializable {
                     LOG.log(Level.FINER, "sendDataSectionToZtreamy() - Localización de trayecto simulado enviada correctamante. SmartDriver: {0}", i);
                 } else {
                     ztreamyErrors++;
-                    LOG.log(Level.SEVERE, "sendDataSectionToZtreamy() - Error SEND: Primera trama de la sección: {1} - Enviada a las: {2} - Errores: {3}/ Total: {4}", new Object[]{dataSection.getRoadSection().get(0).getTimeStamp(), Constants.dfISO8601.format(System.currentTimeMillis()), ztreamyErrors, zTreamySends});
+                    LOG.log(Level.SEVERE, "sendDataSectionToZtreamy() - Error SEND: Primera trama de la sección: {0} - Enviada a las: {1} - Errores: {2} / Total: {3}", new Object[]{dataSection.getRoadSection().get(0).getTimeStamp(), Constants.dfISO8601.format(System.currentTimeMillis()), ztreamyErrors, zTreamySends});
                 }
             }
         } catch (MalformedURLException ex) {
             LOG.log(Level.SEVERE, "sendDataSectionToZtreamy() - Error en la URL", ex);
         } catch (IOException ex) {
             ztreamyErrors++;
-            LOG.log(Level.SEVERE, "sendLocationToZtreamy() - Error I/O: {0} - Primera trama de la sección: {1} - Enviada a las: {2} - Errores: {3}/ Total: {4}", new Object[]{ex.getMessage(), dataSection.getRoadSection().get(0).getTimeStamp(), Constants.dfISO8601.format(System.currentTimeMillis()), ztreamyErrors, zTreamySends});
+            LOG.log(Level.SEVERE, "sendLocationToZtreamy() - Error I/O: {0} - Primera trama de la sección: {1} - Enviada a las: {2} - Errores: {3} / Total: {4}", new Object[]{ex.getMessage(), dataSection.getRoadSection().get(0).getTimeStamp(), Constants.dfISO8601.format(System.currentTimeMillis()), ztreamyErrors, zTreamySends});
         } catch (HermesException ex) {
             ztreamyErrors++;
-            LOG.log(Level.SEVERE, "sendDataSectionToZtreamy() - Error HERMES: {0} - Primera trama de la sección: {1} - Enviada a las: {2} - Errores: {3}/ Total: {4}", new Object[]{ex.getMessage(), dataSection.getRoadSection().get(0).getTimeStamp(), Constants.dfISO8601.format(System.currentTimeMillis()), ztreamyErrors, zTreamySends});
+            LOG.log(Level.SEVERE, "sendDataSectionToZtreamy() - Error HERMES: {0} - Primera trama de la sección: {1} - Enviada a las: {2} - Errores: {3} / Total: {4}", new Object[]{ex.getMessage(), dataSection.getRoadSection().get(0).getTimeStamp(), Constants.dfISO8601.format(System.currentTimeMillis()), ztreamyErrors, zTreamySends});
         }
     }
 
@@ -889,7 +893,8 @@ public class SimulatorController implements Serializable {
             if (currentLocationLogDetail != null) {
                 // Creamos un elementos de tipo 'RoadSection', para añadirlo al 'DataSection' que se envía a 'Ztreamy' cada 500 metros.
                 RoadSection rd = new RoadSection();
-                rd.setTime((long) (currentLocationLogDetail.getTimeLog().getTime() * llw.getRandomFactor()));
+                long delay = ((long) (elapsedTime * llw.getRandomFactor())) - llw.getBaseTime();
+                rd.setTime(currentLocationLogDetail.getTimeLog().getTime() + delay);
                 rd.setLatitude(currentLocationLogDetail.getLatitude());
                 rd.setLongitude(currentLocationLogDetail.getLongitude());
                 rd.setSpeed(currentLocationLogDetail.getSpeed() / llw.getRandomFactor());

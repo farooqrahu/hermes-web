@@ -18,19 +18,20 @@
             function handleComplete(xhr, status, args) {
                 if (args !== undefined) {
                     var map = PF('gmap').getMap();
-
+                    
                     for (var i in map.markers) {
                         var marker = map.markers[i];
-                        var latitude = "latitude" + i + "-" + marker["id"];
-                        var longitude = "longitude" + i + "-" + marker["id"];
-                        if (args.hasOwnProperty(latitude) && args.hasOwnProperty(longitude)) {
-                            marker.setPosition(new google.maps.LatLng(args[latitude], args[longitude]));
+                        var latLng = "latLng_" + marker["id"];
+                        if (args.hasOwnProperty(latLng)) {
+                            var comp = args[latLng].split(",");
+                            if (comp.lenght > 1)
+                                marker.setPosition(new google.maps.LatLng(comp[0], comp[1]));
                         }
-                        var icon = "icon" + i + "-" + marker["id"];
+                        var icon = "icon_" + marker["id"];
                         if (args.hasOwnProperty(icon)) {
                             marker.setIcon(args[icon]);
                         }
-                        var title = "title" + i + "-" + marker["id"];
+                        var title = "title_" + marker["id"];
                         if (args.hasOwnProperty(title)) {
                             marker.setTitle(args[title]);
                         }
@@ -51,7 +52,7 @@
 
                 <c:otherwise>
                     <p:panel id="gmapUpdater" style="display: none">
-                        <p:poll interval="3" listener="#{simulatorController.getCurrentLatLng()}" oncomplete="handleComplete(xhr, status, args)" update="simulatorMessage, simulateButton, @this" rendered="#{simulatorController.simulating}"/>
+                        <p:poll interval="1" listener="#{simulatorController.getCurrentLatLng()}" oncomplete="handleComplete(xhr, status, args)" update="simulatorMessage, simulateButton, @this" rendered="#{simulatorController.simulating}"/>
                     </p:panel>
                     <!-- FIXME: Poner 'fitBounds' cuando se corrija el 'bug' que tiene Primefaces con Google Maps -->
                     <p:gmap id="gmap" widgetVar="gmap" center="#{simulatorController.markerLatitudeLongitude}" zoom="10" type="ROADMAP" model="#{simulatorController.simulatedMapModel}" style="height:400px" fitBounds="true">
@@ -62,12 +63,12 @@
                             </p:outputPanel>
                         </p:gmapInfoWindow>
                     </p:gmap>
-                    <p:outputPanel id="simulatorMessage" rendered="#{simulatorController.allSimulationsFinished}">
+                    <p:outputPanel id="simulatorMessage" rendered="#{simulatorController.simulating}">
                         <h3>#{simulatorController.simulationFinishedMessage}</h3>
                     </p:outputPanel>
 
-                    <div style="width: 100%; display: flex; overflow-y: scroll;">
-                        <p:panel header="#{bundle.TrackConditions}" style="width: 30%; margin: 10px">
+                    <div style="width: 100%; display: flex">
+                        <p:panel header="#{bundle.TrackConditions}" style="width: 30%; margin: 10px; overflow-y: scroll;">
                             <h:panelGrid columns="1">
                                 <h:outputText value="#{bundle.DistanceFromSevilleCenter} (Km)" />
                                 <p:inputText id="distanceFromSevilleCenter" value="#{simulatorController.distanceFromSevilleCenter}" />

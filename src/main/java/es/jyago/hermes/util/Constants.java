@@ -98,7 +98,7 @@ public class Constants {
     public static final SimpleDateFormat dfTimeSmartDriver = new SimpleDateFormat("HHmmss");
     public static final SimpleDateFormat dfFitbit = new SimpleDateFormat("yyyy-MM-dd");
     public static final SimpleDateFormat dfus = new SimpleDateFormat("yyyy/MM/dd");
-    public static final SimpleDateFormat dfISO8601 = new SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss.SSSZ");
+    public static final SimpleDateFormat dfISO8601 = new SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss.SSS");
     public static final SimpleDateFormat dfMonthYear = new SimpleDateFormat("MMMM yyyy");
     public static final SimpleDateFormat dfTimeGMT = new SimpleDateFormat("HH:mm:ss");
     public static final SimpleDateFormat dfMonth = new SimpleDateFormat("yyyy-MM");

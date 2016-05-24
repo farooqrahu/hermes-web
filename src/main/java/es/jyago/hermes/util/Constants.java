@@ -2,6 +2,7 @@ package es.jyago.hermes.util;
 
 import es.jyago.hermes.configuration.Configuration;
 import es.jyago.hermes.configuration.ConfigurationController;
+import java.text.DecimalFormat;
 import java.text.SimpleDateFormat;
 import java.util.Date;
 import java.util.TimeZone;
@@ -103,6 +104,7 @@ public class Constants {
     public static final SimpleDateFormat dfMonthYear = new SimpleDateFormat("MMMM yyyy");
     public static final SimpleDateFormat dfTimeGMT = new SimpleDateFormat("HH:mm:ss");
     public static final SimpleDateFormat dfMonth = new SimpleDateFormat("yyyy-MM");
+    public static final DecimalFormat df2Decimals = new DecimalFormat("0.00");
 
     public static final Date FITBIT_RELEASE_DATE = new Date(1367366400000l); // 01/05/2013 Fitbit estrenó su pulsera en mayo de 2013. No puede haber datos anteriores a esa fecha.
 

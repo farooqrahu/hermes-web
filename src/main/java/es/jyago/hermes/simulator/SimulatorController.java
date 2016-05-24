@@ -68,6 +68,7 @@ public class SimulatorController implements Serializable {
 
     private static final Location SEVILLE = new Location(37.3898358, -5.986069);
     private static final String MARKER_ICON_PATH = "http://maps.google.com/mapfiles/kml/pal4/icon15.png";
+    private static final String MARKER_START_ICON_PATH = "http://maps.google.com/mapfiles/kml/pal3/icon56.png";
     private static final String MARKER_FINISH_ICON_PATH = "http://maps.google.com/mapfiles/kml/pal5/icon13.png";
     // FIXME: ¿Dividir simulaciones entre los hilos o que cada hilo cree la misma cantidad de trayectos?
     private volatile int ztreamyErrors;
@@ -118,6 +119,7 @@ public class SimulatorController implements Serializable {
         createSimulatedUser = false;
         simulationMethod = Track_Simulation_Method.GOOGLE;
         marker = new Marker(new LatLng(SEVILLE.getLat(), SEVILLE.getLng()));
+        marker.setDraggable(false);
         ztreamyErrors = 0;
         zTreamySends = 0;
         runningThreads = 0;
@@ -142,6 +144,8 @@ public class SimulatorController implements Serializable {
 
     public void generateSimulatedTracks() {
         simulatedMapModel = new DefaultMapModel();
+        // Eliminamos los 'Marker' existentes.
+        simulatedMapModel.getMarkers().clear();
         trackInfoList = new ArrayList();
         locationLogList = new ArrayList<>();
 
@@ -338,6 +342,7 @@ public class SimulatorController implements Serializable {
                     LocalTime localTime = new LocalTime();
                     ArrayList<Location> locationList = PolylineDecoder.decodePoly(r.getOverviewPolyline().getPoints());
                     Location previous = locationList.get(0);
+                    Double maximumLocationDistance = 0.0d;
 
                     // FIXME: ¿Interpolación de velocidades? Otra opción es consultar a Google Distance Matrix para consultar el tiempo que se tarda entre 2 puntos (le afecta el tráfico) y sacar la velocidad.
 //                PolynomialFunction p = new PolynomialFunction(new double[]{speed, averagePolylineSpeed,});
@@ -356,6 +361,9 @@ public class SimulatorController implements Serializable {
 
                         // Calculamos la distancia en metros entre los puntos previo y actual, así como el tiempo necesario para recorrer dicha distancia.
                         Double pointDistance = Util.distanceHaversine(previous.getLat(), previous.getLng(), location.getLat(), location.getLng());
+                        if (pointDistance > maximumLocationDistance) {
+                            maximumLocationDistance = pointDistance;
+                        }
                         // Calculamos el tiempo en segundos que tarda en recorrer la distancia entre los puntos.
                         Double pointDuration = summary.getDuration() * pointDistance / summary.getDistance();
 
@@ -374,16 +382,25 @@ public class SimulatorController implements Serializable {
 
                     simulatedMapModel.addOverlay(polyline);
 
-                    // Asignamos un 'marker' con la posición inicial de cada trayecto y cada hilo
+                    // Asignamos un 'marker' con la posición inicial y final de cada trayecto.
                     LocationLogDetail startPosition = locationLogDetailList.get(0);
-                    LatLng latLng = new LatLng(startPosition.getLatitude(), startPosition.getLongitude());
-                    // Creamos una marca con la información detallada, para poder mostrarla cuando se pulse en la posición en Google Maps.
-                    Marker m = new Marker(latLng);
-                    m.setVisible(true);
-                    simulatedMapModel.addOverlay(m);
+                    LocationLogDetail endPosition = locationLogDetailList.get(locationLogDetailList.size() - 1);
+                    LatLng startLatLng = new LatLng(startPosition.getLatitude(), startPosition.getLongitude());
+                    LatLng endLatLng = new LatLng(endPosition.getLatitude(), endPosition.getLongitude());
+                    Marker startMarker = new Marker(startLatLng);
+                    startMarker.setVisible(true);
+                    startMarker.setDraggable(false);
+                    startMarker.setIcon(MARKER_START_ICON_PATH);
+                    simulatedMapModel.addOverlay(startMarker);
+                    Marker endMarker = new Marker(endLatLng);
+                    endMarker.setVisible(true);
+                    endMarker.setDraggable(false);
+                    endMarker.setIcon(MARKER_FINISH_ICON_PATH);
+                    simulatedMapModel.addOverlay(endMarker);
 
                     trackInfo.setTotalLocations(locationLogDetailList.size());
                     trackInfo.setAverageLocationsDistance(summary.getDistance() / locationLogDetailList.size());
+                    trackInfo.setMaximumLocationsDistance(maximumLocationDistance);
 
                     // Asignamos el listado de posiciones.
                     ll.setLocationLogDetailList(locationLogDetailList);
@@ -502,6 +519,7 @@ public class SimulatorController implements Serializable {
     public void getCurrentLatLng() {
         try {
             for (Marker m : simulatedMapModel.getMarkers()) {
+                LOG.log(Level.FINE, "getCurrentLatLng() - Id del marker: {0}", m.getId());
                 LatLng latLng = m.getLatlng();
                 RequestContext context = RequestContext.getCurrentInstance();
                 // Posición.
@@ -559,17 +577,21 @@ public class SimulatorController implements Serializable {
                 sb.append(" ");
 //                        sb.append(ResourceBundle.getBundle("/Bundle").getString("HeartRate")).append(": ").append(Integer.toString(location.getHeartRate()));
 //                        sb.append(" ");
-                sb.append(ResourceBundle.getBundle("/Bundle").getString("Speed")).append(": ").append(startPosition.getSpeed());
+                sb.append(ResourceBundle.getBundle("/Bundle").getString("Speed")).append(": ").append(Constants.df2Decimals.format(startPosition.getSpeed())).append(" Km/h");
                 sb.append(" (").append(startPosition.getLatitude()).append(", ").append(startPosition.getLongitude()).append(")");
                 LatLng latLng = new LatLng(startPosition.getLatitude(), startPosition.getLongitude());
 
                 for (int j = 0; j < simulatedSmartDrivers; j++) {
-                    Timer timer = new Timer();
-                    timer.scheduleAtFixedRate(new SimTimerTask(ll, j), 0, 1000);
-                    simulationTimers.put(i + "_" + j, timer);
-
                     Marker m = new Marker(latLng, sb.toString(), null, MARKER_ICON_PATH);
                     m.setVisible(true);
+                    m.setDraggable(false);
+
+                    Timer timer = new Timer();
+//                    timer.scheduleAtFixedRate(new SimTimerTask(ll, m, true), 0, 1000);
+// FIXME: PONER EN TIEMPO REAL !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+                    timer.scheduleAtFixedRate(new SimTimerTask(ll, m, false), 0, 1);
+                    simulationTimers.put(i + "_" + j, timer);
+
                     simulatedMapModel.addOverlay(m);
                 }
             }
@@ -577,8 +599,13 @@ public class SimulatorController implements Serializable {
     }
 
     private void resetSimulation() {
-        // Eliminamos los 'Marker' existentes.
-        simulatedMapModel.getMarkers().clear();
+
+        for (int i = simulatedMapModel.getMarkers().size() - 1; i >= 0; i--) {
+            Marker m = simulatedMapModel.getMarkers().get(i);
+            if (m.getIcon().equals(MARKER_ICON_PATH)) {
+                simulatedMapModel.getMarkers().remove(i);
+            }
+        }
         simulationTimers = new HashMap<>();
         zTreamySends = 0;
         ztreamyErrors = 0;
@@ -834,15 +861,15 @@ public class SimulatorController implements Serializable {
     class SimTimerTask extends TimerTask {
 
         private final LocationLogWrapper llw;
-        private final int pos;
+        private final Marker trackMarker;
         private long elapsedTime;
 
-        public SimTimerTask(LocationLog ll, int pos) {
+        public SimTimerTask(LocationLog ll, Marker trackMarker, boolean realTime) {
             this.llw = new LocationLogWrapper();
             this.llw.setLocationLog(ll);
             this.llw.setBaseTime(ll.getLocationLogDetailList().get(0).getTimeLog().getTime());
-            this.pos = pos;
-            this.elapsedTime = 0l;
+            this.trackMarker = trackMarker;
+            this.elapsedTime = realTime ? 0l : 864000000l; // Un día
         }
 
         @Override
@@ -859,7 +886,6 @@ public class SimulatorController implements Serializable {
                         // Avanzamos de posición.
                         int previousPosition = llw.getDetailPosition();
                         llw.setDetailPosition(d);
-                        Marker trackMarker = simulatedMapModel.getMarkers().get(pos);
                         trackMarker.setLatlng(new LatLng(currentLocationLogDetail.getLatitude(), currentLocationLogDetail.getLongitude()));
                         LocationLogDetail previousLocationLogDetail = currentLocationLog.getLocationLogDetailList().get(previousPosition);
                         // Acumulamos la distancia recorrida.
@@ -870,8 +896,8 @@ public class SimulatorController implements Serializable {
                         // Comprobamos si hemos llegado al destino.
                         if (llw.getDetailPosition() == currentLocationLog.getLocationLogDetailList().size() - 1) {
                             llw.setFinished(true);
-                            trackMarker.setIcon(MARKER_FINISH_ICON_PATH);
                             runningThreads--;
+                            simulatedMapModel.getMarkers().remove(trackMarker);
                             LOG.log(Level.INFO, "realTimeSimulate() - Hilos de ejecución restantes: {0}", runningThreads);
                             this.cancel();
                         }
@@ -882,7 +908,7 @@ public class SimulatorController implements Serializable {
                         sb.append(" ");
 //                        sb.append(ResourceBundle.getBundle("/Bundle").getString("HeartRate")).append(": ").append(Integer.toString(location.getHeartRate()));
 //                        sb.append(" ");
-                        sb.append(ResourceBundle.getBundle("/Bundle").getString("Speed")).append(": ").append(currentLocationLogDetail.getSpeed());
+                        sb.append(ResourceBundle.getBundle("/Bundle").getString("Speed")).append(": ").append(Constants.df2Decimals.format(currentLocationLogDetail.getSpeed())).append(" Km/h");
                         sb.append(" (").append(currentLocationLogDetail.getLatitude()).append(", ").append(currentLocationLogDetail.getLongitude()).append(")");
                         trackMarker.setTitle(sb.toString());
                         break;

@@ -18,15 +18,10 @@
             function handleComplete(xhr, status, args) {
                 if (args !== undefined) {
                     var map = PF('gmap').getMap();
-                    
+
                     for (var i in map.markers) {
                         var marker = map.markers[i];
-                        var latLng = "latLng_" + marker["id"];
-                        if (args.hasOwnProperty(latLng)) {
-                            var comp = args[latLng].split(",");
-                            if (comp.lenght > 1)
-                                marker.setPosition(new google.maps.LatLng(comp[0], comp[1]));
-                        }
+                        
                         var icon = "icon_" + marker["id"];
                         if (args.hasOwnProperty(icon)) {
                             marker.setIcon(args[icon]);
@@ -34,6 +29,13 @@
                         var title = "title_" + marker["id"];
                         if (args.hasOwnProperty(title)) {
                             marker.setTitle(args[title]);
+                        }
+                        var latLng = "latLng_" + marker["id"];
+                        if (args.hasOwnProperty(latLng)) {
+                            var comp = args[latLng].split(",");
+                            if (comp.length === 2) {
+                                marker.setPosition(new google.maps.LatLng(comp[0], comp[1]));
+                            }
                         }
                     }
                 }

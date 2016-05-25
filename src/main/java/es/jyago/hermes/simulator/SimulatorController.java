@@ -73,8 +73,10 @@ public class SimulatorController implements Serializable {
     // FIXME: ¿Dividir simulaciones entre los hilos o que cada hilo cree la misma cantidad de trayectos?
     private volatile int ztreamyErrors;
     private volatile int zTreamySends;
-    private volatile int runningThreads = 0;
+    private volatile int runningThreads;
     private volatile String simulationFinishedMessage;
+    private boolean realTime;
+    private int timeRate;
     // Parámetros recogidos de SmartDriver.
     private static final String APPLICATION_ID = "SmartDriver";
     private static final int ZTREAMY_SEND_INTERVAL_MILLISECONDS = 10000;
@@ -124,6 +126,10 @@ public class SimulatorController implements Serializable {
         zTreamySends = 0;
         runningThreads = 0;
 
+        // FIXME: !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+        realTime = false;
+        timeRate = 10; // En milisegundos.
+
         // En este caso, no cogemos la configuración de Ztreamy, sino que enviamos los datos a una URL con un Ztreamy para pruebas.
 //        url = Constants.getInstance().getConfigurationValueByKey("ZtreamyUrl");
         url = "http://hermes1.gast.it.uc3m.es:9220/collector/publish";
@@ -168,7 +174,7 @@ public class SimulatorController implements Serializable {
                         try {
                             json = IOUtils.toString(new URL("https://maps.googleapis.com/maps/api/directions/json?origin=" + origin.getLat() + "," + origin.getLng() + "&destination=" + destination.getLat() + "," + destination.getLng()), "UTF-8");
                         } catch (IOException ex) {
-                            LOG.log(Level.SEVERE, "Error al obtener el JSON de la ruta", ex);
+                            LOG.log(Level.SEVERE, "generateSimulatedTracks() - Google Maps - Error I/O: {0}", ex.getMessage());
                         }
 
                         return json;
@@ -181,18 +187,32 @@ public class SimulatorController implements Serializable {
                             .setFieldNamingPolicy(FieldNamingPolicy.LOWER_CASE_WITH_UNDERSCORES)
                             .create();
                     GeocodedWaypoints gcwp = gson.fromJson(json, GeocodedWaypoints.class);
-                    trackInfo = createTrack(gcwp, ll);
+                    trackInfo = createTrackGoogleMaps(gcwp, ll);
                 } catch (InterruptedException | ExecutionException | JsonSyntaxException ex) {
                     LOG.log(Level.SEVERE, "Error al decodificar el JSON de la ruta", ex);
                 }
             } else if (simulationMethod.equals(Track_Simulation_Method.OPENSTREETMAP)) {
+                Future future = GoogleWebService.submitTask(new Callable() {
+                    @Override
+                    public String call() {
+                        String json = null;
+                        try {
+                            json = IOUtils.toString(new URL("http://cronos.lbd.org.es/hermes/api/smartdriver/network/route?fromLat=" + origin.getLat() + "&fromLng=" + origin.getLng() + "&toLat=" + destination.getLat() + "&toLng=" + destination.getLng()), "UTF-8");
+                        } catch (IOException ex) {
+                            LOG.log(Level.SEVERE, "generateSimulatedTracks() - OpenStreet Maps - Error I/O: {0}", ex.getMessage());
+                        }
+
+                        return json;
+                    }
+                });
+
                 try {
-                    String json = IOUtils.toString(new URL("http://cronos.lbd.org.es/hermes/api/smartdriver/network/route?fromLat=" + origin.getLat() + "&fromLng=" + origin.getLng() + "&toLat=" + destination.getLat() + "&toLng=" + destination.getLng()), "UTF-8");
+                    String json = (String) future.get();
                     Type listType = new TypeToken<ArrayList<GeomWaySteps>>() {
                     }.getType();
                     List<GeomWaySteps> gws = new Gson().fromJson(json, listType);
-                    trackInfo = createTrack(gws, ll);
-                } catch (IOException | JsonSyntaxException ex) {
+                    trackInfo = createTrackOpenStreetMaps(gws, ll);
+                } catch (InterruptedException | ExecutionException | JsonSyntaxException ex) {
                     LOG.log(Level.SEVERE, "Error al decodificar el JSON de la ruta", ex);
                 }
             }
@@ -233,7 +253,7 @@ public class SimulatorController implements Serializable {
         return simulatedMapModel;
     }
 
-    private TrackInfo createTrack(List<GeomWaySteps> geomWayStepsList, LocationLog ll) {
+    private TrackInfo createTrackOpenStreetMaps(List<GeomWaySteps> geomWayStepsList, LocationLog ll) {
         TrackInfo trackInfo = new TrackInfo();
 
         if (geomWayStepsList != null && !geomWayStepsList.isEmpty()) {
@@ -248,32 +268,33 @@ public class SimulatorController implements Serializable {
 
             // Resumen que mostraremos por pantalla.
             SectionInfo summary = trackInfo.getSummary();
-//                    summary.setDistance(.getDistance().getValue());
-//                    summary.setDuration(l.getDuration().getValue());
-//                    summary.setStartLocation(l.getStartLocation());
-//                    summary.setStartAddress(l.getStartAddress());
-//                    summary.setEndLocation(l.getEndLocation());
-//                    summary.setEndAddress(l.getEndAddress());
 
             // Listado de posiciones que componen el trayecto de SmartDriver.
             ArrayList<LocationLogDetail> locationLogDetailList = new ArrayList<>();
 
             double speed;
+            double trackDistance = 0.0d;
+            double maximumLocationDistance = 0.0d;
+            LatLng previous = null;
 
             // Analizamos la información obtenida de la consulta a OpenStreetMap.
             for (GeomWaySteps gws : geomWayStepsList) {
+                trackDistance += gws.getLength();
+
+                // Es como un fragmento de la ruta.
                 GeomWay gw = gws.getGeomWay();
+                if (gw.getCoordinates() != null) {
+                    // Iteramos sobre los puntos que componen ese fragmento.
+                    for (int i = 0; i < gw.getCoordinates().size(); i++) {
+                        // Viene en formato: longitud, latitud.
+                        List<Double> coordinates = gw.getCoordinates().get(i);
 
-                for (int i = 0; i < gw.getCoordinates().size(); i++) {
-                    // Viene en formato: longitud, latitud.
-                    List<Double> coordinates = gw.getCoordinates().get(i);
+                        // Añadimos un nuevo punto en la polilínea que se dibujará por pantalla.
+                        LatLng latlng = new LatLng(coordinates.get(1), coordinates.get(0));
+                        polyline.getPaths().add(latlng);
 
-                    // Añadimos un nuevo punto en la polilínea que se dibujará por pantalla.
-                    LatLng latlng = new LatLng(coordinates.get(1), coordinates.get(0));
-                    polyline.getPaths().add(latlng);
-
-                    // Creamos una marca con la información detallada, para poder mostrarla cuando se pulse en la posición en Google Maps.
-                    StringBuilder sb = new StringBuilder();
+                        // Creamos una marca con la información detallada, para poder mostrarla cuando se pulse en la posición en Google Maps.
+                        StringBuilder sb = new StringBuilder();
 //        sb.append(ResourceBundle.getBundle("/Bundle").getString("Time")).append(": ").append(Constants.dfTime.format(location.getTimeLog()));
 //        sb.append(" ");
 //        sb.append(ResourceBundle.getBundle("/Bundle").getString("HeartRate")).append(": ").append(Integer.toString(location.getHeartRate()));
@@ -286,9 +307,28 @@ public class SimulatorController implements Serializable {
 //                    m.setVisible(false);
 //
 //                    simulatedMapModel.addOverlay(m);
-                }
+                        // Creamos un nodo del trayecto, como si usásemos SmartDriver.
+                        LocationLogDetail lld = new LocationLogDetail();
+                        lld.setLocationLog(ll);
+                        lld.setLatitude(latlng.getLat());
+                        lld.setLongitude(latlng.getLng());
 
-                simulatedMapModel.addOverlay(polyline);
+                        if (previous != null) {
+                            // Calculamos la distancia en metros entre los puntos previo y actual, así como el tiempo necesario para recorrer dicha distancia.
+                            Double pointDistance = Util.distanceHaversine(previous.getLat(), previous.getLng(), latlng.getLat(), latlng.getLng());
+                            if (pointDistance > maximumLocationDistance) {
+                                maximumLocationDistance = pointDistance;
+                            }
+                        }
+
+                        locationLogDetailList.add(lld);
+
+                        // Asignamos el actual al anterior, para poder seguir calculando las distancias y tiempos respecto al punto previo.
+                        previous = latlng;
+                    }
+
+                    simulatedMapModel.addOverlay(polyline);
+                }
 
 //                // Asignamos un 'marker' con la posición inicial de cada trayecto.
 //                LatLng latLng = new LatLng(currentLocationLogDetail.getLatitude(), currentLocationLogDetail.getLongitude());
@@ -296,8 +336,32 @@ public class SimulatorController implements Serializable {
 //                m.setVisible(true);
 //                simulatedMapModel.addOverlay(m);
             }
+            summary.setDistance((int) trackDistance);
+//                    summary.setDuration();
+//                    summary.setStartLocation(l.getStartLocation());
+            summary.setStartAddress(geomWayStepsList.get(0).getLinkName());
+//                    summary.setEndLocation(l.getEndLocation());
+            summary.setEndAddress(geomWayStepsList.get(geomWayStepsList.size() - 1).getLinkName());
+
             trackInfo.setTotalLocations(locationLogDetailList.size());
             trackInfo.setAverageLocationsDistance(summary.getDistance() / locationLogDetailList.size());
+            trackInfo.setMaximumLocationsDistance(maximumLocationDistance);
+
+            // Asignamos un 'marker' con la posición inicial y final de cada trayecto.
+            LocationLogDetail startPosition = locationLogDetailList.get(0);
+            LocationLogDetail endPosition = locationLogDetailList.get(locationLogDetailList.size() - 1);
+            LatLng startLatLng = new LatLng(startPosition.getLatitude(), startPosition.getLongitude());
+            LatLng endLatLng = new LatLng(endPosition.getLatitude(), endPosition.getLongitude());
+            Marker startMarker = new Marker(startLatLng);
+            startMarker.setVisible(true);
+            startMarker.setDraggable(false);
+            startMarker.setIcon(MARKER_START_ICON_PATH);
+            simulatedMapModel.addOverlay(startMarker);
+            Marker endMarker = new Marker(endLatLng);
+            endMarker.setVisible(true);
+            endMarker.setDraggable(false);
+            endMarker.setIcon(MARKER_FINISH_ICON_PATH);
+            simulatedMapModel.addOverlay(endMarker);
 
             // Asignamos el listado de posiciones.
             ll.setLocationLogDetailList(locationLogDetailList);
@@ -306,7 +370,7 @@ public class SimulatorController implements Serializable {
         return trackInfo;
     }
 
-    private TrackInfo createTrack(GeocodedWaypoints gcwp, LocationLog ll) {
+    private TrackInfo createTrackGoogleMaps(GeocodedWaypoints gcwp, LocationLog ll) {
         TrackInfo trackInfo = new TrackInfo();
 
         if (gcwp.getRoutes() != null) {
@@ -338,11 +402,12 @@ public class SimulatorController implements Serializable {
                     summary.setEndLocation(new LocationInfo(l.getEndLocation().getLat(), l.getEndLocation().getLng()));
                     summary.setEndAddress(l.getEndAddress());
 
+                    // TODO: ¿Velocidades?
                     double speed;
                     LocalTime localTime = new LocalTime();
                     ArrayList<Location> locationList = PolylineDecoder.decodePoly(r.getOverviewPolyline().getPoints());
                     Location previous = locationList.get(0);
-                    Double maximumLocationDistance = 0.0d;
+                    double maximumLocationDistance = 0.0d;
 
                     // FIXME: ¿Interpolación de velocidades? Otra opción es consultar a Google Distance Matrix para consultar el tiempo que se tarda entre 2 puntos (le afecta el tráfico) y sacar la velocidad.
 //                PolynomialFunction p = new PolynomialFunction(new double[]{speed, averagePolylineSpeed,});
@@ -546,9 +611,9 @@ public class SimulatorController implements Serializable {
         if (simulationTimers != null && simulationTimers.size() > 0) {
             simulationFinishedMessage = MessageFormat.format(LocaleBean.getBundle().getString("ZtreamyTimeouts"), ztreamyErrors);
             if (ztreamyErrors > 0) {
-                LOG.log(Level.SEVERE, "realTimeSimulate() - RESULTADO: Errores: {0} / Total: {1}", new Object[]{ztreamyErrors, zTreamySends});
+                LOG.log(Level.SEVERE, "realTimeSimulate() - RESULTADO: Errores: {0} / Total: {1}. Hilos restantes: {2}", new Object[]{ztreamyErrors, zTreamySends, runningThreads});
             } else {
-                LOG.log(Level.INFO, "realTimeSimulate() - Los envíos a Ztreamy se han realizado correctamente");
+                LOG.log(Level.INFO, "realTimeSimulate() - RESULTADO: Los envíos a Ztreamy se han realizado correctamente. Hilos restantes: {0}", runningThreads);
             }
 
             if (simulationTimers != null) {
@@ -565,6 +630,7 @@ public class SimulatorController implements Serializable {
         } else {
             resetSimulation();
             LOG.log(Level.INFO, "realTimeSimulate() - Comienzo de la simulación: {0}", Constants.dfISO8601.format(System.currentTimeMillis()));
+            LOG.log(Level.INFO, "realTimeSimulate() - Condiciones: Actualización cada: {0} milisegundos. Ejecución en tiempo real: {1}", new Object[]{timeRate, realTime});
             runningThreads = simulatedSmartDrivers * locationLogList.size();
             LOG.log(Level.INFO, "realTimeSimulate() - Se crean: {0} hilos dejecución", runningThreads);
             for (int i = 0; i < locationLogList.size(); i++) {
@@ -587,9 +653,7 @@ public class SimulatorController implements Serializable {
                     m.setDraggable(false);
 
                     Timer timer = new Timer();
-//                    timer.scheduleAtFixedRate(new SimTimerTask(ll, m, true), 0, 1000);
-// FIXME: PONER EN TIEMPO REAL !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-                    timer.scheduleAtFixedRate(new SimTimerTask(ll, m, false), 0, 1);
+                    timer.scheduleAtFixedRate(new SimTimerTask(ll, m), 0, timeRate);
                     simulationTimers.put(i + "_" + j, timer);
 
                     simulatedMapModel.addOverlay(m);
@@ -864,12 +928,12 @@ public class SimulatorController implements Serializable {
         private final Marker trackMarker;
         private long elapsedTime;
 
-        public SimTimerTask(LocationLog ll, Marker trackMarker, boolean realTime) {
+        public SimTimerTask(LocationLog ll, Marker trackMarker) {
             this.llw = new LocationLogWrapper();
             this.llw.setLocationLog(ll);
             this.llw.setBaseTime(ll.getLocationLogDetailList().get(0).getTimeLog().getTime());
             this.trackMarker = trackMarker;
-            this.elapsedTime = realTime ? 0l : 864000000l; // Un día
+            this.elapsedTime = realTime ? 0l : 864000000l; // Un día, así me garantizo que se ejecutará cualquier trayecto inmediatamente.
         }
 
         @Override
@@ -877,6 +941,8 @@ public class SimulatorController implements Serializable {
 
             LocationLog currentLocationLog = llw.getLocationLog();
             LocationLogDetail currentLocationLogDetail = null;
+            double distance = 0.0d;
+
             if (!llw.isFinished()) {
                 for (int d = llw.getDetailPosition(); d < currentLocationLog.getLocationLogDetailList().size(); d++) {
                     currentLocationLogDetail = currentLocationLog.getLocationLogDetailList().get(d);
@@ -889,7 +955,8 @@ public class SimulatorController implements Serializable {
                         trackMarker.setLatlng(new LatLng(currentLocationLogDetail.getLatitude(), currentLocationLogDetail.getLongitude()));
                         LocationLogDetail previousLocationLogDetail = currentLocationLog.getLocationLogDetailList().get(previousPosition);
                         // Acumulamos la distancia recorrida.
-                        llw.addSectionDistance(Util.distanceHaversine(previousLocationLogDetail.getLatitude(), previousLocationLogDetail.getLongitude(), currentLocationLogDetail.getLatitude(), currentLocationLogDetail.getLongitude()));
+                        distance = Util.distanceHaversine(previousLocationLogDetail.getLatitude(), previousLocationLogDetail.getLongitude(), currentLocationLogDetail.getLatitude(), currentLocationLogDetail.getLongitude());
+                        llw.addSectionDistance(distance);
                         // Análisis del PKE (Positive Kinetic Energy)
                         llw.addCummulativePositiveSpeeds(analyzePKE(currentLocationLogDetail, previousLocationLogDetail));
 
@@ -902,7 +969,7 @@ public class SimulatorController implements Serializable {
                             this.cancel();
                         }
 
-                        // Información
+                        // Información.
                         StringBuilder sb = new StringBuilder();
                         sb.append(ResourceBundle.getBundle("/Bundle").getString("Time")).append(": ").append(Constants.dfTime.format(currentLocationLogDetail.getTimeLog()));
                         sb.append(" ");
@@ -923,7 +990,7 @@ public class SimulatorController implements Serializable {
                 rd.setTime(currentLocationLogDetail.getTimeLog().getTime() + delay);
                 rd.setLatitude(currentLocationLogDetail.getLatitude());
                 rd.setLongitude(currentLocationLogDetail.getLongitude());
-                rd.setSpeed(currentLocationLogDetail.getSpeed() / llw.getRandomFactor());
+                rd.setSpeed(distance * 3.6 / rd.getTime());
 
                 llw.getRoadSectionList().add(rd);
             }

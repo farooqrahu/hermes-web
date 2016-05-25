@@ -87,11 +87,11 @@
                                     <f:selectItem itemValue="0" itemLabel="Google Maps"/>
                                     <f:selectItem itemValue="1" itemLabel="OpenStreetMap"/>
                                 </h:selectOneRadio>
-                                <p:commandButton value="#{bundle.GenerateTracks}" action="#{simulatorController.generateSimulatedTracks()}" update="gmap, trackInfoPanel"/>
+                                <p:commandButton id="generateButton" value="#{bundle.GenerateTracks}" action="#{simulatorController.generateSimulatedTracks()}" update="gmap, trackInfoPanel" disabled="#{simulatorController.simulating}"/>
                                 <h:outputText value="#{bundle.simulatedSmartDriversPerTrack}" />
                                 <p:inputText id="simulatedSmartDrivers" value="#{simulatorController.simulatedSmartDrivers}" />
                                 <p:slider for="simulatedSmartDrivers" minValue="1" maxValue="100"/>
-                                <p:commandButton id="simulateButton" value="#{simulatorController.simulating ? bundle.StopSimulation : bundle.StartSimulation}" action="#{simulatorController.realTimeSimulate()}" update="gmapUpdater, gmap"/>
+                                <p:commandButton id="simulateButton" value="#{simulatorController.simulating ? bundle.StopSimulation : bundle.StartSimulation}" action="#{simulatorController.realTimeSimulate()}" update="gmapUpdater, gmap, generateButton"/>
                             </h:panelGrid>
                         </p:panel>
                         <p:panel id="trackInfoPanel" header="#{bundle.TrackInfo}" style="margin: 10px;">

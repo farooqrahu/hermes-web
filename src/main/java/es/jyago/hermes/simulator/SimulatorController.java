@@ -196,10 +196,12 @@ public class SimulatorController implements Serializable {
                     @Override
                     public String call() {
                         String json = null;
-                        try {
-                            json = IOUtils.toString(new URL("http://cronos.lbd.org.es/hermes/api/smartdriver/network/route?fromLat=" + origin.getLat() + "&fromLng=" + origin.getLng() + "&toLat=" + destination.getLat() + "&toLng=" + destination.getLng()), "UTF-8");
-                        } catch (IOException ex) {
-                            LOG.log(Level.SEVERE, "generateSimulatedTracks() - OpenStreet Maps - Error I/O: {0}", ex.getMessage());
+                        while (json == null) {
+                            try {
+                                json = IOUtils.toString(new URL("http://cronos.lbd.org.es/hermes/api/smartdriver/network/route?fromLat=" + origin.getLat() + "&fromLng=" + origin.getLng() + "&toLat=" + destination.getLat() + "&toLng=" + destination.getLng()), "UTF-8");
+                            } catch (IOException ex) {
+                                LOG.log(Level.SEVERE, "generateSimulatedTracks() - OpenStreet Maps - Error I/O: {0}", ex.getMessage());
+                            }
                         }
 
                         return json;

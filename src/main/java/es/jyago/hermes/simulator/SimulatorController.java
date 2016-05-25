@@ -196,11 +196,16 @@ public class SimulatorController implements Serializable {
                     @Override
                     public String call() {
                         String json = null;
+                        Location o = origin;
+                        Location d = destination;
                         while (json == null) {
                             try {
-                                json = IOUtils.toString(new URL("http://cronos.lbd.org.es/hermes/api/smartdriver/network/route?fromLat=" + origin.getLat() + "&fromLng=" + origin.getLng() + "&toLat=" + destination.getLat() + "&toLng=" + destination.getLng()), "UTF-8");
+                                json = IOUtils.toString(new URL("http://cronos.lbd.org.es/hermes/api/smartdriver/network/route?fromLat=" + o.getLat() + "&fromLng=" + o.getLng() + "&toLat=" + d.getLat() + "&toLng=" + d.getLng()), "UTF-8");
                             } catch (IOException ex) {
                                 LOG.log(Level.SEVERE, "generateSimulatedTracks() - OpenStreet Maps - Error I/O: {0}", ex.getMessage());
+                                // Generamos nuevos puntos aleatorios hasta que sean aceptados.
+                                o = getRandomLocation(SEVILLE.getLat(), SEVILLE.getLng(), distanceFromSevilleCenter);
+                                d = getRandomLocation(origin.getLat(), origin.getLng(), distance);
                             }
                         }
 
@@ -274,69 +279,59 @@ public class SimulatorController implements Serializable {
             // Listado de posiciones que componen el trayecto de SmartDriver.
             ArrayList<LocationLogDetail> locationLogDetailList = new ArrayList<>();
 
-            double speed;
             double trackDistance = 0.0d;
             double maximumLocationDistance = 0.0d;
             LatLng previous = null;
+            LocalTime localTime = new LocalTime();
 
             // Analizamos la información obtenida de la consulta a OpenStreetMap.
             for (GeomWaySteps gws : geomWayStepsList) {
-                trackDistance += gws.getLength();
+                trackDistance += (gws.getLength() * 1000); // Almacenamos la distancia en metros.
 
                 // Es como un fragmento de la ruta.
                 GeomWay gw = gws.getGeomWay();
                 if (gw.getCoordinates() != null) {
                     // Iteramos sobre los puntos que componen ese fragmento.
-                    for (int i = 0; i < gw.getCoordinates().size(); i++) {
-                        // Viene en formato: longitud, latitud.
-                        List<Double> coordinates = gw.getCoordinates().get(i);
+                    // FIXME: Parece que los puntos que forman el fragmento no vienen ordenados.
+//                    for (int i = 0; i < gw.getCoordinates().size(); i++) {
+                    int i = 0;
+                    // Viene en formato: longitud, latitud.
+                    List<Double> coordinates = gw.getCoordinates().get(i);
 
-                        // Añadimos un nuevo punto en la polilínea que se dibujará por pantalla.
-                        LatLng latlng = new LatLng(coordinates.get(1), coordinates.get(0));
-                        polyline.getPaths().add(latlng);
+                    // Añadimos un nuevo punto en la polilínea que se dibujará por pantalla.
+                    LatLng latlng = new LatLng(coordinates.get(1), coordinates.get(0));
+                    polyline.getPaths().add(latlng);
 
-                        // Creamos una marca con la información detallada, para poder mostrarla cuando se pulse en la posición en Google Maps.
-                        StringBuilder sb = new StringBuilder();
-//        sb.append(ResourceBundle.getBundle("/Bundle").getString("Time")).append(": ").append(Constants.dfTime.format(location.getTimeLog()));
-//        sb.append(" ");
-//        sb.append(ResourceBundle.getBundle("/Bundle").getString("HeartRate")).append(": ").append(Integer.toString(location.getHeartRate()));
-//        sb.append(" ");
-//        sb.append(ResourceBundle.getBundle("/Bundle").getString("Speed")).append(": ").append(location.getSpeed());
-//        sb.append(" (").append(location.getLatitude()).append(", ").append(location.getLongitude()).append(")");
+                    // Creamos un nodo del trayecto, como si usásemos SmartDriver.
+                    LocationLogDetail lld = new LocationLogDetail();
+                    lld.setLocationLog(ll);
+                    lld.setLatitude(latlng.getLat());
+                    lld.setLongitude(latlng.getLng());
+                    // FIXME: Inicialmente pondremos que vaya a la velocidad máxima de cada nodo.
+                    lld.setSpeed(gws.getMaxSpeed());
 
-// FIXME: ¿Poner de nuevo?
-//                    Marker m = new Marker(latlng, sb.toString(), "https://maps.google.com/mapfiles/ms/micons/blue.png");
-//                    m.setVisible(false);
-//
-//                    simulatedMapModel.addOverlay(m);
-                        // Creamos un nodo del trayecto, como si usásemos SmartDriver.
-                        LocationLogDetail lld = new LocationLogDetail();
-                        lld.setLocationLog(ll);
-                        lld.setLatitude(latlng.getLat());
-                        lld.setLongitude(latlng.getLng());
-
-                        if (previous != null) {
-                            // Calculamos la distancia en metros entre los puntos previo y actual, así como el tiempo necesario para recorrer dicha distancia.
-                            Double pointDistance = Util.distanceHaversine(previous.getLat(), previous.getLng(), latlng.getLat(), latlng.getLng());
-                            if (pointDistance > maximumLocationDistance) {
-                                maximumLocationDistance = pointDistance;
-                            }
+                    if (previous != null) {
+                        // Calculamos la distancia en metros entre los puntos previo y actual, así como el tiempo necesario para recorrer dicha distancia.
+                        Double pointDistance = Util.distanceHaversine(previous.getLat(), previous.getLng(), latlng.getLat(), latlng.getLng());
+                        if (pointDistance > maximumLocationDistance) {
+                            maximumLocationDistance = pointDistance;
                         }
-
-                        locationLogDetailList.add(lld);
-
-                        // Asignamos el actual al anterior, para poder seguir calculando las distancias y tiempos respecto al punto previo.
-                        previous = latlng;
+                        // Convertimos los Km/h en m/s.
+                        double currentSpeedMS = lld.getSpeed() / 3.6d;
+                        // Añadimos los segundos correspondientes a la distancia recorrida entre puntos.
+                        localTime = localTime.plusSeconds((int) (pointDistance / currentSpeedMS));
                     }
+
+                    lld.setTimeLog(localTime.toDateTimeToday().toDate());
+
+                    locationLogDetailList.add(lld);
+
+                    // Asignamos el actual al anterior, para poder seguir calculando las distancias y tiempos respecto al punto previo.
+                    previous = latlng;
+//                }
 
                     simulatedMapModel.addOverlay(polyline);
                 }
-
-//                // Asignamos un 'marker' con la posición inicial de cada trayecto.
-//                LatLng latLng = new LatLng(currentLocationLogDetail.getLatitude(), currentLocationLogDetail.getLongitude());
-//                Marker m = new Marker(latLng, "", "https://maps.google.com/mapfiles/ms/micons/cabs.png");
-//                m.setVisible(true);
-//                simulatedMapModel.addOverlay(m);
             }
             summary.setDistance((int) trackDistance);
 //                    summary.setDuration();
@@ -357,11 +352,13 @@ public class SimulatorController implements Serializable {
             Marker startMarker = new Marker(startLatLng);
             startMarker.setVisible(true);
             startMarker.setDraggable(false);
+            startMarker.setTitle(getMarkerTitle(startPosition));
             startMarker.setIcon(MARKER_START_ICON_PATH);
             simulatedMapModel.addOverlay(startMarker);
             Marker endMarker = new Marker(endLatLng);
             endMarker.setVisible(true);
             endMarker.setDraggable(false);
+            endMarker.setTitle(getMarkerTitle(endPosition));
             endMarker.setIcon(MARKER_FINISH_ICON_PATH);
             simulatedMapModel.addOverlay(endMarker);
 
@@ -457,11 +454,13 @@ public class SimulatorController implements Serializable {
                     Marker startMarker = new Marker(startLatLng);
                     startMarker.setVisible(true);
                     startMarker.setDraggable(false);
+                    startMarker.setTitle(getMarkerTitle(startPosition));
                     startMarker.setIcon(MARKER_START_ICON_PATH);
                     simulatedMapModel.addOverlay(startMarker);
                     Marker endMarker = new Marker(endLatLng);
                     endMarker.setVisible(true);
                     endMarker.setDraggable(false);
+                    endMarker.setTitle(getMarkerTitle(endPosition));
                     endMarker.setIcon(MARKER_FINISH_ICON_PATH);
                     simulatedMapModel.addOverlay(endMarker);
 
@@ -580,29 +579,35 @@ public class SimulatorController implements Serializable {
     }
 
     public boolean isSimulating() {
-        return simulationTimers != null;
+        return simulationTimers != null && !simulationTimers.isEmpty();
     }
 
     public void getCurrentLatLng() {
         try {
-            for (Marker m : simulatedMapModel.getMarkers()) {
-                LOG.log(Level.FINE, "getCurrentLatLng() - Id del marker: {0}", m.getId());
-                LatLng latLng = m.getLatlng();
-                RequestContext context = RequestContext.getCurrentInstance();
-                // Posición.
-                if (latLng != null) {
-                    context.addCallbackParam("latLng_" + m.getId(), latLng.getLat() + "," + latLng.getLng());
+            if (isSimulating()) {
+                for (Marker m : simulatedMapModel.getMarkers()) {
+                    LOG.log(Level.FINE, "getCurrentLatLng() - Id del marker: {0}", m.getId());
+                    LatLng latLng = m.getLatlng();
+                    RequestContext context = RequestContext.getCurrentInstance();
+                    // Posición.
+                    if (latLng != null) {
+                        context.addCallbackParam("latLng_" + m.getId(), latLng.getLat() + "," + latLng.getLng());
+                    }
+                    // Icono
+                    String icon = m.getIcon();
+                    if (icon != null) {
+                        context.addCallbackParam("icon_" + m.getId(), icon);
+                    }
+                    // Información
+                    String title = m.getTitle();
+                    if (title != null) {
+                        context.addCallbackParam("title_" + m.getId(), title);
+                    }
                 }
-                // Icono
-                String icon = m.getIcon();
-                if (icon != null) {
-                    context.addCallbackParam("icon_" + m.getId(), icon);
-                }
-                // Información
-                String title = m.getTitle();
-                if (title != null) {
-                    context.addCallbackParam("title_" + m.getId(), title);
-                }
+            }
+            else
+            {
+                resetCarMarkers();
             }
         } catch (Exception ex) {
         }
@@ -610,7 +615,7 @@ public class SimulatorController implements Serializable {
 
     public void realTimeSimulate() {
         // Si el temporizador está instanciado, es que hay una simulación en marcha y se quiere parar.
-        if (simulationTimers != null && simulationTimers.size() > 0) {
+        if (simulationTimers != null && !simulationTimers.isEmpty()) {
             simulationFinishedMessage = MessageFormat.format(LocaleBean.getBundle().getString("ZtreamyTimeouts"), ztreamyErrors);
             if (ztreamyErrors > 0) {
                 LOG.log(Level.SEVERE, "realTimeSimulate() - RESULTADO: Errores: {0} / Total: {1}. Hilos restantes: {2}", new Object[]{ztreamyErrors, zTreamySends, runningThreads});
@@ -618,15 +623,14 @@ public class SimulatorController implements Serializable {
                 LOG.log(Level.INFO, "realTimeSimulate() - RESULTADO: Los envíos a Ztreamy se han realizado correctamente. Hilos restantes: {0}", runningThreads);
             }
 
-            if (simulationTimers != null) {
-                for (Timer timer : simulationTimers.values()) {
-                    if (timer != null) {
-                        timer.cancel();
-                        timer = null;
-                    }
+            for (Timer timer : simulationTimers.values()) {
+                if (timer != null) {
+                    timer.cancel();
+                    timer = null;
                 }
-                simulationTimers = null;
             }
+
+            resetSimulation();
             LOG.log(Level.INFO, "realTimeSimulate() - Fin de la simulación: {0}", Constants.dfISO8601.format(System.currentTimeMillis()));
             LOG.log(Level.INFO, "realTimeSimulate() - Se han enviado {0} tramas, de las que {1} han fallado", new Object[]{zTreamySends, ztreamyErrors});
         } else {
@@ -638,19 +642,10 @@ public class SimulatorController implements Serializable {
             for (int i = 0; i < locationLogList.size(); i++) {
                 LocationLog ll = locationLogList.get(i);
                 LocationLogDetail startPosition = ll.getLocationLogDetailList().get(0);
-
-                // Creamos una marca con la información detallada, para poder mostrarla cuando se pulse en la posición en Google Maps.
-                StringBuilder sb = new StringBuilder();
-                sb.append(ResourceBundle.getBundle("/Bundle").getString("Time")).append(": ").append(Constants.dfTime.format(startPosition.getTimeLog()));
-                sb.append(" ");
-//                        sb.append(ResourceBundle.getBundle("/Bundle").getString("HeartRate")).append(": ").append(Integer.toString(location.getHeartRate()));
-//                        sb.append(" ");
-                sb.append(ResourceBundle.getBundle("/Bundle").getString("Speed")).append(": ").append(Constants.df2Decimals.format(startPosition.getSpeed())).append(" Km/h");
-                sb.append(" (").append(startPosition.getLatitude()).append(", ").append(startPosition.getLongitude()).append(")");
                 LatLng latLng = new LatLng(startPosition.getLatitude(), startPosition.getLongitude());
 
                 for (int j = 0; j < simulatedSmartDrivers; j++) {
-                    Marker m = new Marker(latLng, sb.toString(), null, MARKER_ICON_PATH);
+                    Marker m = new Marker(latLng, getMarkerTitle(startPosition), null, MARKER_ICON_PATH);
                     m.setVisible(true);
                     m.setDraggable(false);
 
@@ -666,16 +661,21 @@ public class SimulatorController implements Serializable {
 
     private void resetSimulation() {
 
+        resetCarMarkers();
+        simulationTimers = new HashMap<>();
+        zTreamySends = 0;
+        ztreamyErrors = 0;
+        simulationFinishedMessage = "";
+    }
+    
+    private void resetCarMarkers()
+    {
         for (int i = simulatedMapModel.getMarkers().size() - 1; i >= 0; i--) {
             Marker m = simulatedMapModel.getMarkers().get(i);
             if (m.getIcon().equals(MARKER_ICON_PATH)) {
                 simulatedMapModel.getMarkers().remove(i);
             }
         }
-        simulationTimers = new HashMap<>();
-        zTreamySends = 0;
-        ztreamyErrors = 0;
-        simulationFinishedMessage = "";
     }
 
     private void sendLocationToZtreamy(LocationLogDetail lld, double randomFactor) {
@@ -924,6 +924,18 @@ public class SimulatorController implements Serializable {
         }
     }
 
+    private String getMarkerTitle(LocationLogDetail currentLocationLogDetail) {
+        StringBuilder sb = new StringBuilder();
+        sb.append(ResourceBundle.getBundle("/Bundle").getString("Time")).append(": ").append(Constants.dfTime.format(currentLocationLogDetail.getTimeLog()));
+        sb.append(" ");
+//        sb.append(ResourceBundle.getBundle("/Bundle").getString("HeartRate")).append(": ").append(Integer.toString(location.getHeartRate()));
+//        sb.append(" ");
+        sb.append(ResourceBundle.getBundle("/Bundle").getString("Speed")).append(": ").append(Constants.df2Decimals.format(currentLocationLogDetail.getSpeed())).append(" Km/h");
+        sb.append(" (").append(currentLocationLogDetail.getLatitude()).append(", ").append(currentLocationLogDetail.getLongitude()).append(")");
+
+        return sb.toString();
+    }
+
     class SimTimerTask extends TimerTask {
 
         private final LocationLogWrapper llw;
@@ -972,14 +984,7 @@ public class SimulatorController implements Serializable {
                         }
 
                         // Información.
-                        StringBuilder sb = new StringBuilder();
-                        sb.append(ResourceBundle.getBundle("/Bundle").getString("Time")).append(": ").append(Constants.dfTime.format(currentLocationLogDetail.getTimeLog()));
-                        sb.append(" ");
-//                        sb.append(ResourceBundle.getBundle("/Bundle").getString("HeartRate")).append(": ").append(Integer.toString(location.getHeartRate()));
-//                        sb.append(" ");
-                        sb.append(ResourceBundle.getBundle("/Bundle").getString("Speed")).append(": ").append(Constants.df2Decimals.format(currentLocationLogDetail.getSpeed())).append(" Km/h");
-                        sb.append(" (").append(currentLocationLogDetail.getLatitude()).append(", ").append(currentLocationLogDetail.getLongitude()).append(")");
-                        trackMarker.setTitle(sb.toString());
+                        trackMarker.setTitle(getMarkerTitle(currentLocationLogDetail));
                         break;
                     }
                 }

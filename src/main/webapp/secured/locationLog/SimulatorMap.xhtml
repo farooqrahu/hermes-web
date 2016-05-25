@@ -54,7 +54,7 @@
 
                 <c:otherwise>
                     <p:panel id="gmapUpdater" style="display: none">
-                        <p:poll interval="1" listener="#{simulatorController.getCurrentLatLng()}" oncomplete="handleComplete(xhr, status, args)" update="simulatorMessage, simulateButton, @this" rendered="#{simulatorController.simulating}"/>
+                        <p:poll interval="1" listener="#{simulatorController.getCurrentLatLng()}" oncomplete="handleComplete(xhr, status, args)" update="simulatorMessage, simulateButton, generateButton, @this" rendered="#{simulatorController.simulating}"/>
                     </p:panel>
                     <!-- FIXME: Poner 'fitBounds' cuando se corrija el 'bug' que tiene Primefaces con Google Maps -->
                     <p:gmap id="gmap" widgetVar="gmap" center="#{simulatorController.markerLatitudeLongitude}" zoom="10" type="ROADMAP" model="#{simulatorController.simulatedMapModel}" style="height:400px" fitBounds="true">
@@ -70,7 +70,7 @@
                     </p:outputPanel>
 
                     <div style="width: 100%; display: flex">
-                        <p:panel header="#{bundle.TrackConditions}" style="width: 30%; margin: 10px; overflow-y: scroll;">
+                        <p:panel header="#{bundle.TrackConditions}" style="width: 30%; margin: 10px;">
                             <h:panelGrid columns="1">
                                 <h:outputText value="#{bundle.DistanceFromSevilleCenter} (Km)" />
                                 <p:inputText id="distanceFromSevilleCenter" value="#{simulatorController.distanceFromSevilleCenter}" />

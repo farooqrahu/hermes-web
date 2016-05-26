@@ -77,6 +77,7 @@ public class SimulatorController implements Serializable {
     private volatile String simulationFinishedMessage;
     private boolean realTime;
     private int timeRate;
+    private int simulatedSpeed;
     // Parámetros recogidos de SmartDriver.
     private static final String APPLICATION_ID = "SmartDriver";
     private static final int ZTREAMY_SEND_INTERVAL_MILLISECONDS = 10000;
@@ -125,10 +126,9 @@ public class SimulatorController implements Serializable {
         ztreamyErrors = 0;
         zTreamySends = 0;
         runningThreads = 0;
-
-        // FIXME: !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-        realTime = false;
-        timeRate = 10; // En milisegundos.
+        realTime = true;
+        timeRate = 1000; // En milisegundos.
+        simulatedSpeed = 0;
 
         // En este caso, no cogemos la configuración de Ztreamy, sino que enviamos los datos a una URL con un Ztreamy para pruebas.
 //        url = Constants.getInstance().getConfigurationValueByKey("ZtreamyUrl");
@@ -604,9 +604,7 @@ public class SimulatorController implements Serializable {
                         context.addCallbackParam("title_" + m.getId(), title);
                     }
                 }
-            }
-            else
-            {
+            } else {
                 resetCarMarkers();
             }
         } catch (Exception ex) {
@@ -638,7 +636,7 @@ public class SimulatorController implements Serializable {
             LOG.log(Level.INFO, "realTimeSimulate() - Comienzo de la simulación: {0}", Constants.dfISO8601.format(System.currentTimeMillis()));
             LOG.log(Level.INFO, "realTimeSimulate() - Condiciones: Actualización cada: {0} milisegundos. Ejecución en tiempo real: {1}", new Object[]{timeRate, realTime});
             runningThreads = simulatedSmartDrivers * locationLogList.size();
-            LOG.log(Level.INFO, "realTimeSimulate() - Se crean: {0} hilos dejecución", runningThreads);
+            LOG.log(Level.INFO, "realTimeSimulate() - Se crean: {0} hilos de ejecución", runningThreads);
             for (int i = 0; i < locationLogList.size(); i++) {
                 LocationLog ll = locationLogList.get(i);
                 LocationLogDetail startPosition = ll.getLocationLogDetailList().get(0);
@@ -667,9 +665,8 @@ public class SimulatorController implements Serializable {
         ztreamyErrors = 0;
         simulationFinishedMessage = "";
     }
-    
-    private void resetCarMarkers()
-    {
+
+    private void resetCarMarkers() {
         for (int i = simulatedMapModel.getMarkers().size() - 1; i >= 0; i--) {
             Marker m = simulatedMapModel.getMarkers().get(i);
             if (m.getIcon().equals(MARKER_ICON_PATH)) {
@@ -825,6 +822,58 @@ public class SimulatorController implements Serializable {
 
     }
 
+    public int getSimulatedSpeed() {
+        return simulatedSpeed;
+    }
+
+    public String getSimulatedSpeedFormatted() {
+        switch (this.simulatedSpeed) {
+            case 0:
+                return "1x";
+            case 1:
+                return "10x";
+            case 2:
+                return "100x";
+            case 3:
+                return "1000x";
+            default:
+                return "1x";
+        }
+    }
+
+    public void setSimulatedSpeed(int simulatedSpeed) {
+        this.simulatedSpeed = simulatedSpeed;
+
+        switch (this.simulatedSpeed) {
+            case 0:
+                // Tiempo real.
+                realTime = true;
+                timeRate = 1000;
+                break;
+            case 1:
+                // 10x
+                realTime = false;
+                timeRate = 100;
+                break;
+            case 2:
+                // 100x
+                realTime = false;
+                timeRate = 10;
+                break;
+            case 3:
+                // 1000x
+                realTime = false;
+                timeRate = 1;
+                break;
+
+            default:
+                // Tiempo real.
+                realTime = true;
+                timeRate = 1000;
+                break;
+        }
+    }
+
     class LocationLogWrapper {
 
         private int detailPosition;
@@ -934,6 +983,7 @@ public class SimulatorController implements Serializable {
         sb.append(" (").append(currentLocationLogDetail.getLatitude()).append(", ").append(currentLocationLogDetail.getLongitude()).append(")");
 
         return sb.toString();
+
     }
 
     class SimTimerTask extends TimerTask {

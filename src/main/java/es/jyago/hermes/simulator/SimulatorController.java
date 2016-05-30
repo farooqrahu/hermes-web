@@ -271,7 +271,7 @@ public class SimulatorController implements Serializable {
             Random rand = new Random();
 
             // Hacemos que las rutas sean variaciones de azul.
-            polyline.setStrokeColor("#0000" + String.format("%02x", rand.nextInt(0x100)));
+            polyline.setStrokeColor("#2222" + String.format("%02x", rand.nextInt(0x100)));
 
             // Resumen que mostraremos por pantalla.
             SectionInfo summary = trackInfo.getSummary();
@@ -280,6 +280,7 @@ public class SimulatorController implements Serializable {
             ArrayList<LocationLogDetail> locationLogDetailList = new ArrayList<>();
 
             double trackDistance = 0.0d;
+            double trackDuration = 0.0d;
             double maximumLocationDistance = 0.0d;
             LatLng previous = null;
             LocalTime localTime = new LocalTime();
@@ -319,7 +320,9 @@ public class SimulatorController implements Serializable {
                         // Convertimos los Km/h en m/s.
                         double currentSpeedMS = lld.getSpeed() / 3.6d;
                         // Añadimos los segundos correspondientes a la distancia recorrida entre puntos.
-                        localTime = localTime.plusSeconds((int) (pointDistance / currentSpeedMS));
+                        double seconds = (pointDistance / currentSpeedMS);
+                        trackDuration += seconds;
+                        localTime = localTime.plusSeconds((int) Math.ceil(seconds));
                     }
 
                     lld.setTimeLog(localTime.toDateTimeToday().toDate());
@@ -334,7 +337,7 @@ public class SimulatorController implements Serializable {
                 }
             }
             summary.setDistance((int) trackDistance);
-//                    summary.setDuration();
+            summary.setDuration((int) trackDuration);
 //                    summary.setStartLocation(l.getStartLocation());
             summary.setStartAddress(geomWayStepsList.get(0).getLinkName());
 //                    summary.setEndLocation(l.getEndLocation());
@@ -379,7 +382,7 @@ public class SimulatorController implements Serializable {
 
             Random rand = new Random();
             // Hacemos que las rutas sean variaciones de verde.
-            polyline.setStrokeColor("#00" + String.format("%02x", rand.nextInt(0x100)) + "00");
+            polyline.setStrokeColor("#22" + String.format("%02x", rand.nextInt(0x100)) + "22");
 
             // Listado de posiciones que componen el trayecto de SmartDriver.
             ArrayList<LocationLogDetail> locationLogDetailList = new ArrayList<>();
